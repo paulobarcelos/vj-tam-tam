@@ -9,7 +9,7 @@ VJ Tam Tam is a user-friendly, web-based "auto VJ" tool designed to solve the pr
 - **Vision:** To become the go-to, effortless web tool for anyone wanting to add a dynamic, personal, and "eternal" visual backdrop to their social gatherings, empowering them to create a unique atmosphere simply by using their existing media.
 
 - **Primary Goals (MVP):**
-    1.  Enable users to instantly initiate an endless, randomized playback of their local photos (JPG/PNG/GIF/HEIC/WebP) and videos (MP4/MOV/WebM) by simply dropping files or selecting via a file dialog.
+    1.  Enable users to instantly initiate an endless, randomized playback of their local photos (JPG/PNG/GIF/HEIC/WebP) and videos (MP4/MOV/WebM/AVI) by simply dropping files or selecting via a file dialog.
     2.  Implement a core playback engine that seamlessly transitions between media segments (with an initial default duration of 5 seconds each, individually configurable from 1 to 30 seconds) using hard cuts, ensuring a continuous and unpredictable visual flow.
     3.  Provide an intuitive text overlay system allowing users to add and display custom messages randomly over the visuals, with configurable frequency and a visually impactful presentation.
     4.  Develop a hidden-by-default "Advanced" mode accessible via a UI toggle, offering essential projection mapping controls (perspective warp, rotate/flip/scale) and basic color correction (brightness, contrast, saturation) for adapting to various projector setups.
@@ -51,7 +51,7 @@ These users value ease of use, quick results, and a tool that enhances the atmos
 ## 4. Key Features / Scope (High-Level Ideas for MVP)
 
 * **Media Input:**
-    * Ability to add media (photos: JPG, PNG, GIF, HEIC, WebP; videos: MP4, MOV, WebM) via drag-and-drop of files/folders or a native file picker dialog.
+    * Ability to add media (photos: JPG, PNG, GIF, HEIC, WebP; videos: MP4, MOV, WebM, AVI) via drag-and-drop of files/folders or a native file picker dialog.
     * Additive media pool: new files are added to the existing set, not replaced.
     * Option to clear the entire media pool.
 * **Playback Engine:**
@@ -159,14 +159,14 @@ This section outlines the breakdown of MVP scope into implementable Epics and Us
 
 1.  **Story:** As a User, I want to be able to drop image and video files/folders onto the application window so that I can easily load my media.
     * **AC 1.1:** Given I am on the VJ Tam Tam page, when I drag one or more image files (JPG, PNG, GIF, HEIC, WebP) from my file system and drop them anywhere onto the application window, then the application processes these files for playback.
-    * **AC 1.2:** Given I am on the VJ Tam Tam page, when I drag one or more video files (MP4, MOV, WebM) from my file system and drop them anywhere onto the application window, then the application processes these files for playback.
+    * **AC 1.2:** Given I am on the VJ Tam Tam page, when I drag one or more video files (MP4, MOV, WebM, AVI) from my file system and drop them anywhere onto the application window, then the application processes these files for playback.
     * **AC 1.3:** Given I am on the VJ Tam Tam page, when I drag a folder containing supported image and/or video files from my file system and drop it anywhere onto the application window, then the application recursively finds and processes all supported files within that folder.
-    * **AC 1.4:** Given I am on the VJ Tam Tam page, when I drag a file type that is *not* supported (e.g., a `.txt` or `.pdf` file) and drop it, then the application ignores this file **AND a toast notification appears indicating that the file type is not supported and listing the supported types (JPG, PNG, GIF, HEIC, WebP, MP4, MOV, WebM).**
+    * **AC 1.4:** Given I am on the VJ Tam Tam page, when I drag a file type that is *not* supported (e.g., a `.txt` or `.pdf` file) and drop it, then the application ignores this file **AND a toast notification appears indicating that the file type is not supported and listing the supported types (JPG, PNG, GIF, HEIC, WebP, MP4, MOV, WebM, AVI).**
     * **AC 1.5:** Given I am on the VJ Tam Tam page, when I drag files/folders, then the application window provides a visual indication (e.g., a border change or overlay) that it is a valid drop target.
 2.  **Story:** As a User, I want to be able to select image and video files/folders using a standard file picker dialog so that I have an alternative way to load my media if drag-and-drop is inconvenient.
     * **AC 2.1:** Given I am on the VJ Tam Tam page, when I click on a designated area or button for selecting files, then a standard operating system file picker dialog opens.
     * **AC 2.2:** Given the file picker is open, when I select one or more supported image files (JPG, PNG, GIF, HEIC, WebP) and confirm the selection, then the application processes these files for playback.
-    * **AC 2.3:** Given the file picker is open, when I select one or more supported video files (MP4, MOV, WebM) and confirm the selection, then the application processes these files for playback.
+    * **AC 2.3:** Given the file picker is open, when I select one or more supported video files (MP4, MOV, WebM, AVI) and confirm the selection, then the application processes these files for playback.
     * **AC 2.4:** Given the file picker is open, when I select a folder containing supported image and/or video files and confirm the selection, then the application recursively finds and processes all supported files within that folder.
     * **AC 2.5:** Given the file picker is open, when I select a file type that is *not* supported and confirm, then the application ignores this file **AND a toast notification appears indicating that the file type is not supported and listing the supported types.**
     * **AC 2.6:** Given the file picker is open, when I cancel the selection, then the picker closes, and the application state remains unchanged with no error message displayed.
