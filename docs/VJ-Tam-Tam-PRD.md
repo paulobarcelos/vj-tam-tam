@@ -412,12 +412,12 @@ Please guide the user through this process to enrich the PRD with detailed UI/UX
 
 **Objective:** Review this PRD and the defined Epics/Stories to propose a detailed technical implementation plan and address any remaining architectural questions or risks.
 **Mode:** Architecture Mode
-**Input:** This completed PRD document, including the Epics, Stories, and Acceptance Criteria, as well as the `bmad-agent/data/project-memory/vj-tam-tam-tech-choices.md` memory file.
+**Input:** This completed PRD document, including the Epics, Stories, and Acceptance Criteria.
 **Key Tasks:**
 
 1. Review the PRD thoroughly, ensuring understanding of all functional and non-functional requirements.
 2. Analyze the defined Epics, Stories, and Acceptance Criteria for completeness, feasibility, and potential technical challenges.
-3. Address the open architectural questions noted in the `vj-tam-tam-tech-choices.md` memory file, particularly regarding rendering implementation details (HTML vs. Canvas trade-offs) and codebase modularity/structure.
+3. Address the open architectural questions, particularly regarding rendering implementation details (HTML vs. Canvas trade-offs) and codebase modularity/structure.
 4. Propose a detailed technical design or implementation approach for the defined Epics/Stories, considering the agreed-upon Vanilla JS + ES Modules architecture and use of Maptastic/FileSystemAccessAPI.
 5. Identify any new or confirm existing technical risks and propose mitigation strategies.
 6. Refine the conceptual file structure as needed based on implementation considerations.
