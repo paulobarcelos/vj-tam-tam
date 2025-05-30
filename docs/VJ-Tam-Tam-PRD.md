@@ -149,8 +149,20 @@ These users value ease of use, quick results, and a tool that enhances the atmos
             ├── media/
             └── test-card.png
         ```
+## 7. Out of Scope Ideas / Post-MVP Exploration
 
-## 7. Epics, Stories, and Acceptance Criteria
+*The following ideas have been recorded during the initial architectural design phase. They are considered out of scope for the MVP but are valuable considerations for future product evolution.*
+
+### 7.1. Develop Custom In-House Perspective Mapping Library
+
+* **Proposal:** Explore the development of a custom, in-house perspective mapping library to replace the MVP's reliance on the Maptastic.js library.
+* **Rationale:**
+    1.  **Legacy Technology:** The currently planned Maptastic.js library for MVP, while functional, has not been updated in over a decade. This presents a potential long-term risk regarding future browser compatibility, maintainability, and security.
+    2.  **Deeper Control & Understanding:** A custom library would provide complete control over this core visual feature, allowing for easier integration of specific needs, potential performance optimizations tailored to VJ Tam Tam, and a modern codebase.
+    3.  **User Engagement & Passion:** The user (Vibe CEO) has expressed a particular interest in this aspect of the technology, which could drive innovation and quality for this key feature.
+* **
+
+## 8. Epics, Stories, and Acceptance Criteria
 
 This section outlines the breakdown of MVP scope into implementable Epics and User Stories, each with defined Acceptance Criteria.
 
@@ -159,14 +171,14 @@ This section outlines the breakdown of MVP scope into implementable Epics and Us
 
 1.  **Story:** As a User, I want to be able to drop image and video files/folders onto the application window so that I can easily load my media.
     * **AC 1.1:** Given I am on the VJ Tam Tam page, when I drag one or more image files (JPG, PNG, GIF, HEIC, WebP) from my file system and drop them anywhere onto the application window, then the application processes these files for playback.
-    * **AC 1.2:** Given I am on the VJ Tam Tam page, when I drag one or more video files (MP4, MOV, WebM, AVI) from my file system and drop them anywhere onto the application window, then the application processes these files for playback.
+    * **AC 1.2:** Given I am on the VJ Tam Tam page, when I drag one or more video files (MP4, MOV, WebM) from my file system and drop them anywhere onto the application window, then the application processes these files for playback.
     * **AC 1.3:** Given I am on the VJ Tam Tam page, when I drag a folder containing supported image and/or video files from my file system and drop it anywhere onto the application window, then the application recursively finds and processes all supported files within that folder.
-    * **AC 1.4:** Given I am on the VJ Tam Tam page, when I drag a file type that is *not* supported (e.g., a `.txt` or `.pdf` file) and drop it, then the application ignores this file **AND a toast notification appears indicating that the file type is not supported and listing the supported types (JPG, PNG, GIF, HEIC, WebP, MP4, MOV, WebM, AVI).**
+    * **AC 1.4:** Given I am on the VJ Tam Tam page, when I drag a file type that is *not* supported (e.g., a `.txt` or `.pdf` file) and drop it, then the application ignores this file **AND a toast notification appears indicating that the file type is not supported and listing the supported types (JPG, PNG, GIF, HEIC, WebP, MP4, MOV, WebM).**
     * **AC 1.5:** Given I am on the VJ Tam Tam page, when I drag files/folders, then the application window provides a visual indication (e.g., a border change or overlay) that it is a valid drop target.
 2.  **Story:** As a User, I want to be able to select image and video files/folders using a standard file picker dialog so that I have an alternative way to load my media if drag-and-drop is inconvenient.
     * **AC 2.1:** Given I am on the VJ Tam Tam page, when I click on a designated area or button for selecting files, then a standard operating system file picker dialog opens.
     * **AC 2.2:** Given the file picker is open, when I select one or more supported image files (JPG, PNG, GIF, HEIC, WebP) and confirm the selection, then the application processes these files for playback.
-    * **AC 2.3:** Given the file picker is open, when I select one or more supported video files (MP4, MOV, WebM, AVI) and confirm the selection, then the application processes these files for playback.
+    * **AC 2.3:** Given the file picker is open, when I select one or more supported video files (MP4, MOV, WebM) and confirm the selection, then the application processes these files for playback.
     * **AC 2.4:** Given the file picker is open, when I select a folder containing supported image and/or video files and confirm the selection, then the application recursively finds and processes all supported files within that folder.
     * **AC 2.5:** Given the file picker is open, when I select a file type that is *not* supported and confirm, then the application ignores this file **AND a toast notification appears indicating that the file type is not supported and listing the supported types.**
     * **AC 2.6:** Given the file picker is open, when I cancel the selection, then the picker closes, and the application state remains unchanged with no error message displayed.
