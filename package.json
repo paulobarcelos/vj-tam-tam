@@ -1,11 +1,33 @@
 {
   "name": "vj-tam-tam",
   "version": "1.0.0",
+  "type": "module",
   "description": "VJ Tam Tam is a user-friendly, web-based 'auto VJ' tool for effortless creation of dynamic, fullscreen visual displays from user-provided photos and videos, with features for text overlays and projection mapping.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest",
+    "test:unit": "vitest run --reporter=verbose",
+    "test:integration": "vitest run --reporter=verbose src/**/*.integration.test.js",
+    "coverage": "vitest run --coverage",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write ."
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@eslint/js": "^9.28.0",
+    "@vitest/coverage-v8": "^3.1.4",
+    "eslint": "^9.28.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-jsdoc": "^48.2.7",
+    "eslint-plugin-promise": "^6.1.1",
+    "eslint-plugin-prettier": "^5.1.3",
+    "eslint-config-prettier": "^9.1.0",
+    "husky": "^9.0.11",
+    "jsdom": "^24.0.0",
+    "lint-staged": "^15.2.2",
+    "prettier": "^3.2.5",
+    "vitest": "^3.1.4"
+  }
 }

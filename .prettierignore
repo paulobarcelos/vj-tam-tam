@@ -1,0 +1,15 @@
+# Exclude lib directory as per project structure
+lib/
+
+# Exclude bmad-agent
+bmad-agent/
+
+# Exclude node_modules
+node_modules/
+
+# Exclude build artifacts and temporary files
+*.log
+.DS_Store
+
+# Exclude package-lock.json
+package-lock.json 
