@@ -1,0 +1,11 @@
+{
+  "name": "vj-tam-tam",
+  "version": "1.0.0",
+  "description": "VJ Tam Tam is a user-friendly, web-based 'auto VJ' tool for effortless creation of dynamic, fullscreen visual displays from user-provided photos and videos, with features for text overlays and projection mapping.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
