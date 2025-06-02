@@ -178,8 +178,8 @@ If the project includes a significant user interface, a separate Frontend Archit
   ```typescript
   // Example
   export interface CreateOrderRequest {
-    customerId: string;
-    items: { productId: string; quantity: number }[];
+    customerId: string
+    items: { productId: string; quantity: number }[]
     // ...
   }
   ```
