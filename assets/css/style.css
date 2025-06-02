@@ -1,0 +1,188 @@
+/* VJ Tam Tam CSS */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #000;
+  color: #fff;
+  overflow: hidden;
+  height: 100vh;
+}
+
+#app {
+  display: flex;
+  height: 100vh;
+  position: relative;
+}
+
+/* Stage (main display area) */
+.stage {
+  flex: 1;
+  position: relative;
+  background-color: #111;
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.stage.drag-over {
+  border-color: #007acc;
+  background-color: rgba(0, 122, 204, 0.1);
+}
+
+.stage-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Drop indicator overlay */
+.drop-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 122, 204, 0.2);
+  border: 3px dashed #007acc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.drop-indicator.hidden {
+  display: none;
+}
+
+.drop-message {
+  text-align: center;
+  color: #007acc;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.supported-formats {
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  opacity: 0.8;
+}
+
+/* Left drawer */
+.left-drawer {
+  width: 300px;
+  background-color: #222;
+  border-right: 1px solid #444;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s ease;
+}
+
+.left-drawer.drag-over {
+  border-color: #007acc;
+  background-color: rgba(0, 122, 204, 0.1);
+}
+
+.drawer-header {
+  padding: 1rem;
+  border-bottom: 1px solid #444;
+}
+
+.drawer-header h2 {
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.media-pool {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+/* Toast notifications */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 2000;
+}
+
+.toast {
+  background-color: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid #444;
+  max-width: 400px;
+  word-wrap: break-word;
+  animation: toast-slide-in 0.3s ease-out;
+}
+
+.toast.error {
+  border-color: #ff4444;
+  background-color: rgba(255, 68, 68, 0.1);
+}
+
+.toast.success {
+  border-color: #44ff44;
+  background-color: rgba(68, 255, 68, 0.1);
+}
+
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Media pool items (placeholder for now) */
+.media-item {
+  background-color: #333;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.media-name {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  word-break: break-word;
+}
+
+.media-type {
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+.media-pool-empty {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  padding: 2rem 1rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .left-drawer {
+    width: 250px;
+  }
+  
+  .drop-message {
+    font-size: 1.2rem;
+  }
+} 

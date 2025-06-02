@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VJ Tam Tam</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Main stage area where media is displayed -->
+    <div id="stage" class="stage">
+      <div id="stage-content" class="stage-content">
+        <!-- Media will be displayed here -->
+      </div>
+      <!-- Drop indicator overlay -->
+      <div id="drop-indicator" class="drop-indicator hidden">
+        <div class="drop-message">
+          <p>Drop your media files here</p>
+          <p class="supported-formats">Supported: JPG, PNG, GIF, HEIC, WebP, MP4, MOV, WebM</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Left drawer with media pool -->
+    <div id="left-drawer" class="left-drawer">
+      <div class="drawer-header">
+        <h2>Media Pool</h2>
+      </div>
+      <div id="media-pool" class="media-pool">
+        <!-- Media items will be displayed here -->
+      </div>
+    </div>
+
+    <!-- Toast notification container -->
+    <div id="toast-container" class="toast-container"></div>
+  </div>
+
+  <!-- Main application script -->
+  <script type="module" src="src/main.js"></script>
+</body>
+</html> 
