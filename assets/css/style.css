@@ -42,6 +42,44 @@ body {
   justify-content: center;
 }
 
+/* Welcome message area */
+.welcome-message {
+  text-align: center;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  cursor: pointer;
+  padding: 2rem;
+  border-radius: 8px;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  user-select: none;
+}
+
+.welcome-message:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  transform: scale(1.02);
+}
+
+.welcome-message:active {
+  transform: scale(0.98);
+}
+
+.welcome-message h1 {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.welcome-message p {
+  font-size: 1.2rem;
+  font-weight: bold;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+.welcome-message.hidden {
+  display: none;
+}
+
 /* Drop indicator overlay */
 .drop-indicator {
   position: absolute;
@@ -93,11 +131,50 @@ body {
 .drawer-header {
   padding: 1rem;
   border-bottom: 1px solid #444;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .drawer-header h2 {
   font-size: 1.2rem;
   font-weight: 500;
+}
+
+/* File picker controls */
+.file-picker-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.file-picker-btn {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.file-picker-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.file-picker-btn:active {
+  transform: translateY(0);
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.file-picker-btn:focus {
+  outline: 2px solid #007acc;
+  outline-offset: 2px;
 }
 
 .media-pool {
@@ -129,12 +206,12 @@ body {
 
 .toast.error {
   border-color: #ff4444;
-  background-color: rgba(255, 68, 68, 0.1);
+  background-color: rgba(255, 68, 68, 0.9);
 }
 
 .toast.success {
   border-color: #44ff44;
-  background-color: rgba(68, 255, 68, 0.1);
+  background-color: rgba(68, 255, 68, 0.9);
 }
 
 @keyframes toast-slide-in {

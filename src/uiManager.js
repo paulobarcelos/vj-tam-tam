@@ -5,6 +5,7 @@
 
 import { eventBus } from './eventBus.js'
 import { mediaProcessor } from './mediaProcessor.js'
+import { fileSystemFacade } from './facades/fileSystemFacade.js'
 
 class UIManager {
   constructor() {
@@ -12,6 +13,8 @@ class UIManager {
     this.leftDrawer = null
     this.dropIndicator = null
     this.mediaPool = null
+    this.welcomeMessage = null
+    this.browseBtn = null
     this.dragCounter = 0 // Track drag enter/leave events
   }
 
@@ -23,14 +26,24 @@ class UIManager {
     this.leftDrawer = document.getElementById('left-drawer')
     this.dropIndicator = document.getElementById('drop-indicator')
     this.mediaPool = document.getElementById('media-pool')
+    this.welcomeMessage = document.getElementById('welcome-message')
+    this.browseBtn = document.getElementById('browse-btn')
 
-    if (!this.stage || !this.leftDrawer || !this.dropIndicator || !this.mediaPool) {
+    if (
+      !this.stage ||
+      !this.leftDrawer ||
+      !this.dropIndicator ||
+      !this.mediaPool ||
+      !this.welcomeMessage ||
+      !this.browseBtn
+    ) {
       console.error('Required DOM elements not found')
       return
     }
 
     this.setupDragAndDropListeners()
     this.setupEventBusListeners()
+    this.setupFilePickerListeners()
   }
 
   /**
@@ -59,6 +72,17 @@ class UIManager {
     eventBus.on('media.filesAdded', this.handleMediaFilesAdded.bind(this))
     eventBus.on('media.fileRemoved', this.handleMediaFileRemoved.bind(this))
     eventBus.on('media.poolCleared', this.handleMediaPoolCleared.bind(this))
+  }
+
+  /**
+   * Set up file picker event listeners
+   */
+  setupFilePickerListeners() {
+    // Welcome message click handler
+    this.welcomeMessage.addEventListener('click', this.handleBrowseClick.bind(this))
+
+    // Browse button handler
+    this.browseBtn.addEventListener('click', this.handleBrowseClick.bind(this))
   }
 
   /**
@@ -216,24 +240,27 @@ class UIManager {
   }
 
   /**
-   * Handle media files added event
+   * Handle media files being added
    */
   handleMediaFilesAdded() {
     this.updateMediaPoolDisplay()
+    this.updateWelcomeMessageVisibility()
   }
 
   /**
-   * Handle media file removed event
+   * Handle media file being removed
    */
   handleMediaFileRemoved() {
     this.updateMediaPoolDisplay()
+    this.updateWelcomeMessageVisibility()
   }
 
   /**
-   * Handle media pool cleared event
+   * Handle media pool being cleared
    */
   handleMediaPoolCleared() {
     this.updateMediaPoolDisplay()
+    this.updateWelcomeMessageVisibility()
   }
 
   /**
@@ -286,6 +313,28 @@ class UIManager {
     const i = Math.floor(Math.log(bytes) / Math.log(k))
 
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  /**
+   * Handle browse button and welcome message click for file selection
+   */
+  async handleBrowseClick() {
+    const files = await fileSystemFacade.browse()
+    if (files.length > 0) {
+      await mediaProcessor.processFiles(files)
+    }
+  }
+
+  /**
+   * Update welcome message visibility based on media pool state
+   */
+  updateWelcomeMessageVisibility() {
+    const mediaItems = mediaProcessor.getAllMedia()
+    if (mediaItems.length > 0) {
+      this.welcomeMessage.classList.add('hidden')
+    } else {
+      this.welcomeMessage.classList.remove('hidden')
+    }
   }
 }
 

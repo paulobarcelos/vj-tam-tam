@@ -73,16 +73,31 @@ class MediaProcessor {
   }
 
   /**
+   * Check if a file already exists in the media pool
+   * @param {File} file - File object to check
+   * @returns {boolean} - True if file already exists
+   */
+  isFileAlreadyInPool(file) {
+    const existingFiles = Array.from(this.mediaPool.values())
+    return existingFiles.some(
+      (mediaItem) => mediaItem.name === file.name && mediaItem.size === file.size
+    )
+  }
+
+  /**
    * Process and validate files from drag and drop
    * @param {File[]} files - Array of File objects to process
    */
   async processFiles(files) {
     const supportedFiles = []
     const unsupportedFiles = []
+    const duplicateFiles = []
 
     // Validate each file
     files.forEach((file) => {
-      if (this.isFileSupported(file)) {
+      if (this.isFileAlreadyInPool(file)) {
+        duplicateFiles.push(file)
+      } else if (this.isFileSupported(file)) {
         supportedFiles.push(file)
       } else {
         unsupportedFiles.push(file)
@@ -91,14 +106,18 @@ class MediaProcessor {
 
     // Show error for unsupported files
     if (unsupportedFiles.length > 0) {
-      const fileNames = unsupportedFiles.map((f) => f.name).join(', ')
       const supportedTypes = [
         ...SUPPORTED_IMAGE_EXTENSIONS.map((ext) => ext.toUpperCase()),
         ...SUPPORTED_VIDEO_EXTENSIONS.map((ext) => ext.toUpperCase()),
       ].join(', ')
 
+      toastManager.error(`Some files could not be imported. Supported formats: ${supportedTypes}`)
+    }
+
+    // Show info for duplicate files
+    if (duplicateFiles.length > 0) {
       toastManager.error(
-        `Unsupported file type(s): ${fileNames}. Supported formats: ${supportedTypes}`
+        `${duplicateFiles.length} file${duplicateFiles.length !== 1 ? 's' : ''} already in media pool (skipped)`
       )
     }
 

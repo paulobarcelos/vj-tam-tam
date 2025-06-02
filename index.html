@@ -8,10 +8,29 @@
 </head>
 <body>
   <div id="app">
+    <!-- Left drawer with media pool -->
+    <div id="left-drawer" class="left-drawer">
+      <div class="drawer-header">
+        <h2>Media Pool</h2>
+        <div class="file-picker-controls">
+          <button id="browse-btn" class="file-picker-btn" title="Browse for files and folders">
+            📁 Browse
+          </button>
+        </div>
+      </div>
+      <div id="media-pool" class="media-pool">
+        <!-- Media items will be displayed here -->
+      </div>
+    </div>
+
     <!-- Main stage area where media is displayed -->
     <div id="stage" class="stage">
       <div id="stage-content" class="stage-content">
-        <!-- Media will be displayed here -->
+        <!-- Welcome message area (clickable for file picker) -->
+        <div id="welcome-message" class="welcome-message">
+          <h1>Welcome to VJ Tam Tam</h1>
+          <p>Please drag and drop your photos and videos here, or click to browse, to start your performance</p>
+        </div>
       </div>
       <!-- Drop indicator overlay -->
       <div id="drop-indicator" class="drop-indicator hidden">
@@ -19,16 +38,6 @@
           <p>Drop your media files here</p>
           <p class="supported-formats">Supported: JPG, PNG, GIF, HEIC, WebP, MP4, MOV, WebM</p>
         </div>
-      </div>
-    </div>
-
-    <!-- Left drawer with media pool -->
-    <div id="left-drawer" class="left-drawer">
-      <div class="drawer-header">
-        <h2>Media Pool</h2>
-      </div>
-      <div id="media-pool" class="media-pool">
-        <!-- Media items will be displayed here -->
       </div>
     </div>
 

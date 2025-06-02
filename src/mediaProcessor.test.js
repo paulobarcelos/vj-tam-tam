@@ -19,6 +19,11 @@ vi.mock('./toastManager.js', () => ({
   },
 }))
 
+// Mock URL.revokeObjectURL for test environment
+globalThis.URL = globalThis.URL || {}
+globalThis.URL.revokeObjectURL = vi.fn()
+globalThis.URL.createObjectURL = vi.fn(() => 'blob:mock-url')
+
 describe('MediaProcessor', () => {
   beforeEach(() => {
     // Clear the media pool before each test
@@ -118,6 +123,83 @@ describe('MediaProcessor', () => {
       mediaProcessor.addToPool(mediaItem)
       expect(mediaProcessor.getAllMedia()).toHaveLength(1)
       expect(mediaProcessor.getAllMedia()[0]).toEqual(mediaItem)
+    })
+  })
+
+  describe('duplicate detection', () => {
+    it('should detect if file is already in pool', () => {
+      const file = { name: 'test.jpg', size: 1024, type: 'image/jpeg' }
+      const mediaItem = {
+        id: 'test_1',
+        name: 'test.jpg',
+        type: 'image',
+        mimeType: 'image/jpeg',
+        size: 1024,
+        file: {},
+        url: 'blob:test',
+        addedAt: new Date(),
+      }
+
+      // Pool is empty - should not be detected as duplicate
+      expect(mediaProcessor.isFileAlreadyInPool(file)).toBe(false)
+
+      // Add item to pool
+      mediaProcessor.addToPool(mediaItem)
+
+      // Now should be detected as duplicate
+      expect(mediaProcessor.isFileAlreadyInPool(file)).toBe(true)
+    })
+
+    it('should not detect different files as duplicates', () => {
+      const file2 = { name: 'test2.jpg', size: 1024, type: 'image/jpeg' }
+      const file3 = { name: 'test1.jpg', size: 2048, type: 'image/jpeg' }
+
+      const mediaItem = {
+        id: 'test_1',
+        name: 'test1.jpg',
+        type: 'image',
+        mimeType: 'image/jpeg',
+        size: 1024,
+        file: {},
+        url: 'blob:test',
+        addedAt: new Date(),
+      }
+
+      mediaProcessor.addToPool(mediaItem)
+
+      // Different name - should not be duplicate
+      expect(mediaProcessor.isFileAlreadyInPool(file2)).toBe(false)
+
+      // Different size - should not be duplicate
+      expect(mediaProcessor.isFileAlreadyInPool(file3)).toBe(false)
+    })
+
+    it('should skip duplicate files during processing and show appropriate message', async () => {
+      const { toastManager } = await import('./toastManager.js')
+
+      // Add a file to the pool first
+      const existingFile = new File(['content'], 'test.jpg', { type: 'image/jpeg' })
+      Object.defineProperty(existingFile, 'size', { value: 1024 })
+
+      await mediaProcessor.processFiles([existingFile])
+
+      // Clear mock calls from first processing
+      vi.clearAllMocks()
+
+      // Try to add the same file again
+      const duplicateFile = new File(['content'], 'test.jpg', { type: 'image/jpeg' })
+      Object.defineProperty(duplicateFile, 'size', { value: 1024 })
+
+      await mediaProcessor.processFiles([duplicateFile])
+
+      // Should show duplicate message
+      expect(toastManager.error).toHaveBeenCalledWith('1 file already in media pool (skipped)')
+
+      // Should not show success message (no new files added)
+      expect(toastManager.success).not.toHaveBeenCalled()
+
+      // Pool should still have only 1 item
+      expect(mediaProcessor.getAllMedia()).toHaveLength(1)
     })
   })
 })
