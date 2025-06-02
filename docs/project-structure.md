@@ -1,5 +1,7 @@
 ## 7. Project Structure
+
 The VJ Tam Tam project will adhere to the following folder structure:
+
 ```plaintext
 ./
 ├── .github/
@@ -32,4 +34,4 @@ The VJ Tam Tam project will adhere to the following folder structure:
 ├── .gitignore
 ├── index.html
 └── README.md
-``` 
+```

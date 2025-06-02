@@ -1,7 +1,9 @@
 ## 10. Core Workflow / Sequence Diagrams
+
 This section illustrates key workflows. [cite: 79]
 
 ### Sequence Diagram 1: Application Initialization & State Loading
+
 ```mermaid
 sequenceDiagram
     participant Main_JS as "main.js (App Start)"
@@ -36,6 +38,7 @@ sequenceDiagram
 ```
 
 ### Sequence Diagram 2: User Adds New Media & Persistence
+
 ```mermaid
 sequenceDiagram
     actor User
@@ -71,6 +74,7 @@ sequenceDiagram
 ```
 
 ### Sequence Diagram 3: User Changes a Setting & Playback Reacts
+
 ```mermaid
 sequenceDiagram
     actor User
@@ -98,4 +102,4 @@ sequenceDiagram
     PlaybackEngine->>PlaybackEngine: Update internal logic/variables with new setting
     deactivate PlaybackEngine
     deactivate StateManager
-``` 
+```

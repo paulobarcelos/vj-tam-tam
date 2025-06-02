@@ -29,4 +29,4 @@ This index provides a central point of reference for all VJ Tam Tam project docu
 - [Operational Guidelines](operational-guidelines.md) - Consolidates coding standards, testing strategy, error handling, and security best practices.
 - [Project Structure](project-structure.md) - Details the folder and file organization of the project.
 - [Sequence Diagrams](sequence-diagrams.md) - Illustrates key application workflows like initialization, media addition, and settings changes.
-- [Technology Stack](tech-stack.md) - Lists the definitive technology choices for the project. 
+- [Technology Stack](tech-stack.md) - Lists the definitive technology choices for the project.
