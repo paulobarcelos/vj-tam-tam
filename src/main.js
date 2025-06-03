@@ -11,11 +11,14 @@ import { playbackEngine } from './playbackEngine.js'
 /**
  * Initialize the application
  */
-function init() {
+async function init() {
   try {
     // Initialize core modules
     // StateManager is imported to ensure it's available
-    console.log('StateManager initialized with empty media pool:', stateManager.getMediaCount())
+    // Initialize StateManager first to load persisted state
+    await stateManager.init()
+
+    console.log('StateManager initialized. Media pool size:', stateManager.getMediaCount())
 
     // Initialize UI Manager (which handles drag and drop)
     uiManager.init()

@@ -67,6 +67,8 @@ describe('MediaProcessor', () => {
         { name: 'test.mp4', type: 'video/mp4' },
         { name: 'test.mov', type: 'video/quicktime' },
         { name: 'test.webm', type: 'video/webm' },
+        { name: 'test.mkv', type: 'video/mkv' },
+        { name: 'test.avi', type: 'video/avi' },
       ]
 
       supportedVideos.forEach((file) => {
@@ -107,6 +109,9 @@ describe('MediaProcessor', () => {
       expect(supportedTypes).toContain('MP4')
       expect(supportedTypes).toContain('MOV')
       expect(supportedTypes).toContain('WEBM')
+      expect(supportedTypes).toContain('HEIC')
+      expect(supportedTypes).toContain('GIF')
+      expect(supportedTypes).toContain('WEBP')
     })
   })
 

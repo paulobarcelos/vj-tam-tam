@@ -6,6 +6,7 @@
 
 import { eventBus } from './eventBus.js'
 import { toastManager } from './toastManager.js'
+import { stateManager } from './stateManager.js'
 
 /**
  * @typedef {Object} MediaItem
@@ -24,6 +25,8 @@ class PlaybackEngine {
     this.stageElement = null
     this.currentMediaElement = null
     this.handleWindowResize = this.handleWindowResize.bind(this)
+    this.isPlaybackActive = false
+    this.autoPlaybackEnabled = true
   }
 
   /**
@@ -49,8 +52,9 @@ class PlaybackEngine {
    * Set up event listeners for state changes and window resize
    */
   setupEventListeners() {
-    // Listen for media pool updates
+    // Listen for media pool updates and restoration
     eventBus.on('state.mediaPoolUpdated', this.handleMediaPoolUpdate.bind(this))
+    eventBus.on('state.mediaPoolRestored', this.handleMediaPoolUpdate.bind(this))
 
     // Listen for window resize events
     window.addEventListener('resize', this.handleWindowResize)
@@ -65,12 +69,15 @@ class PlaybackEngine {
       const { mediaPool, totalCount, cleared } = updateData
 
       if (cleared || totalCount === 0) {
-        this.clearCurrentMedia()
+        this.stopAutoPlayback()
         return
       }
 
-      // Display the first available media item
-      if (mediaPool.length > 0) {
+      // If playback is not active and auto playback is enabled, start it
+      if (!this.isPlaybackActive && this.autoPlaybackEnabled) {
+        this.startAutoPlayback()
+      } else if (this.isPlaybackActive && mediaPool.length > 0) {
+        console.log('Media pool updated while playback active. Displaying first item.')
         this.displayMedia(mediaPool[0])
       }
     } catch (error) {
@@ -229,14 +236,39 @@ class PlaybackEngine {
     try {
       // Remove event listeners
       eventBus.off('state.mediaPoolUpdated', this.handleMediaPoolUpdate.bind(this))
+      eventBus.off('state.mediaPoolRestored', this.handleMediaPoolUpdate.bind(this))
       window.removeEventListener('resize', this.handleWindowResize)
 
-      // Clear current media
-      this.clearCurrentMedia()
+      // Stop playback and clear current media
+      this.stopAutoPlayback()
 
       console.log('PlaybackEngine cleanup completed')
     } catch (error) {
       console.error('Error during PlaybackEngine cleanup:', error)
+    }
+  }
+
+  /**
+   * Start automatic playback if media pool is populated and playback is not active.
+   */
+  startAutoPlayback() {
+    const mediaPool = stateManager.getMediaPool()
+    if (mediaPool.length > 0 && !this.isPlaybackActive && this.autoPlaybackEnabled) {
+      this.isPlaybackActive = true
+      this.displayMedia(mediaPool[0]) // Display the first item
+      console.log('Automatic playback started')
+      // Future enhancement: Start cycling/playlist logic here
+    }
+  }
+
+  /**
+   * Stop automatic playback and clear display.
+   */
+  stopAutoPlayback() {
+    if (this.isPlaybackActive) {
+      this.isPlaybackActive = false
+      this.clearCurrentMedia()
+      console.log('Automatic playback stopped')
     }
   }
 }

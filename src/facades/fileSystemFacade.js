@@ -49,7 +49,7 @@ class FileSystemFacade {
           {
             description: 'Videos',
             accept: {
-              'video/*': ['.mp4', '.mov', '.webm'],
+              'video/*': ['.mp4', '.mov', '.avi', '.webm', '.mkv'],
             },
           },
         ],

@@ -6,11 +6,33 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { eventBus } from './eventBus.js'
 import { stateManager } from './stateManager.js'
+import { storageFacade } from './facades/storageFacade.js'
 
 // Mock eventBus
 vi.mock('./eventBus.js', () => ({
   eventBus: {
     emit: vi.fn(),
+    on: vi.fn(), // Add mock for on method
+  },
+}))
+
+// Mock storageFacade
+vi.mock('./facades/storageFacade.js', () => ({
+  storageFacade: {
+    loadState: vi.fn(),
+    saveState: vi.fn(),
+  },
+}))
+
+// Mock fileSystemAccessFacade
+vi.mock('./facades/fileSystemAccessFacade.js', () => ({
+  fileSystemAccessFacade: {
+    init: vi.fn().mockResolvedValue(false),
+    isSupported: false,
+    getAllFiles: vi.fn().mockResolvedValue([]),
+    storeFileHandle: vi.fn().mockResolvedValue(true),
+    removeFileHandle: vi.fn().mockResolvedValue(true),
+    clearAllFiles: vi.fn().mockResolvedValue(true),
   },
 }))
 
@@ -24,6 +46,13 @@ describe('StateManager', () => {
     // Reset state manually instead of calling clearMediaPool to avoid URL.revokeObjectURL calls
     stateManager.state = { mediaPool: [] }
     vi.clearAllMocks()
+
+    // Reset mocks for storageFacade
+    storageFacade.loadState.mockReset()
+    storageFacade.saveState.mockReset()
+
+    // Reset eventBus.on mock as listeners are set up in init
+    eventBus.on.mockReset()
   })
 
   describe('initial state', () => {
@@ -31,6 +60,161 @@ describe('StateManager', () => {
       expect(stateManager.getMediaPool()).toEqual([])
       expect(stateManager.getMediaCount()).toBe(0)
       expect(stateManager.isMediaPoolEmpty()).toBe(true)
+    })
+  })
+
+  describe('persistence integration (init)', () => {
+    it('should load state from localStorage on init if available', async () => {
+      const persistedState = {
+        mediaPool: [
+          {
+            id: 'p1',
+            name: 'persisted1.jpg',
+            type: 'image',
+            mimeType: 'image/jpeg',
+            size: 100,
+            addedAt: new Date().toISOString(),
+          },
+          {
+            id: 'p2',
+            name: 'persisted2.mp4',
+            type: 'video',
+            mimeType: 'video/mp4',
+            size: 200,
+            addedAt: new Date().toISOString(),
+          },
+        ],
+      }
+      storageFacade.loadState.mockReturnValue(persistedState)
+
+      await stateManager.init()
+
+      expect(storageFacade.loadState).toHaveBeenCalled()
+      const mediaPool = stateManager.getMediaPool()
+      expect(mediaPool).toHaveLength(2)
+      expect(mediaPool[0].id).toBe('p1')
+      expect(mediaPool[0].name).toBe('persisted1.jpg')
+      expect(mediaPool[0].file).toBeNull() // File object should NOT be restored
+      expect(mediaPool[0].url).toBeNull() // URL should NOT be restored
+      expect(mediaPool[0].addedAt).toBeInstanceOf(Date) // addedAt should be converted back to Date
+      expect(mediaPool[1].id).toBe('p2')
+
+      // Should emit mediaPoolRestored event, not mediaPoolUpdated
+      expect(eventBus.emit).toHaveBeenCalledWith('state.mediaPoolRestored', {
+        mediaPool: expect.any(Array),
+        totalCount: 2,
+        source: 'localStorage-metadata',
+      })
+      expect(eventBus.emit).not.toHaveBeenCalledWith('state.mediaPoolUpdated', expect.anything())
+
+      // Should set up listener for state.mediaPoolUpdated to trigger save
+      expect(eventBus.on).toHaveBeenCalledWith('state.mediaPoolUpdated', expect.any(Function))
+    })
+
+    it('should not load state on init if no persisted state is available', async () => {
+      storageFacade.loadState.mockReturnValue(null)
+
+      await stateManager.init()
+
+      expect(storageFacade.loadState).toHaveBeenCalled()
+      expect(stateManager.getMediaPool()).toEqual([])
+      expect(stateManager.getMediaCount()).toBe(0)
+      expect(eventBus.emit).not.toHaveBeenCalledWith('state.mediaPoolRestored', expect.anything())
+      expect(eventBus.emit).not.toHaveBeenCalledWith('state.mediaPoolUpdated', expect.anything())
+
+      // Should still set up listener for state.mediaPoolUpdated
+      expect(eventBus.on).toHaveBeenCalledWith('state.mediaPoolUpdated', expect.any(Function))
+    })
+
+    it('should not load state on init if persisted media pool is empty', async () => {
+      const persistedState = { mediaPool: [] }
+      storageFacade.loadState.mockReturnValue(persistedState)
+
+      await stateManager.init()
+
+      expect(storageFacade.loadState).toHaveBeenCalled()
+      expect(stateManager.getMediaPool()).toEqual([])
+      expect(stateManager.getMediaCount()).toBe(0)
+      expect(eventBus.emit).not.toHaveBeenCalledWith('state.mediaPoolRestored', expect.anything())
+      expect(eventBus.emit).not.toHaveBeenCalledWith('state.mediaPoolUpdated', expect.anything())
+
+      // Should still set up listener for state.mediaPoolUpdated
+      expect(eventBus.on).toHaveBeenCalledWith('state.mediaPoolUpdated', expect.any(Function))
+    })
+
+    it('should handle storageFacade.loadState errors gracefully on init', async () => {
+      storageFacade.loadState.mockImplementation(() => {
+        throw new Error('Failed to read storage')
+      })
+
+      // Spy on console.error
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      await stateManager.init()
+
+      expect(storageFacade.loadState).toHaveBeenCalled()
+      expect(consoleErrorSpy).toHaveBeenCalled()
+      expect(stateManager.getMediaPool()).toEqual([]) // State should remain empty
+      expect(eventBus.emit).not.toHaveBeenCalled() // No events should be emitted due to load error
+
+      // Should still set up listener for state.mediaPoolUpdated
+      expect(eventBus.on).toHaveBeenCalledWith('state.mediaPoolUpdated', expect.any(Function))
+
+      consoleErrorSpy.mockRestore()
+    })
+  })
+
+  describe('persistence integration (save)', () => {
+    it('should save state when media pool is updated', async () => {
+      await stateManager.init() // Ensure listener is set up
+
+      // Verify that the listener was set up correctly
+      expect(eventBus.on).toHaveBeenCalledWith('state.mediaPoolUpdated', expect.any(Function))
+
+      // Get the listener function that was registered
+      const listenerCall = eventBus.on.mock.calls.find(
+        (call) => call[0] === 'state.mediaPoolUpdated'
+      )
+      const saveStateListener = listenerCall[1]
+
+      vi.clearAllMocks() // Clear mocks after init listener setup
+
+      const mediaItems = [
+        {
+          id: 'media_1',
+          name: 'test1.jpg',
+          type: 'image',
+          mimeType: 'image/jpeg',
+          size: 1000,
+          file: new File([''], 'test1.jpg'),
+          url: 'blob:test1',
+          addedAt: new Date(),
+        },
+      ]
+
+      stateManager.addMediaToPool(mediaItems)
+
+      // Since the actual eventBus is mocked, we need to manually trigger the listener
+      // to simulate what would happen when the event is emitted
+      saveStateListener()
+
+      // Verify storageFacade.saveState was called
+      expect(storageFacade.saveState).toHaveBeenCalledTimes(1)
+
+      // Verify the data structure passed to saveState
+      const savedState = storageFacade.saveState.mock.calls[0][0]
+      expect(savedState).toHaveProperty('mediaPool')
+      expect(savedState.mediaPool).toHaveLength(1)
+      expect(savedState.mediaPool[0]).toEqual({
+        id: 'media_1',
+        name: 'test1.jpg',
+        type: 'image',
+        mimeType: 'image/jpeg',
+        size: 1000,
+        addedAt: expect.any(String), // Should be ISO string
+      })
+      expect(savedState.mediaPool[0]).not.toHaveProperty('file') // Should not save File object
+      expect(savedState.mediaPool[0]).not.toHaveProperty('url') // Should not save URL
     })
   })
 

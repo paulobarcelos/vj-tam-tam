@@ -21,9 +21,15 @@ import { stateManager } from './stateManager.js'
 
 // Supported file types as defined in AC 1.1, 1.2, 1.4
 const SUPPORTED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'heic', 'webp']
-const SUPPORTED_VIDEO_EXTENSIONS = ['mp4', 'mov', 'webm']
+const SUPPORTED_VIDEO_EXTENSIONS = ['mp4', 'mov', 'avi', 'webm', 'mkv']
 const SUPPORTED_IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/heic', 'image/webp']
-const SUPPORTED_VIDEO_MIMES = ['video/mp4', 'video/quicktime', 'video/webm']
+const SUPPORTED_VIDEO_MIMES = [
+  'video/mp4',
+  'video/quicktime',
+  'video/webm',
+  'video/avi',
+  'video/mkv',
+]
 
 class MediaProcessor {
   constructor() {
@@ -153,16 +159,27 @@ class MediaProcessor {
    * @returns {Promise<MediaItem>} - Promise resolving to media item
    */
   async createMediaItem(file) {
-    return {
+    // Preserve file handle if it exists (from FileSystemAccessAPI)
+    // For drag-and-drop files, file.handle will be undefined
+    const mediaItem = {
       id: `media_${this.nextId++}`,
       name: file.name,
       type: this.getMediaType(file),
       mimeType: file.type,
       size: file.size,
-      file: file,
+      file: file, // This may include file.handle if available
       url: URL.createObjectURL(file),
       addedAt: new Date(),
     }
+
+    // Log handle availability for debugging
+    if (file.handle) {
+      console.log(`File handle available for ${file.name} - will be stored for persistence`)
+    } else {
+      console.log(`No file handle for ${file.name} - drag-and-drop file, metadata-only persistence`)
+    }
+
+    return mediaItem
   }
 
   /**

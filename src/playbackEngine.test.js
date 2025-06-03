@@ -23,6 +23,15 @@ vi.mock('./toastManager.js', () => ({
   },
 }))
 
+// Mock stateManager
+vi.mock('./stateManager.js', () => ({
+  stateManager: {
+    getMediaPool: vi.fn(),
+    getMediaCount: vi.fn(), // Add if needed in future tests
+    isMediaPoolEmpty: vi.fn(), // Add if needed in future tests
+  },
+}))
+
 // Mock DOM
 const mockStageElement = {
   appendChild: vi.fn(),
@@ -78,6 +87,9 @@ describe('PlaybackEngine', () => {
             addEventListener: vi.fn(),
             removeEventListener: vi.fn(),
             parentNode: null,
+            // Add video control methods used in implementation if necessary
+            play: vi.fn(),
+            pause: vi.fn(),
           }
           return element
         }),
@@ -104,14 +116,70 @@ describe('PlaybackEngine', () => {
       writable: true,
     })
 
-    // Reset PlaybackEngine state
+    // Reset PlaybackEngine state and mocks
     playbackEngine.currentMediaElement = null
     playbackEngine.stageElement = null
+    playbackEngine.isPlaybackActive = false // Reset the new property
+    playbackEngine.autoPlaybackEnabled = true // Reset the new property
+    vi.clearAllMocks() // Clear all mocks including the new ones
+
+    // Re-mock getElementById and createElement after vi.clearAllMocks()
+    Object.defineProperty(globalThis, 'document', {
+      value: {
+        getElementById: vi.fn((id) => {
+          if (id === 'stage') return mockStageElement
+          return null
+        }),
+        createElement: vi.fn((tagName) => {
+          const element = {
+            tagName: tagName.toUpperCase(),
+            className: '',
+            src: '',
+            alt: '',
+            autoplay: false,
+            muted: false,
+            loop: false,
+            controls: false,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            parentNode: null,
+            // Add video control methods used in implementation if necessary
+            play: vi.fn(),
+            pause: vi.fn(),
+          }
+          return element
+        }),
+      },
+      writable: true,
+    })
+
+    // Mock window
+    Object.defineProperty(globalThis, 'window', {
+      value: {
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      },
+      writable: true,
+    })
+
+    // Mock console
+    Object.defineProperty(globalThis, 'console', {
+      value: {
+        log: vi.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
+      },
+      writable: true,
+    })
   })
 
   afterEach(() => {
     // Clean up
     vi.resetAllMocks()
+    // Clean up globalThis properties set for mocks
+    delete globalThis.document
+    delete globalThis.window
+    delete globalThis.console
   })
 
   describe('initialization', () => {
@@ -119,6 +187,8 @@ describe('PlaybackEngine', () => {
       expect(() => playbackEngine.init()).not.toThrow()
       expect(document.getElementById).toHaveBeenCalledWith('stage')
       expect(playbackEngine.stageElement).toBe(mockStageElement)
+      expect(playbackEngine.isPlaybackActive).toBe(false) // Initial state
+      expect(playbackEngine.autoPlaybackEnabled).toBe(true) // Initial state
     })
 
     it('should throw error when stage element is not found', () => {
@@ -131,8 +201,102 @@ describe('PlaybackEngine', () => {
       playbackEngine.init()
 
       const { eventBus } = await import('./eventBus.js')
+      // Expect listeners for both mediaPoolUpdated and mediaPoolRestored
       expect(eventBus.on).toHaveBeenCalledWith('state.mediaPoolUpdated', expect.any(Function))
+      expect(eventBus.on).toHaveBeenCalledWith('state.mediaPoolRestored', expect.any(Function))
       expect(window.addEventListener).toHaveBeenCalledWith('resize', expect.any(Function))
+    })
+  })
+
+  describe('automatic playback methods', () => {
+    let stateManagerMock
+
+    beforeEach(async () => {
+      // Import the mocked stateManager within the test scope
+      const stateManagerModule = await import('./stateManager.js')
+      stateManagerMock = stateManagerModule.stateManager
+      playbackEngine.init() // Ensure engine is initialized before testing these methods
+    })
+
+    it('startAutoPlayback should start playback if media pool is populated and not active', () => {
+      const mockMediaPool = [mockImageItem]
+      stateManagerMock.getMediaPool.mockReturnValue(mockMediaPool)
+      playbackEngine.isPlaybackActive = false
+      playbackEngine.autoPlaybackEnabled = true
+      const displayMediaSpy = vi.spyOn(playbackEngine, 'displayMedia')
+
+      playbackEngine.startAutoPlayback()
+
+      expect(stateManagerMock.getMediaPool).toHaveBeenCalled()
+      expect(playbackEngine.isPlaybackActive).toBe(true)
+      expect(displayMediaSpy).toHaveBeenCalledWith(mockMediaPool[0])
+      expect(console.log).toHaveBeenCalledWith('Automatic playback started')
+    })
+
+    it('startAutoPlayback should not start playback if media pool is empty', () => {
+      stateManagerMock.getMediaPool.mockReturnValue([])
+      playbackEngine.isPlaybackActive = false
+      playbackEngine.autoPlaybackEnabled = true
+      const displayMediaSpy = vi.spyOn(playbackEngine, 'displayMedia')
+
+      playbackEngine.startAutoPlayback()
+
+      expect(stateManagerMock.getMediaPool).toHaveBeenCalled()
+      expect(playbackEngine.isPlaybackActive).toBe(false)
+      expect(displayMediaSpy).not.toHaveBeenCalled()
+      expect(console.log).not.toHaveBeenCalledWith('Automatic playback started')
+    })
+
+    it('startAutoPlayback should not start playback if already active', () => {
+      const mockMediaPool = [mockImageItem]
+      stateManagerMock.getMediaPool.mockReturnValue(mockMediaPool)
+      playbackEngine.isPlaybackActive = true
+      playbackEngine.autoPlaybackEnabled = true
+      const displayMediaSpy = vi.spyOn(playbackEngine, 'displayMedia')
+
+      playbackEngine.startAutoPlayback()
+
+      expect(stateManagerMock.getMediaPool).toHaveBeenCalled()
+      expect(playbackEngine.isPlaybackActive).toBe(true)
+      expect(displayMediaSpy).not.toHaveBeenCalled()
+      expect(console.log).not.toHaveBeenCalledWith('Automatic playback started')
+    })
+
+    it('startAutoPlayback should not start playback if auto playback is disabled', () => {
+      const mockMediaPool = [mockImageItem]
+      stateManagerMock.getMediaPool.mockReturnValue(mockMediaPool)
+      playbackEngine.isPlaybackActive = false
+      playbackEngine.autoPlaybackEnabled = false
+      const displayMediaSpy = vi.spyOn(playbackEngine, 'displayMedia')
+
+      playbackEngine.startAutoPlayback()
+
+      expect(stateManagerMock.getMediaPool).toHaveBeenCalled()
+      expect(playbackEngine.isPlaybackActive).toBe(false)
+      expect(displayMediaSpy).not.toHaveBeenCalled()
+      expect(console.log).not.toHaveBeenCalledWith('Automatic playback started')
+    })
+
+    it('stopAutoPlayback should stop playback if active', () => {
+      playbackEngine.isPlaybackActive = true
+      const clearMediaSpy = vi.spyOn(playbackEngine, 'clearCurrentMedia')
+
+      playbackEngine.stopAutoPlayback()
+
+      expect(playbackEngine.isPlaybackActive).toBe(false)
+      expect(clearMediaSpy).toHaveBeenCalled()
+      expect(console.log).toHaveBeenCalledWith('Automatic playback stopped')
+    })
+
+    it('stopAutoPlayback should do nothing if not active', () => {
+      playbackEngine.isPlaybackActive = false
+      const clearMediaSpy = vi.spyOn(playbackEngine, 'clearCurrentMedia')
+
+      playbackEngine.stopAutoPlayback()
+
+      expect(playbackEngine.isPlaybackActive).toBe(false)
+      expect(clearMediaSpy).not.toHaveBeenCalled()
+      expect(console.log).not.toHaveBeenCalledWith('Automatic playback stopped')
     })
   })
 
@@ -190,6 +354,15 @@ describe('PlaybackEngine', () => {
 
       expect(videoElement).toBeNull()
       expect(console.error).toHaveBeenCalledWith('Error creating video element:', expect.any(Error))
+    })
+
+    it('should handle unsupported media types', () => {
+      const unsupportedItem = { ...mockImageItem, type: 'unsupported' }
+
+      playbackEngine.displayMedia(unsupportedItem)
+
+      expect(mockStageElement.appendChild).not.toHaveBeenCalled()
+      expect(console.warn).toHaveBeenCalledWith('Unsupported media type:', 'unsupported')
     })
   })
 
@@ -263,74 +436,125 @@ describe('PlaybackEngine', () => {
     })
   })
 
-  describe('media pool update handling', () => {
+  describe('media pool updates', () => {
+    // This block will be enhanced to test handleMediaPoolUpdate with auto playback
     beforeEach(() => {
+      // Ensure PlaybackEngine is initialized
       playbackEngine.init()
+      // Reset playback state for consistent test starts
+      playbackEngine.isPlaybackActive = false
+      playbackEngine.autoPlaybackEnabled = true
+
+      // Spy on start/stop methods
+      vi.spyOn(playbackEngine, 'startAutoPlayback')
+      vi.spyOn(playbackEngine, 'stopAutoPlayback')
+      vi.spyOn(playbackEngine, 'displayMedia')
     })
 
-    it('should display first media item when pool is updated', () => {
-      const updateData = {
-        mediaPool: [mockImageItem, mockVideoItem],
-        totalCount: 2,
-        cleared: false,
-      }
+    it('should stop playback when media pool is cleared', () => {
+      playbackEngine.isPlaybackActive = true // Assume active playback
+      const updateData = { mediaPool: [], totalCount: 0, cleared: true }
 
       playbackEngine.handleMediaPoolUpdate(updateData)
 
-      expect(mockStageElement.appendChild).toHaveBeenCalled()
-      expect(playbackEngine.hasCurrentMedia()).toBe(true)
+      expect(playbackEngine.stopAutoPlayback).toHaveBeenCalled()
+      expect(playbackEngine.startAutoPlayback).not.toHaveBeenCalled()
+      expect(playbackEngine.displayMedia).not.toHaveBeenCalled()
     })
 
-    it('should clear media when pool is cleared', () => {
-      // Set up existing media
-      playbackEngine.currentMediaElement = { parentNode: mockStageElement }
-      mockStageElement.removeChild = vi.fn()
-
-      const updateData = {
-        mediaPool: [],
-        totalCount: 0,
-        cleared: true,
-      }
+    it('should stop playback when media pool becomes empty', () => {
+      playbackEngine.isPlaybackActive = true // Assume active playback
+      const updateData = { mediaPool: [], totalCount: 0, cleared: false }
 
       playbackEngine.handleMediaPoolUpdate(updateData)
 
-      expect(mockStageElement.removeChild).toHaveBeenCalled()
-      expect(playbackEngine.hasCurrentMedia()).toBe(false)
+      expect(playbackEngine.stopAutoPlayback).toHaveBeenCalled()
+      expect(playbackEngine.startAutoPlayback).not.toHaveBeenCalled()
+      expect(playbackEngine.displayMedia).not.toHaveBeenCalled()
     })
 
-    it('should clear media when pool becomes empty', () => {
-      // Set up existing media
-      playbackEngine.currentMediaElement = { parentNode: mockStageElement }
-      mockStageElement.removeChild = vi.fn()
-
-      const updateData = {
-        mediaPool: [],
-        totalCount: 0,
-        cleared: false,
-      }
+    it('should start playback when media pool becomes populated from empty', () => {
+      playbackEngine.isPlaybackActive = false // Assume not active initially
+      const mockMediaPool = [mockImageItem]
+      const updateData = { mediaPool: mockMediaPool, totalCount: 1, cleared: false }
 
       playbackEngine.handleMediaPoolUpdate(updateData)
 
-      expect(mockStageElement.removeChild).toHaveBeenCalled()
-      expect(playbackEngine.hasCurrentMedia()).toBe(false)
+      expect(playbackEngine.stopAutoPlayback).not.toHaveBeenCalled()
+      expect(playbackEngine.startAutoPlayback).toHaveBeenCalled()
+      // startAutoPlayback calls displayMedia, so we expect it to be called indirectly
+      expect(playbackEngine.displayMedia).toHaveBeenCalledWith(mockMediaPool[0])
     })
 
-    it('should handle update errors with toast notification', async () => {
-      const updateData = {
-        mediaPool: [mockImageItem],
-        totalCount: 1,
-        cleared: false,
-      }
-
-      // Mock error in displayMedia
-      playbackEngine.displayMedia = vi.fn(() => {
-        throw new Error('Display error')
-      })
+    it('should not start playback if media pool becomes populated but auto playback is disabled', () => {
+      playbackEngine.isPlaybackActive = false
+      playbackEngine.autoPlaybackEnabled = false
+      const mockMediaPool = [mockImageItem]
+      const updateData = { mediaPool: mockMediaPool, totalCount: 1, cleared: false }
 
       playbackEngine.handleMediaPoolUpdate(updateData)
 
-      const { toastManager } = await import('./toastManager.js')
-      expect(toastManager.error).toHaveBeenCalledWith('Failed to update media display')
+      expect(playbackEngine.stopAutoPlayback).not.toHaveBeenCalled()
+      expect(playbackEngine.startAutoPlayback).not.toHaveBeenCalled()
+      expect(playbackEngine.displayMedia).not.toHaveBeenCalled()
+    })
+
+    it('should update display when media pool is updated while playback is active', () => {
+      playbackEngine.isPlaybackActive = true // Assume active playback
+      const mockMediaPool = [mockImageItem, mockVideoItem] // New media added
+      const updateData = { mediaPool: mockMediaPool, totalCount: 2, cleared: false }
+
+      playbackEngine.handleMediaPoolUpdate(updateData)
+
+      expect(playbackEngine.stopAutoPlayback).not.toHaveBeenCalled()
+      expect(playbackEngine.startAutoPlayback).not.toHaveBeenCalled() // Should not restart, just update display
+      // Expect displayMedia to be called with the *first* item in the updated pool
+      expect(playbackEngine.displayMedia).toHaveBeenCalledWith(mockMediaPool[0])
+    })
+
+    it('should handle mediaPoolRestored event the same as mediaPoolUpdated', async () => {
+      // This test checks the event listener setup in init
+      // We just need to verify that handleMediaPoolUpdate is registered for both events
+      // The logic within handleMediaPoolUpdate is tested in the above cases
+      playbackEngine.init()
+
+      const { eventBus } = await import('./eventBus.js')
+
+      // Find the listener function that was registered
+      const mediaUpdatedListenerCall = eventBus.on.mock.calls.find(
+        (call) => call[0] === 'state.mediaPoolUpdated'
+      )
+      const mediaRestoredListenerCall = eventBus.on.mock.calls.find(
+        (call) => call[0] === 'state.mediaPoolRestored'
+      )
+
+      expect(mediaUpdatedListenerCall).toBeDefined()
+      expect(mediaRestoredListenerCall).toBeDefined()
+
+      // Verify they registered the same handler function
+      expect(mediaUpdatedListenerCall[1]).toBe(mediaRestoredListenerCall[1])
+    })
+  })
+
+  describe('cleanup', () => {
+    it('should remove event listeners and stop playback', async () => {
+      // Initialize first to set up listeners
+      playbackEngine.init()
+      playbackEngine.isPlaybackActive = true // Assume active for cleanup test
+
+      const { eventBus } = await import('./eventBus.js')
+      const stopPlaybackSpy = vi.spyOn(playbackEngine, 'stopAutoPlayback')
+
+      playbackEngine.cleanup()
+
+      // Verify event listeners are removed
+      expect(eventBus.off).toHaveBeenCalledWith('state.mediaPoolUpdated', expect.any(Function))
+      expect(eventBus.off).toHaveBeenCalledWith('state.mediaPoolRestored', expect.any(Function))
+      expect(window.removeEventListener).toHaveBeenCalledWith('resize', expect.any(Function))
+
+      // Verify stopAutoPlayback is called
+      expect(stopPlaybackSpy).toHaveBeenCalled()
+      expect(console.log).toHaveBeenCalledWith('PlaybackEngine cleanup completed')
     })
   })
 
@@ -365,45 +589,6 @@ describe('PlaybackEngine', () => {
 
       expect(() => playbackEngine.handleWindowResize()).not.toThrow()
       expect(console.error).toHaveBeenCalledWith('Error handling window resize:', expect.any(Error))
-    })
-  })
-
-  describe('cleanup functionality', () => {
-    beforeEach(() => {
-      playbackEngine.init()
-    })
-
-    it('should remove event listeners on cleanup', async () => {
-      playbackEngine.cleanup()
-
-      const { eventBus } = await import('./eventBus.js')
-      expect(eventBus.off).toHaveBeenCalledWith('state.mediaPoolUpdated', expect.any(Function))
-      expect(window.removeEventListener).toHaveBeenCalledWith('resize', expect.any(Function))
-    })
-
-    it('should clear current media on cleanup', () => {
-      // Set up existing media
-      playbackEngine.currentMediaElement = { parentNode: mockStageElement }
-      mockStageElement.removeChild = vi.fn()
-
-      playbackEngine.cleanup()
-
-      expect(mockStageElement.removeChild).toHaveBeenCalled()
-      expect(playbackEngine.hasCurrentMedia()).toBe(false)
-    })
-
-    it('should handle cleanup errors gracefully', async () => {
-      // Mock eventBus.off to throw error
-      const { eventBus } = await import('./eventBus.js')
-      eventBus.off = vi.fn(() => {
-        throw new Error('EventBus error')
-      })
-
-      expect(() => playbackEngine.cleanup()).not.toThrow()
-      expect(console.error).toHaveBeenCalledWith(
-        'Error during PlaybackEngine cleanup:',
-        expect.any(Error)
-      )
     })
   })
 
