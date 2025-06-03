@@ -5,6 +5,7 @@
 
 import { eventBus } from './eventBus.js'
 import { toastManager } from './toastManager.js'
+import { stateManager } from './stateManager.js'
 
 /**
  * @typedef {Object} MediaItem
@@ -26,7 +27,6 @@ const SUPPORTED_VIDEO_MIMES = ['video/mp4', 'video/quicktime', 'video/webm']
 
 class MediaProcessor {
   constructor() {
-    this.mediaPool = new Map()
     this.nextId = 1
   }
 
@@ -78,14 +78,14 @@ class MediaProcessor {
    * @returns {boolean} - True if file already exists
    */
   isFileAlreadyInPool(file) {
-    const existingFiles = Array.from(this.mediaPool.values())
+    const existingFiles = stateManager.getMediaPool()
     return existingFiles.some(
       (mediaItem) => mediaItem.name === file.name && mediaItem.size === file.size
     )
   }
 
   /**
-   * Process and validate files from drag and drop
+   * Process and validate files from drag and drop or file picker
    * @param {File[]} files - Array of File objects to process
    */
   async processFiles(files) {
@@ -128,12 +128,10 @@ class MediaProcessor {
           supportedFiles.map((file) => this.createMediaItem(file))
         )
 
-        // Add to media pool
-        mediaItems.forEach((item) => {
-          this.addToPool(item)
-        })
+        // Add to media pool via StateManager (additive behavior)
+        stateManager.addMediaToPool(mediaItems)
 
-        // Notify other modules
+        // Emit legacy event for backward compatibility
         eventBus.emit('media.filesAdded', {
           files: mediaItems,
           count: mediaItems.length,
@@ -168,19 +166,11 @@ class MediaProcessor {
   }
 
   /**
-   * Add media item to the pool
-   * @param {MediaItem} mediaItem - Media item to add
-   */
-  addToPool(mediaItem) {
-    this.mediaPool.set(mediaItem.id, mediaItem)
-  }
-
-  /**
    * Get all media items from the pool
    * @returns {MediaItem[]} - Array of media items
    */
   getAllMedia() {
-    return Array.from(this.mediaPool.values())
+    return stateManager.getMediaPool()
   }
 
   /**
@@ -188,26 +178,15 @@ class MediaProcessor {
    * @param {string} id - Media item ID
    */
   removeFromPool(id) {
-    const mediaItem = this.mediaPool.get(id)
-    if (mediaItem) {
-      // Revoke object URL to free memory
-      URL.revokeObjectURL(mediaItem.url)
-      this.mediaPool.delete(id)
-
-      eventBus.emit('media.fileRemoved', { id })
-    }
+    stateManager.removeMediaFromPool(id)
+    eventBus.emit('media.fileRemoved', { id })
   }
 
   /**
    * Clear all media from pool
    */
   clearPool() {
-    // Revoke all object URLs
-    this.mediaPool.forEach((item) => {
-      URL.revokeObjectURL(item.url)
-    })
-
-    this.mediaPool.clear()
+    stateManager.clearMediaPool()
     eventBus.emit('media.poolCleared')
   }
 

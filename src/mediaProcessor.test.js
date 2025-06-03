@@ -19,6 +19,15 @@ vi.mock('./toastManager.js', () => ({
   },
 }))
 
+vi.mock('./stateManager.js', () => ({
+  stateManager: {
+    getMediaPool: vi.fn(() => []),
+    addMediaToPool: vi.fn(),
+    removeMediaFromPool: vi.fn(),
+    clearMediaPool: vi.fn(),
+  },
+}))
+
 // Mock URL.revokeObjectURL for test environment
 globalThis.URL = globalThis.URL || {}
 globalThis.URL.revokeObjectURL = vi.fn()
@@ -26,8 +35,6 @@ globalThis.URL.createObjectURL = vi.fn(() => 'blob:mock-url')
 
 describe('MediaProcessor', () => {
   beforeEach(() => {
-    // Clear the media pool before each test
-    mediaProcessor.clearPool()
     vi.clearAllMocks()
   })
 
@@ -104,68 +111,72 @@ describe('MediaProcessor', () => {
   })
 
   describe('media pool management', () => {
-    it('should start with empty media pool', () => {
-      expect(mediaProcessor.getAllMedia()).toHaveLength(0)
+    it('should get media from StateManager', async () => {
+      const { stateManager } = await import('./stateManager.js')
+      const mockMediaPool = [
+        {
+          id: 'test_1',
+          name: 'test.jpg',
+          type: 'image',
+          mimeType: 'image/jpeg',
+          size: 1024,
+          file: {},
+          url: 'blob:test',
+          addedAt: new Date(),
+        },
+      ]
+
+      stateManager.getMediaPool.mockReturnValue(mockMediaPool)
+
+      expect(mediaProcessor.getAllMedia()).toEqual(mockMediaPool)
+      expect(stateManager.getMediaPool).toHaveBeenCalled()
     })
 
-    it('should add media items to pool', () => {
-      const mediaItem = {
-        id: 'test_1',
-        name: 'test.jpg',
-        type: 'image',
-        mimeType: 'image/jpeg',
-        size: 1024,
-        file: {},
-        url: 'blob:test',
-        addedAt: new Date(),
-      }
+    it('should delegate pool operations to StateManager', async () => {
+      const { stateManager } = await import('./stateManager.js')
 
-      mediaProcessor.addToPool(mediaItem)
-      expect(mediaProcessor.getAllMedia()).toHaveLength(1)
-      expect(mediaProcessor.getAllMedia()[0]).toEqual(mediaItem)
+      mediaProcessor.removeFromPool('test_id')
+      expect(stateManager.removeMediaFromPool).toHaveBeenCalledWith('test_id')
+
+      mediaProcessor.clearPool()
+      expect(stateManager.clearMediaPool).toHaveBeenCalled()
     })
   })
 
   describe('duplicate detection', () => {
-    it('should detect if file is already in pool', () => {
+    it('should detect if file is already in pool using StateManager', async () => {
+      const { stateManager } = await import('./stateManager.js')
       const file = { name: 'test.jpg', size: 1024, type: 'image/jpeg' }
-      const mediaItem = {
-        id: 'test_1',
-        name: 'test.jpg',
-        type: 'image',
-        mimeType: 'image/jpeg',
-        size: 1024,
-        file: {},
-        url: 'blob:test',
-        addedAt: new Date(),
-      }
 
-      // Pool is empty - should not be detected as duplicate
+      // Mock empty pool
+      stateManager.getMediaPool.mockReturnValue([])
       expect(mediaProcessor.isFileAlreadyInPool(file)).toBe(false)
 
-      // Add item to pool
-      mediaProcessor.addToPool(mediaItem)
-
-      // Now should be detected as duplicate
+      // Mock pool with matching file
+      stateManager.getMediaPool.mockReturnValue([
+        {
+          id: 'test_1',
+          name: 'test.jpg',
+          size: 1024,
+          type: 'image',
+        },
+      ])
       expect(mediaProcessor.isFileAlreadyInPool(file)).toBe(true)
     })
 
-    it('should not detect different files as duplicates', () => {
+    it('should not detect different files as duplicates', async () => {
+      const { stateManager } = await import('./stateManager.js')
       const file2 = { name: 'test2.jpg', size: 1024, type: 'image/jpeg' }
       const file3 = { name: 'test1.jpg', size: 2048, type: 'image/jpeg' }
 
-      const mediaItem = {
-        id: 'test_1',
-        name: 'test1.jpg',
-        type: 'image',
-        mimeType: 'image/jpeg',
-        size: 1024,
-        file: {},
-        url: 'blob:test',
-        addedAt: new Date(),
-      }
-
-      mediaProcessor.addToPool(mediaItem)
+      stateManager.getMediaPool.mockReturnValue([
+        {
+          id: 'test_1',
+          name: 'test1.jpg',
+          size: 1024,
+          type: 'image',
+        },
+      ])
 
       // Different name - should not be duplicate
       expect(mediaProcessor.isFileAlreadyInPool(file2)).toBe(false)
@@ -176,17 +187,18 @@ describe('MediaProcessor', () => {
 
     it('should skip duplicate files during processing and show appropriate message', async () => {
       const { toastManager } = await import('./toastManager.js')
+      const { stateManager } = await import('./stateManager.js')
 
-      // Add a file to the pool first
-      const existingFile = new File(['content'], 'test.jpg', { type: 'image/jpeg' })
-      Object.defineProperty(existingFile, 'size', { value: 1024 })
+      // Mock existing file in pool
+      stateManager.getMediaPool.mockReturnValue([
+        {
+          id: 'test_1',
+          name: 'test.jpg',
+          size: 1024,
+          type: 'image',
+        },
+      ])
 
-      await mediaProcessor.processFiles([existingFile])
-
-      // Clear mock calls from first processing
-      vi.clearAllMocks()
-
-      // Try to add the same file again
       const duplicateFile = new File(['content'], 'test.jpg', { type: 'image/jpeg' })
       Object.defineProperty(duplicateFile, 'size', { value: 1024 })
 
@@ -195,11 +207,36 @@ describe('MediaProcessor', () => {
       // Should show duplicate message
       expect(toastManager.error).toHaveBeenCalledWith('1 file already in media pool (skipped)')
 
-      // Should not show success message (no new files added)
+      // Should not add to StateManager or show success message
+      expect(stateManager.addMediaToPool).not.toHaveBeenCalled()
       expect(toastManager.success).not.toHaveBeenCalled()
+    })
+  })
 
-      // Pool should still have only 1 item
-      expect(mediaProcessor.getAllMedia()).toHaveLength(1)
+  describe('processFiles - additive behavior', () => {
+    it('should add new files to StateManager with additive behavior', async () => {
+      const { stateManager } = await import('./stateManager.js')
+      const { toastManager } = await import('./toastManager.js')
+
+      // Mock empty pool initially
+      stateManager.getMediaPool.mockReturnValue([])
+
+      const newFile = new File(['content'], 'new.jpg', { type: 'image/jpeg' })
+      Object.defineProperty(newFile, 'size', { value: 2048 })
+
+      await mediaProcessor.processFiles([newFile])
+
+      // Should call StateManager to add media
+      expect(stateManager.addMediaToPool).toHaveBeenCalledWith([
+        expect.objectContaining({
+          name: 'new.jpg',
+          type: 'image',
+          mimeType: 'image/jpeg',
+          size: 2048,
+        }),
+      ])
+
+      expect(toastManager.success).toHaveBeenCalledWith('Added 1 media file to pool')
     })
   })
 })

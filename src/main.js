@@ -5,12 +5,17 @@
 
 import { uiManager } from './uiManager.js'
 import { toastManager } from './toastManager.js'
+import { stateManager } from './stateManager.js'
 
 /**
  * Initialize the application
  */
 function init() {
   try {
+    // Initialize core modules
+    // StateManager is imported to ensure it's available
+    console.log('StateManager initialized with empty media pool:', stateManager.getMediaCount())
+
     // Initialize UI Manager (which handles drag and drop)
     uiManager.init()
 

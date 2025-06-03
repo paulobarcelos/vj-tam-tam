@@ -6,6 +6,7 @@
 import { eventBus } from './eventBus.js'
 import { mediaProcessor } from './mediaProcessor.js'
 import { fileSystemFacade } from './facades/fileSystemFacade.js'
+import { stateManager } from './stateManager.js'
 
 class UIManager {
   constructor() {
@@ -69,9 +70,13 @@ class UIManager {
    * Set up event bus listeners for inter-module communication
    */
   setupEventBusListeners() {
+    // Legacy events for backward compatibility
     eventBus.on('media.filesAdded', this.handleMediaFilesAdded.bind(this))
     eventBus.on('media.fileRemoved', this.handleMediaFileRemoved.bind(this))
     eventBus.on('media.poolCleared', this.handleMediaPoolCleared.bind(this))
+
+    // New StateManager events
+    eventBus.on('state.mediaPoolUpdated', this.handleMediaPoolStateUpdate.bind(this))
   }
 
   /**
@@ -264,10 +269,18 @@ class UIManager {
   }
 
   /**
+   * Handle media pool state update
+   */
+  handleMediaPoolStateUpdate() {
+    this.updateMediaPoolDisplay()
+    this.updateWelcomeMessageVisibility()
+  }
+
+  /**
    * Update the media pool display with current media items
    */
   updateMediaPoolDisplay() {
-    const mediaItems = mediaProcessor.getAllMedia()
+    const mediaItems = stateManager.getMediaPool()
 
     // Clear current display
     this.mediaPool.innerHTML = ''
@@ -329,7 +342,7 @@ class UIManager {
    * Update welcome message visibility based on media pool state
    */
   updateWelcomeMessageVisibility() {
-    const mediaItems = mediaProcessor.getAllMedia()
+    const mediaItems = stateManager.getMediaPool()
     if (mediaItems.length > 0) {
       this.welcomeMessage.classList.add('hidden')
     } else {
