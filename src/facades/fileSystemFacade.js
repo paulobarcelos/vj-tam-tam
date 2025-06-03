@@ -55,9 +55,17 @@ class FileSystemFacade {
         ],
       })
 
-      // Convert file handles to File objects
-      const files = await Promise.all(fileHandles.map((handle) => handle.getFile()))
+      // Convert file handles to File objects with handles preserved
+      const files = await Promise.all(
+        fileHandles.map(async (handle) => {
+          const file = await handle.getFile()
+          // Preserve the file handle for persistence
+          file.handle = handle
+          return file
+        })
+      )
 
+      console.log(`Selected ${files.length} files via FileSystemAccessAPI with handles`)
       return files
     } catch (error) {
       if (error.name === 'AbortError') {

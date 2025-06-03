@@ -63,9 +63,19 @@ const mockVideoItem = {
 }
 
 describe('PlaybackEngine', () => {
+  // Store original global objects to restore later
+  let originalDocument
+  let originalWindow
+  let originalConsole
+
   beforeEach(() => {
     // Reset all mocks
     vi.clearAllMocks()
+
+    // Store original globals if they exist
+    originalDocument = globalThis.document
+    originalWindow = globalThis.window
+    originalConsole = globalThis.console
 
     // Mock getElementById to return our mock stage element
     Object.defineProperty(globalThis, 'document', {
@@ -95,6 +105,7 @@ describe('PlaybackEngine', () => {
         }),
       },
       writable: true,
+      configurable: true, // Make it configurable so we can delete it
     })
 
     // Mock window
@@ -104,6 +115,7 @@ describe('PlaybackEngine', () => {
         removeEventListener: vi.fn(),
       },
       writable: true,
+      configurable: true, // Make it configurable so we can delete it
     })
 
     // Mock console
@@ -114,6 +126,7 @@ describe('PlaybackEngine', () => {
         warn: vi.fn(),
       },
       writable: true,
+      configurable: true, // Make it configurable so we can delete it
     })
 
     // Reset PlaybackEngine state and mocks
@@ -151,6 +164,7 @@ describe('PlaybackEngine', () => {
         }),
       },
       writable: true,
+      configurable: true,
     })
 
     // Mock window
@@ -160,6 +174,7 @@ describe('PlaybackEngine', () => {
         removeEventListener: vi.fn(),
       },
       writable: true,
+      configurable: true,
     })
 
     // Mock console
@@ -170,16 +185,44 @@ describe('PlaybackEngine', () => {
         warn: vi.fn(),
       },
       writable: true,
+      configurable: true,
     })
   })
 
   afterEach(() => {
     // Clean up
     vi.resetAllMocks()
-    // Clean up globalThis properties set for mocks
-    delete globalThis.document
-    delete globalThis.window
-    delete globalThis.console
+
+    // Restore original globals or delete if they didn't exist
+    try {
+      if (originalDocument !== undefined) {
+        globalThis.document = originalDocument
+      } else {
+        delete globalThis.document
+      }
+    } catch {
+      // Ignore errors during cleanup
+    }
+
+    try {
+      if (originalWindow !== undefined) {
+        globalThis.window = originalWindow
+      } else {
+        delete globalThis.window
+      }
+    } catch {
+      // Ignore errors during cleanup
+    }
+
+    try {
+      if (originalConsole !== undefined) {
+        globalThis.console = originalConsole
+      } else {
+        delete globalThis.console
+      }
+    } catch {
+      // Ignore errors during cleanup
+    }
   })
 
   describe('initialization', () => {
@@ -473,17 +516,26 @@ describe('PlaybackEngine', () => {
       expect(playbackEngine.displayMedia).not.toHaveBeenCalled()
     })
 
-    it('should start playback when media pool becomes populated from empty', () => {
+    it('should start playback when media pool becomes populated from empty', async () => {
       playbackEngine.isPlaybackActive = false // Assume not active initially
       const mockMediaPool = [mockImageItem]
       const updateData = { mediaPool: mockMediaPool, totalCount: 1, cleared: false }
 
+      // Don't spy on startAutoPlayback since we want it to execute and call displayMedia
+      // Only spy on displayMedia to verify it gets called
+      vi.restoreAllMocks() // Clear the spies from beforeEach
+      vi.spyOn(playbackEngine, 'displayMedia')
+
+      // Mock stateManager.getMediaPool to return our mock data
+      const stateManagerModule = await import('./stateManager.js')
+      const stateManagerMock = stateManagerModule.stateManager
+      stateManagerMock.getMediaPool.mockReturnValue(mockMediaPool)
+
       playbackEngine.handleMediaPoolUpdate(updateData)
 
-      expect(playbackEngine.stopAutoPlayback).not.toHaveBeenCalled()
-      expect(playbackEngine.startAutoPlayback).toHaveBeenCalled()
-      // startAutoPlayback calls displayMedia, so we expect it to be called indirectly
+      // Verify displayMedia was called with the expected media item
       expect(playbackEngine.displayMedia).toHaveBeenCalledWith(mockMediaPool[0])
+      expect(console.log).toHaveBeenCalledWith('Automatic playback started')
     })
 
     it('should not start playback if media pool becomes populated but auto playback is disabled', () => {
@@ -514,8 +566,7 @@ describe('PlaybackEngine', () => {
 
     it('should handle mediaPoolRestored event the same as mediaPoolUpdated', async () => {
       // This test checks the event listener setup in init
-      // We just need to verify that handleMediaPoolUpdate is registered for both events
-      // The logic within handleMediaPoolUpdate is tested in the above cases
+      // We verify that both events are registered with the handleMediaPoolUpdate handler
       playbackEngine.init()
 
       const { eventBus } = await import('./eventBus.js')
@@ -531,8 +582,20 @@ describe('PlaybackEngine', () => {
       expect(mediaUpdatedListenerCall).toBeDefined()
       expect(mediaRestoredListenerCall).toBeDefined()
 
-      // Verify they registered the same handler function
-      expect(mediaUpdatedListenerCall[1]).toBe(mediaRestoredListenerCall[1])
+      // Verify both events are registered (even though bound functions are different instances)
+      expect(mediaUpdatedListenerCall[1]).toEqual(expect.any(Function))
+      expect(mediaRestoredListenerCall[1]).toEqual(expect.any(Function))
+
+      // Test that both events call the same underlying method
+      const updateDataTest = { mediaPool: [], totalCount: 0, cleared: true }
+      const stopSpy = vi.spyOn(playbackEngine, 'stopAutoPlayback')
+
+      // Call both event handlers with the same data
+      mediaUpdatedListenerCall[1](updateDataTest)
+      mediaRestoredListenerCall[1](updateDataTest)
+
+      // Both should result in the same behavior (stopAutoPlayback called twice)
+      expect(stopSpy).toHaveBeenCalledTimes(2)
     })
   })
 

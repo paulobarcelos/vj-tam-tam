@@ -66,11 +66,15 @@ class StateManager {
           )
           this.state.mediaPool = restoredFiles
 
+          // Check if any files need permission (user activation)
+          const needsPermission = restoredFiles.some((file) => file.needsPermission)
+
           // Emit restoration event
           eventBus.emit('state.mediaPoolRestored', {
             mediaPool: this.getMediaPool(),
             totalCount: restoredFiles.length,
-            source: 'FileSystemAccessAPI',
+            source: needsPermission ? 'FileSystemAccessAPI-NeedsPermission' : 'FileSystemAccessAPI',
+            needsPermission,
           })
           return // Exit early since we successfully restored from FileSystemAccessAPI
         }

@@ -7,6 +7,7 @@ import { eventBus } from './eventBus.js'
 import { mediaProcessor } from './mediaProcessor.js'
 import { fileSystemFacade } from './facades/fileSystemFacade.js'
 import { stateManager } from './stateManager.js'
+import { fileSystemAccessFacade } from './facades/fileSystemAccessFacade.js'
 
 class UIManager {
   constructor() {
@@ -17,6 +18,7 @@ class UIManager {
     this.welcomeMessage = null
     this.browseBtn = null
     this.dragCounter = 0 // Track drag enter/leave events
+    this.permissionOverlay = null
   }
 
   /**
@@ -45,6 +47,7 @@ class UIManager {
     this.setupDragAndDropListeners()
     this.setupEventBusListeners()
     this.setupFilePickerListeners()
+    this.createPermissionOverlay()
   }
 
   /**
@@ -77,6 +80,7 @@ class UIManager {
 
     // New StateManager events
     eventBus.on('state.mediaPoolUpdated', this.handleMediaPoolStateUpdate.bind(this))
+    eventBus.on('state.mediaPoolRestored', this.handleMediaPoolRestored.bind(this))
   }
 
   /**
@@ -277,6 +281,19 @@ class UIManager {
   }
 
   /**
+   * Handle media pool restoration with permission check
+   */
+  handleMediaPoolRestored(data) {
+    this.updateMediaPoolDisplay()
+    this.updateWelcomeMessageVisibility()
+
+    // Show permission overlay if files need user activation
+    if (data.needsPermission && data.totalCount > 0) {
+      this.showPermissionOverlay()
+    }
+  }
+
+  /**
    * Update the media pool display with current media items
    */
   updateMediaPoolDisplay() {
@@ -305,7 +322,14 @@ class UIManager {
 
       const typeElement = document.createElement('div')
       typeElement.className = 'media-type'
-      typeElement.textContent = `${item.type} • ${this.formatFileSize(item.size)}`
+
+      // Show if this is metadata-only (restored from localStorage)
+      if (!item.file || !item.url) {
+        typeElement.textContent = `${item.type} • ${this.formatFileSize(item.size)} • metadata only`
+        mediaElement.classList.add('metadata-only')
+      } else {
+        typeElement.textContent = `${item.type} • ${this.formatFileSize(item.size)}`
+      }
 
       mediaElement.appendChild(nameElement)
       mediaElement.appendChild(typeElement)
@@ -347,6 +371,80 @@ class UIManager {
       this.welcomeMessage.classList.add('hidden')
     } else {
       this.welcomeMessage.classList.remove('hidden')
+    }
+  }
+
+  /**
+   * Create permission overlay for user activation
+   */
+  createPermissionOverlay() {
+    this.permissionOverlay = document.createElement('div')
+    this.permissionOverlay.id = 'permission-overlay'
+    this.permissionOverlay.className = 'permission-overlay hidden'
+    this.permissionOverlay.innerHTML = `
+      <div class="permission-content">
+        <h2>Restore Previous Files</h2>
+        <p>Click to restore your previously selected files</p>
+        <button id="restore-files-btn" class="restore-btn">Restore Files</button>
+        <button id="skip-restore-btn" class="skip-btn">Skip</button>
+      </div>
+    `
+
+    document.body.appendChild(this.permissionOverlay)
+
+    // Set up click handlers
+    const restoreBtn = this.permissionOverlay.querySelector('#restore-files-btn')
+    const skipBtn = this.permissionOverlay.querySelector('#skip-restore-btn')
+
+    restoreBtn.addEventListener('click', this.handleRestoreFiles.bind(this))
+    skipBtn.addEventListener('click', this.hidePermissionOverlay.bind(this))
+  }
+
+  /**
+   * Show permission overlay
+   */
+  showPermissionOverlay() {
+    if (this.permissionOverlay) {
+      this.permissionOverlay.classList.remove('hidden')
+    }
+  }
+
+  /**
+   * Hide permission overlay
+   */
+  hidePermissionOverlay() {
+    if (this.permissionOverlay) {
+      this.permissionOverlay.classList.add('hidden')
+    }
+  }
+
+  /**
+   * Handle restore files click (with user activation)
+   */
+  async handleRestoreFiles() {
+    try {
+      this.hidePermissionOverlay()
+
+      // Now we have user activation, request access to stored files
+      const files = await fileSystemAccessFacade.requestStoredFilesAccess()
+
+      if (files.length > 0) {
+        // Update the state manager with the restored files
+        stateManager.state.mediaPool = files
+
+        // Emit event to update UI and trigger playback
+        eventBus.emit('state.mediaPoolRestored', {
+          mediaPool: files,
+          totalCount: files.length,
+          source: 'FileSystemAccessAPI-UserActivated',
+        })
+
+        console.log(`Successfully restored ${files.length} files with user activation`)
+      } else {
+        console.log('No files could be restored')
+      }
+    } catch (error) {
+      console.error('Error restoring files:', error)
     }
   }
 }

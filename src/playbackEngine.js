@@ -254,9 +254,19 @@ class PlaybackEngine {
   startAutoPlayback() {
     const mediaPool = stateManager.getMediaPool()
     if (mediaPool.length > 0 && !this.isPlaybackActive && this.autoPlaybackEnabled) {
-      this.isPlaybackActive = true
-      this.displayMedia(mediaPool[0]) // Display the first item
-      console.log('Automatic playback started')
+      // Find the first media item with a valid URL
+      const validMediaItem = mediaPool.find((item) => item.url && item.file)
+
+      if (validMediaItem) {
+        this.isPlaybackActive = true
+        this.displayMedia(validMediaItem)
+        console.log('Automatic playback started')
+      } else {
+        console.log(
+          'Media pool contains items but no valid URLs available (restored from metadata only)'
+        )
+        // Don't start playback, but could show a message to user about re-adding files
+      }
       // Future enhancement: Start cycling/playlist logic here
     }
   }

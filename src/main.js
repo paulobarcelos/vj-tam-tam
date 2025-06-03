@@ -13,18 +13,16 @@ import { playbackEngine } from './playbackEngine.js'
  */
 async function init() {
   try {
-    // Initialize core modules
-    // StateManager is imported to ensure it's available
-    // Initialize StateManager first to load persisted state
+    // Initialize UI Manager first so it can listen to events
+    uiManager.init()
+
+    // Initialize PlaybackEngine before StateManager so it can listen to restoration events
+    playbackEngine.init()
+
+    // Initialize StateManager last to load persisted state and emit events
     await stateManager.init()
 
     console.log('StateManager initialized. Media pool size:', stateManager.getMediaCount())
-
-    // Initialize UI Manager (which handles drag and drop)
-    uiManager.init()
-
-    // Initialize PlaybackEngine (which handles media display)
-    playbackEngine.init()
 
     console.log('VJ Tam Tam initialized successfully')
   } catch (error) {

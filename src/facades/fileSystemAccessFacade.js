@@ -168,10 +168,99 @@ class FileSystemAccessFacade {
   }
 
   /**
+   * Check if we have user activation (required for permission requests)
+   * @returns {boolean} True if user activation is available
+   */
+  hasUserActivation() {
+    try {
+      // Check if user activation API is available
+      if (!navigator.userActivation) {
+        console.log('User activation API not available, assuming no activation')
+        return false
+      }
+
+      // Check if we're in a user gesture context
+      return navigator.userActivation.isActive
+    } catch (error) {
+      console.warn('Error checking user activation:', error)
+      return false
+    }
+  }
+
+  /**
    * Get all stored file handles
    * @returns {Promise<Array>} Array of file data or empty array
    */
   async getAllFiles() {
+    if (!this.isSupported || !this.db) {
+      return []
+    }
+
+    try {
+      const transaction = this.db.transaction([STORE_NAME], 'readonly')
+      const store = transaction.objectStore(STORE_NAME)
+
+      return new Promise((resolve) => {
+        const request = store.getAll()
+
+        request.onsuccess = async () => {
+          try {
+            const results = request.result || []
+
+            if (results.length === 0) {
+              console.log('No file handles found in storage')
+              resolve([])
+              return
+            }
+
+            console.log(`Found ${results.length} stored file handles`)
+
+            // Check if we need user activation for permission requests
+            const hasActivation = this.hasUserActivation()
+
+            if (!hasActivation) {
+              console.log('User activation required for file access, returning metadata-only files')
+              // Return metadata-only objects for now
+              const metadataOnlyFiles = results.map((result) => ({
+                ...result.metadata,
+                file: null,
+                url: null,
+                fromFileSystemAPI: true,
+                needsPermission: true,
+              }))
+              resolve(metadataOnlyFiles)
+              return
+            }
+
+            console.log('User activation available, attempting to access files')
+            const filePromises = results.map((result) => this.getFileFromHandle(result.id))
+
+            const files = await Promise.all(filePromises)
+            const validFiles = files.filter((file) => file !== null)
+            console.log(`Successfully loaded ${validFiles.length} of ${results.length} files`)
+            resolve(validFiles)
+          } catch (error) {
+            console.error('Error processing stored files in onsuccess handler:', error)
+            resolve([])
+          }
+        }
+
+        request.onerror = () => {
+          console.error('Failed to retrieve all file handles:', request.error)
+          resolve([])
+        }
+      })
+    } catch (error) {
+      console.error('Error retrieving all files:', error)
+      return []
+    }
+  }
+
+  /**
+   * Request access to stored files (requires user activation)
+   * @returns {Promise<Array>} Array of accessible files
+   */
+  async requestStoredFilesAccess() {
     if (!this.isSupported || !this.db) {
       return []
     }
@@ -190,20 +279,23 @@ class FileSystemAccessFacade {
           try {
             const files = await Promise.all(filePromises)
             const validFiles = files.filter((file) => file !== null)
+            console.log(
+              `Successfully accessed ${validFiles.length} of ${results.length} stored files`
+            )
             resolve(validFiles)
           } catch (error) {
-            console.error('Error processing stored files:', error)
+            console.error('Error processing stored files after user activation:', error)
             resolve([])
           }
         }
 
         request.onerror = () => {
-          console.error('Failed to retrieve all file handles:', request.error)
+          console.error('Failed to retrieve file handles for user activation:', request.error)
           resolve([])
         }
       })
     } catch (error) {
-      console.error('Error retrieving all files:', error)
+      console.error('Error requesting stored files access:', error)
       return []
     }
   }
