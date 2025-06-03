@@ -20,7 +20,6 @@ class UIManager {
     this.browseFilesBtn = null
     this.browseFoldersBtn = null
     this.dragCounter = 0 // Track drag enter/leave events
-    this.permissionOverlay = null
     this.isFilePickerActive = false // Lock to prevent concurrent file picker calls
   }
 
@@ -52,7 +51,6 @@ class UIManager {
     this.setupDragAndDropListeners()
     this.setupEventBusListeners()
     this.setupFilePickerListeners()
-    this.createPermissionOverlay()
   }
 
   /**
@@ -302,14 +300,10 @@ class UIManager {
   /**
    * Handle media pool restoration with permission check
    */
-  handleMediaPoolRestored(data) {
+  handleMediaPoolRestored() {
     this.updateMediaPoolDisplay()
     this.updateWelcomeMessageVisibility()
-
-    // Show permission overlay if files need user activation
-    if (data.needsPermission && data.totalCount > 0) {
-      this.showPermissionOverlay()
-    }
+    // Banner approach handles permission restoration, no overlay needed
   }
 
   /**
@@ -457,86 +451,6 @@ class UIManager {
       this.welcomeMessage.classList.add('hidden')
     } else {
       this.welcomeMessage.classList.remove('hidden')
-    }
-  }
-
-  /**
-   * Create permission overlay for user activation
-   */
-  createPermissionOverlay() {
-    this.permissionOverlay = document.createElement('div')
-    this.permissionOverlay.id = 'permission-overlay'
-    this.permissionOverlay.className = 'permission-overlay hidden'
-    this.permissionOverlay.innerHTML = `
-      <div class="permission-content">
-        <h2>Restore Previous Files</h2>
-        <p>Click to restore your previously selected files</p>
-        <button id="restore-files-btn" class="restore-btn">Restore Files</button>
-        <button id="skip-restore-btn" class="skip-btn">Skip</button>
-      </div>
-    `
-
-    document.body.appendChild(this.permissionOverlay)
-
-    // Set up click handlers
-    const restoreBtn = this.permissionOverlay.querySelector('#restore-files-btn')
-    const skipBtn = this.permissionOverlay.querySelector('#skip-restore-btn')
-
-    restoreBtn.addEventListener('click', this.handleRestoreFiles.bind(this))
-    skipBtn.addEventListener('click', this.hidePermissionOverlay.bind(this))
-  }
-
-  /**
-   * Show permission overlay
-   */
-  showPermissionOverlay() {
-    if (this.permissionOverlay) {
-      this.permissionOverlay.classList.remove('hidden')
-    }
-  }
-
-  /**
-   * Hide permission overlay
-   */
-  hidePermissionOverlay() {
-    if (this.permissionOverlay) {
-      this.permissionOverlay.classList.add('hidden')
-    }
-  }
-
-  /**
-   * Handle restore files click (with user activation)
-   */
-  async handleRestoreFiles() {
-    try {
-      this.hidePermissionOverlay()
-
-      // Now we have user activation, request access to stored files
-      const files = await fileSystemAccessFacade.requestStoredFilesAccess()
-
-      if (files.length > 0) {
-        // Ensure all restored files have proper Date objects for addedAt
-        const normalizedFiles = files.map((file) => ({
-          ...file,
-          addedAt: file.addedAt instanceof Date ? file.addedAt : new Date(file.addedAt),
-        }))
-
-        // Update the state manager with the normalized restored files
-        stateManager.state.mediaPool = normalizedFiles
-
-        // Emit event to update UI and trigger playback
-        eventBus.emit('state.mediaPoolRestored', {
-          mediaPool: normalizedFiles,
-          totalCount: normalizedFiles.length,
-          source: 'FileSystemAccessAPI-UserActivated',
-        })
-
-        console.log(`Successfully restored ${files.length} files with user activation`)
-      } else {
-        console.log('No files could be restored')
-      }
-    } catch (error) {
-      console.error('Error restoring files:', error)
     }
   }
 
