@@ -146,6 +146,11 @@ class FileSystemAccessFacade {
 
             resolve({
               ...result.metadata,
+              // Ensure addedAt is a proper Date object
+              addedAt:
+                result.metadata.addedAt instanceof Date
+                  ? result.metadata.addedAt
+                  : new Date(result.metadata.addedAt),
               file,
               url,
               fromFileSystemAPI: true,
@@ -179,8 +184,19 @@ class FileSystemAccessFacade {
         return false
       }
 
-      // Check if we're in a user gesture context
-      return navigator.userActivation.isActive
+      // During page load, user activation can be inconsistent
+      // We're more conservative and assume no activation unless we're sure
+      const isActive = navigator.userActivation.isActive
+      const hasBeenActive = navigator.userActivation.hasBeenActive
+
+      // Only consider it active if both isActive is true AND hasBeenActive is true
+      // This reduces false positives during page load
+      const hasActivation = isActive && hasBeenActive
+
+      console.log(
+        `User activation check: isActive=${isActive}, hasBeenActive=${hasBeenActive}, result=${hasActivation}`
+      )
+      return hasActivation
     } catch (error) {
       console.warn('Error checking user activation:', error)
       return false
@@ -188,7 +204,7 @@ class FileSystemAccessFacade {
   }
 
   /**
-   * Get all stored file handles
+   * Get all stored file handles with improved user activation handling
    * @returns {Promise<Array>} Array of file data or empty array
    */
   async getAllFiles() {
@@ -215,30 +231,22 @@ class FileSystemAccessFacade {
 
             console.log(`Found ${results.length} stored file handles`)
 
-            // Check if we need user activation for permission requests
-            const hasActivation = this.hasUserActivation()
-
-            if (!hasActivation) {
-              console.log('User activation required for file access, returning metadata-only files')
-              // Return metadata-only objects for now
-              const metadataOnlyFiles = results.map((result) => ({
-                ...result.metadata,
-                file: null,
-                url: null,
-                fromFileSystemAPI: true,
-                needsPermission: true,
-              }))
-              resolve(metadataOnlyFiles)
-              return
-            }
-
-            console.log('User activation available, attempting to access files')
-            const filePromises = results.map((result) => this.getFileFromHandle(result.id))
-
-            const files = await Promise.all(filePromises)
-            const validFiles = files.filter((file) => file !== null)
-            console.log(`Successfully loaded ${validFiles.length} of ${results.length} files`)
-            resolve(validFiles)
+            // Always return metadata-only files initially to avoid race conditions
+            // The user activation will be properly handled via the permission overlay
+            console.log('Returning metadata-only files to avoid user activation race conditions')
+            const metadataOnlyFiles = results.map((result) => ({
+              ...result.metadata,
+              // Ensure addedAt is a proper Date object
+              addedAt:
+                result.metadata.addedAt instanceof Date
+                  ? result.metadata.addedAt
+                  : new Date(result.metadata.addedAt),
+              file: null,
+              url: null,
+              fromFileSystemAPI: true,
+              needsPermission: true,
+            }))
+            resolve(metadataOnlyFiles)
           } catch (error) {
             console.error('Error processing stored files in onsuccess handler:', error)
             resolve([])
@@ -262,10 +270,12 @@ class FileSystemAccessFacade {
    */
   async requestStoredFilesAccess() {
     if (!this.isSupported || !this.db) {
+      console.log('FileSystemAccessAPI not supported or database not available')
       return []
     }
 
     try {
+      console.log('Requesting access to stored files with user activation...')
       const transaction = this.db.transaction([STORE_NAME], 'readonly')
       const store = transaction.objectStore(STORE_NAME)
 
@@ -273,10 +283,24 @@ class FileSystemAccessFacade {
         const request = store.getAll()
 
         request.onsuccess = async () => {
-          const results = request.result || []
-          const filePromises = results.map((result) => this.getFileFromHandle(result.id))
-
           try {
+            const results = request.result || []
+            console.log(`Found ${results.length} stored file handles for access request`)
+
+            if (results.length === 0) {
+              resolve([])
+              return
+            }
+
+            const filePromises = results.map(async (result) => {
+              try {
+                return await this.getFileFromHandle(result.id)
+              } catch (error) {
+                console.warn(`Failed to access file handle for ${result.metadata.name}:`, error)
+                return null
+              }
+            })
+
             const files = await Promise.all(filePromises)
             const validFiles = files.filter((file) => file !== null)
             console.log(

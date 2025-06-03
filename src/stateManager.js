@@ -64,10 +64,17 @@ class StateManager {
           console.log(
             `Successfully restored ${restoredFiles.length} files from FileSystemAccessAPI`
           )
-          this.state.mediaPool = restoredFiles
 
-          // Check if any files need permission (user activation)
-          const needsPermission = restoredFiles.some((file) => file.needsPermission)
+          // Ensure all restored files have proper Date objects for addedAt
+          const normalizedFiles = restoredFiles.map((file) => ({
+            ...file,
+            addedAt: file.addedAt instanceof Date ? file.addedAt : new Date(file.addedAt),
+          }))
+
+          this.state.mediaPool = normalizedFiles
+
+          // All FileSystemAccessAPI files now need permission since we return metadata-only initially
+          const needsPermission = normalizedFiles.some((file) => file.fromFileSystemAPI)
 
           // Emit restoration event
           eventBus.emit('state.mediaPoolRestored', {
@@ -86,7 +93,7 @@ class StateManager {
         // Create placeholder MediaItems without File objects
         const restoredItems = persistedState.mediaPool.map((item) => ({
           ...item,
-          addedAt: new Date(item.addedAt),
+          addedAt: new Date(item.addedAt), // Always convert to Date object
           file: null, // Cannot restore File objects from localStorage
           url: null, // Will need to be recreated or show placeholder
         }))
@@ -116,22 +123,27 @@ class StateManager {
    * Save the current state to localStorage and optionally to FileSystemAccessAPI.
    */
   saveCurrentState() {
-    // Only persist necessary data (exclude File objects and URLs)
-    const stateToPersist = {
-      mediaPool: this.state.mediaPool.map((item) => ({
-        id: item.id,
-        name: item.name,
-        type: item.type,
-        mimeType: item.mimeType,
-        size: item.size,
-        addedAt: item.addedAt.toISOString(), // Convert Date to ISO string for persistence
-      })),
-      // Persist other relevant state properties if they exist (e.g., autoPlaybackEnabled)
-      // autoPlaybackEnabled: this.state.autoPlaybackEnabled,
-      // lastPlaybackState: this.state.lastPlaybackState,
+    try {
+      // Only persist necessary data (exclude File objects and URLs)
+      const stateToPersist = {
+        mediaPool: this.state.mediaPool.map((item) => ({
+          id: item.id,
+          name: item.name,
+          type: item.type,
+          mimeType: item.mimeType,
+          size: item.size,
+          // Safely convert addedAt to ISO string, handling both Date objects and strings
+          addedAt: item.addedAt instanceof Date ? item.addedAt.toISOString() : item.addedAt,
+        })),
+        // Persist other relevant state properties if they exist (e.g., autoPlaybackEnabled)
+        // autoPlaybackEnabled: this.state.autoPlaybackEnabled,
+        // lastPlaybackState: this.state.lastPlaybackState,
+      }
+      storageFacade.saveState(stateToPersist)
+      console.log('Current state saved to localStorage.')
+    } catch (error) {
+      console.error('Error saving current state:', error)
     }
-    storageFacade.saveState(stateToPersist)
-    console.log('Current state saved to localStorage.')
   }
 
   /**
@@ -194,7 +206,8 @@ class StateManager {
             type: item.type,
             mimeType: item.mimeType,
             size: item.size,
-            addedAt: item.addedAt.toISOString(),
+            // Safely convert addedAt to ISO string, handling both Date objects and strings
+            addedAt: item.addedAt instanceof Date ? item.addedAt.toISOString() : item.addedAt,
           }
 
           await fileSystemAccessFacade.storeFileHandle(item.id, item.file.handle, metadata)

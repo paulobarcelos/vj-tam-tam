@@ -429,13 +429,19 @@ class UIManager {
       const files = await fileSystemAccessFacade.requestStoredFilesAccess()
 
       if (files.length > 0) {
-        // Update the state manager with the restored files
-        stateManager.state.mediaPool = files
+        // Ensure all restored files have proper Date objects for addedAt
+        const normalizedFiles = files.map((file) => ({
+          ...file,
+          addedAt: file.addedAt instanceof Date ? file.addedAt : new Date(file.addedAt),
+        }))
+
+        // Update the state manager with the normalized restored files
+        stateManager.state.mediaPool = normalizedFiles
 
         // Emit event to update UI and trigger playback
         eventBus.emit('state.mediaPoolRestored', {
-          mediaPool: files,
-          totalCount: files.length,
+          mediaPool: normalizedFiles,
+          totalCount: normalizedFiles.length,
           source: 'FileSystemAccessAPI-UserActivated',
         })
 
