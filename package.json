@@ -6,6 +6,7 @@
   "main": "app/index.html",
   "scripts": {
     "dev": "serve -s app",
+    "publish": "git subtree push --prefix app origin gh-pages",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:once": "vitest run",
