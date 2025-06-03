@@ -9,6 +9,7 @@ vi.mock('../toastManager.js', () => ({
   toastManager: {
     error: vi.fn(),
     success: vi.fn(),
+    show: vi.fn(),
   },
 }))
 
@@ -119,12 +120,18 @@ describe('FileSystemFacade', () => {
 
       const facade = new FileSystemFacade()
 
+      // Mock the fallback method
+      const mockFiles = [new File(['content'], 'test.jpg', { type: 'image/jpeg' })]
+      vi.spyOn(facade, 'browseWithInput').mockResolvedValue(mockFiles)
+
       const result = await facade.browse()
 
-      expect(result).toEqual([])
-      expect(toastManager.error).toHaveBeenCalledWith(
-        'File access permission denied. Please try again and allow file access.'
+      expect(result).toEqual(mockFiles)
+      expect(toastManager.show).toHaveBeenCalledWith(
+        'FileSystemAccessAPI permission denied. Using fallback file picker.',
+        { type: 'info' }
       )
+      expect(facade.browseWithInput).toHaveBeenCalledWith(false)
     })
 
     it('should fall back to HTML input when API not available', async () => {

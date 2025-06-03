@@ -16,9 +16,11 @@ class UIManager {
     this.dropIndicator = null
     this.mediaPool = null
     this.welcomeMessage = null
-    this.browseBtn = null
+    this.browseFilesBtn = null
+    this.browseFoldersBtn = null
     this.dragCounter = 0 // Track drag enter/leave events
     this.permissionOverlay = null
+    this.isFilePickerActive = false // Lock to prevent concurrent file picker calls
   }
 
   /**
@@ -30,7 +32,8 @@ class UIManager {
     this.dropIndicator = document.getElementById('drop-indicator')
     this.mediaPool = document.getElementById('media-pool')
     this.welcomeMessage = document.getElementById('welcome-message')
-    this.browseBtn = document.getElementById('browse-btn')
+    this.browseFilesBtn = document.getElementById('browse-files-btn')
+    this.browseFoldersBtn = document.getElementById('browse-folders-btn')
 
     if (
       !this.stage ||
@@ -38,7 +41,8 @@ class UIManager {
       !this.dropIndicator ||
       !this.mediaPool ||
       !this.welcomeMessage ||
-      !this.browseBtn
+      !this.browseFilesBtn ||
+      !this.browseFoldersBtn
     ) {
       console.error('Required DOM elements not found')
       return
@@ -87,11 +91,12 @@ class UIManager {
    * Set up file picker event listeners
    */
   setupFilePickerListeners() {
-    // Welcome message click handler
-    this.welcomeMessage.addEventListener('click', this.handleBrowseClick.bind(this))
+    // Welcome message click handler - defaults to files
+    this.welcomeMessage.addEventListener('click', this.handleBrowseFilesClick.bind(this))
 
-    // Browse button handler
-    this.browseBtn.addEventListener('click', this.handleBrowseClick.bind(this))
+    // Browse button handlers
+    this.browseFilesBtn.addEventListener('click', this.handleBrowseFilesClick.bind(this))
+    this.browseFoldersBtn.addEventListener('click', this.handleBrowseFoldersClick.bind(this))
   }
 
   /**
@@ -355,10 +360,42 @@ class UIManager {
   /**
    * Handle browse button and welcome message click for file selection
    */
-  async handleBrowseClick() {
-    const files = await fileSystemFacade.browse()
-    if (files.length > 0) {
-      await mediaProcessor.processFiles(files)
+  async handleBrowseFilesClick() {
+    // Prevent concurrent file picker calls
+    if (this.isFilePickerActive) {
+      console.log('File picker already active, ignoring click')
+      return
+    }
+
+    try {
+      this.isFilePickerActive = true
+      const files = await fileSystemFacade.browseFiles()
+      if (files.length > 0) {
+        await mediaProcessor.processFiles(files)
+      }
+    } finally {
+      this.isFilePickerActive = false
+    }
+  }
+
+  /**
+   * Handle browse folders button click for folder selection
+   */
+  async handleBrowseFoldersClick() {
+    // Prevent concurrent file picker calls
+    if (this.isFilePickerActive) {
+      console.log('File picker already active, ignoring click')
+      return
+    }
+
+    try {
+      this.isFilePickerActive = true
+      const files = await fileSystemFacade.browseFolders()
+      if (files.length > 0) {
+        await mediaProcessor.processFiles(files)
+      }
+    } finally {
+      this.isFilePickerActive = false
     }
   }
 
