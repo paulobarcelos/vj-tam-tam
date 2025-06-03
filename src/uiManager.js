@@ -1,0 +1,560 @@
+/**
+ * UI Manager module for handling user interface interactions and drag-and-drop functionality
+ * Manages visual feedback and coordinates with other modules through the event bus
+ */
+
+import { eventBus } from './eventBus.js'
+import { mediaProcessor } from './mediaProcessor.js'
+import { fileSystemFacade } from './facades/fileSystemFacade.js'
+import { stateManager } from './stateManager.js'
+import { fileSystemAccessFacade } from './facades/fileSystemAccessFacade.js'
+import { toastManager } from './toastManager.js'
+
+class UIManager {
+  constructor() {
+    this.stage = null
+    this.leftDrawer = null
+    this.dropIndicator = null
+    this.mediaPool = null
+    this.welcomeMessage = null
+    this.browseFilesBtn = null
+    this.browseFoldersBtn = null
+    this.dragCounter = 0 // Track drag enter/leave events
+    this.isFilePickerActive = false // Lock to prevent concurrent file picker calls
+  }
+
+  /**
+   * Initialize the UI Manager and set up event listeners
+   */
+  init() {
+    this.stage = document.getElementById('stage')
+    this.leftDrawer = document.getElementById('left-drawer')
+    this.dropIndicator = document.getElementById('drop-indicator')
+    this.mediaPool = document.getElementById('media-pool')
+    this.welcomeMessage = document.getElementById('welcome-message')
+    this.browseFilesBtn = document.getElementById('browse-files-btn')
+    this.browseFoldersBtn = document.getElementById('browse-folders-btn')
+
+    if (
+      !this.stage ||
+      !this.leftDrawer ||
+      !this.dropIndicator ||
+      !this.mediaPool ||
+      !this.welcomeMessage ||
+      !this.browseFilesBtn ||
+      !this.browseFoldersBtn
+    ) {
+      console.error('Required DOM elements not found')
+      return
+    }
+
+    this.setupDragAndDropListeners()
+    this.setupEventBusListeners()
+    this.setupFilePickerListeners()
+  }
+
+  /**
+   * Set up HTML5 Drag and Drop API event listeners
+   */
+  setupDragAndDropListeners() {
+    // Prevent default drag behaviors on the entire window
+    window.addEventListener('dragover', this.handleDragOver.bind(this))
+    window.addEventListener('dragenter', this.handleDragEnter.bind(this))
+    window.addEventListener('dragleave', this.handleDragLeave.bind(this))
+    window.addEventListener('drop', this.handleDrop.bind(this))
+
+    // Prevent default behaviors to enable custom drop handling
+    ;['dragenter', 'dragover', 'dragleave', 'drop'].forEach((eventName) => {
+      window.addEventListener(eventName, (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+      })
+    })
+  }
+
+  /**
+   * Set up event bus listeners for inter-module communication
+   */
+  setupEventBusListeners() {
+    // Legacy events for backward compatibility
+    eventBus.on('media.filesAdded', this.handleMediaFilesAdded.bind(this))
+    eventBus.on('media.fileRemoved', this.handleMediaFileRemoved.bind(this))
+    eventBus.on('media.poolCleared', this.handleMediaPoolCleared.bind(this))
+
+    // New StateManager events
+    eventBus.on('state.mediaPoolUpdated', this.handleMediaPoolStateUpdate.bind(this))
+    eventBus.on('state.mediaPoolRestored', this.handleMediaPoolRestored.bind(this))
+  }
+
+  /**
+   * Set up file picker event listeners
+   */
+  setupFilePickerListeners() {
+    // Welcome message click handler - defaults to files
+    this.welcomeMessage.addEventListener('click', this.handleBrowseFilesClick.bind(this))
+
+    // Browse button handlers
+    this.browseFilesBtn.addEventListener('click', this.handleBrowseFilesClick.bind(this))
+    this.browseFoldersBtn.addEventListener('click', this.handleBrowseFoldersClick.bind(this))
+  }
+
+  /**
+   * Handle dragover events
+   * @param {DragEvent} e - Drag event
+   */
+  handleDragOver(e) {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+  }
+
+  /**
+   * Handle dragenter events
+   * @param {DragEvent} e - Drag event
+   */
+  handleDragEnter(e) {
+    e.preventDefault()
+    this.dragCounter++
+
+    // Only show visual feedback on first drag enter
+    if (this.dragCounter === 1) {
+      this.showDropFeedback()
+    }
+  }
+
+  /**
+   * Handle dragleave events
+   * @param {DragEvent} e - Drag event
+   */
+  handleDragLeave(e) {
+    e.preventDefault()
+    this.dragCounter--
+
+    // Only hide visual feedback when all drag operations have left
+    if (this.dragCounter === 0) {
+      this.hideDropFeedback()
+    }
+  }
+
+  /**
+   * Handle drop events
+   * @param {DragEvent} e - Drag event
+   */
+  async handleDrop(e) {
+    e.preventDefault()
+    this.dragCounter = 0
+    this.hideDropFeedback()
+
+    const items = Array.from(e.dataTransfer.items)
+    const files = []
+
+    try {
+      // Process each dropped item
+      for (const item of items) {
+        if (item.kind === 'file') {
+          const entry = item.webkitGetAsEntry()
+          if (entry) {
+            if (entry.isFile) {
+              // Handle individual file
+              const file = item.getAsFile()
+              if (file) {
+                files.push(file)
+              }
+            } else if (entry.isDirectory) {
+              // Handle directory recursively
+              const dirFiles = await this.processDirectory(entry)
+              files.push(...dirFiles)
+            }
+          }
+        }
+      }
+
+      // Process all collected files
+      if (files.length > 0) {
+        await mediaProcessor.processFiles(files)
+      }
+    } catch (error) {
+      console.error('Error processing dropped items:', error)
+    }
+  }
+
+  /**
+   * Recursively process directory entries to find media files
+   * @param {FileSystemDirectoryEntry} directoryEntry - Directory entry to process
+   * @returns {Promise<File[]>} - Promise resolving to array of files
+   */
+  async processDirectory(directoryEntry) {
+    const files = []
+
+    return new Promise((resolve, reject) => {
+      const reader = directoryEntry.createReader()
+
+      const readEntries = () => {
+        reader.readEntries(async (entries) => {
+          if (entries.length === 0) {
+            // No more entries, resolve with collected files
+            resolve(files)
+            return
+          }
+
+          try {
+            // Process each entry
+            for (const entry of entries) {
+              if (entry.isFile) {
+                const file = await this.getFileFromEntry(entry)
+                if (file) {
+                  files.push(file)
+                }
+              } else if (entry.isDirectory) {
+                // Recursively process subdirectory
+                const subFiles = await this.processDirectory(entry)
+                files.push(...subFiles)
+              }
+            }
+
+            // Continue reading more entries
+            readEntries()
+          } catch (error) {
+            reject(error)
+          }
+        }, reject)
+      }
+
+      readEntries()
+    })
+  }
+
+  /**
+   * Get File object from FileSystemFileEntry
+   * @param {FileSystemFileEntry} fileEntry - File entry
+   * @returns {Promise<File>} - Promise resolving to File object
+   */
+  getFileFromEntry(fileEntry) {
+    return new Promise((resolve, reject) => {
+      fileEntry.file(resolve, reject)
+    })
+  }
+
+  /**
+   * Show visual feedback for valid drop targets
+   */
+  showDropFeedback() {
+    this.stage.classList.add('drag-over')
+    this.leftDrawer.classList.add('drag-over')
+    this.dropIndicator.classList.remove('hidden')
+  }
+
+  /**
+   * Hide visual feedback for drop targets
+   */
+  hideDropFeedback() {
+    this.stage.classList.remove('drag-over')
+    this.leftDrawer.classList.remove('drag-over')
+    this.dropIndicator.classList.add('hidden')
+  }
+
+  /**
+   * Handle media files being added
+   */
+  handleMediaFilesAdded() {
+    this.updateMediaPoolDisplay()
+    this.updateWelcomeMessageVisibility()
+  }
+
+  /**
+   * Handle media file being removed
+   */
+  handleMediaFileRemoved() {
+    this.updateMediaPoolDisplay()
+    this.updateWelcomeMessageVisibility()
+  }
+
+  /**
+   * Handle media pool being cleared
+   */
+  handleMediaPoolCleared() {
+    this.updateMediaPoolDisplay()
+    this.updateWelcomeMessageVisibility()
+  }
+
+  /**
+   * Handle media pool state update
+   */
+  handleMediaPoolStateUpdate(data) {
+    this.updateMediaPoolDisplay()
+    this.updateWelcomeMessageVisibility()
+
+    // Provide user feedback for upgraded files
+    if (data && data.upgradedItems && data.upgradedItems.length > 0) {
+      const upgradeCount = data.upgradedItems.length
+      const message =
+        upgradeCount === 1
+          ? `Restored access to 1 file: ${data.upgradedItems[0].name}`
+          : `Restored access to ${upgradeCount} files`
+
+      console.log(`Upgraded ${upgradeCount} metadata-only files to full access`)
+      // Show a success toast for the upgrade
+      toastManager.success(message)
+    }
+  }
+
+  /**
+   * Handle media pool restoration with permission check
+   */
+  handleMediaPoolRestored() {
+    this.updateMediaPoolDisplay()
+    this.updateWelcomeMessageVisibility()
+    // Banner approach handles permission restoration, no overlay needed
+  }
+
+  /**
+   * Update the media pool display with current media items
+   */
+  updateMediaPoolDisplay() {
+    const mediaItems = stateManager.getMediaPool()
+
+    // Clear current display
+    this.mediaPool.innerHTML = ''
+
+    if (mediaItems.length === 0) {
+      const emptyMessage = document.createElement('div')
+      emptyMessage.className = 'media-pool-empty'
+      emptyMessage.textContent = 'Drop media files to get started'
+      this.mediaPool.appendChild(emptyMessage)
+      return
+    }
+
+    // Check if any files need permission restoration
+    const filesNeedingPermission = mediaItems.filter(
+      (item) => (!item.file || !item.url) && item.fromFileSystemAPI
+    )
+
+    // Check if any files are temporary (drag & drop)
+    const temporaryFiles = mediaItems.filter(
+      (item) =>
+        (item.file && item.url && !item.fromFileSystemAPI) ||
+        (!item.file && !item.url && !item.fromFileSystemAPI)
+    )
+
+    // Add restoration notice if needed
+    if (filesNeedingPermission.length > 0) {
+      const restoreNotice = document.createElement('div')
+      restoreNotice.className = 'restore-notice'
+
+      const noticeText = document.createElement('span')
+      noticeText.className = 'restore-notice-text'
+      const fileCount = filesNeedingPermission.length
+      noticeText.textContent = `${fileCount} file${fileCount !== 1 ? 's' : ''} need permission to be accessed.`
+
+      const restoreButton = document.createElement('button')
+      restoreButton.className = 'restore-all-btn'
+      restoreButton.textContent = 'Restore Access'
+      restoreButton.addEventListener('click', () => {
+        this.handleBulkFileRestore(filesNeedingPermission)
+      })
+
+      restoreNotice.appendChild(noticeText)
+      restoreNotice.appendChild(restoreButton)
+      this.mediaPool.appendChild(restoreNotice)
+    }
+
+    // Add temporary files notice if needed (only when FileSystemAccessAPI actually provides benefits)
+    if (temporaryFiles.length > 0 && fileSystemFacade.isFileSystemAccessActuallyWorking()) {
+      const tempNotice = document.createElement('div')
+      tempNotice.className = 'temporary-notice'
+
+      const noticeText = document.createElement('span')
+      noticeText.className = 'temporary-notice-text'
+      const fileCount = temporaryFiles.length
+      noticeText.textContent = `${fileCount} temporary file${fileCount !== 1 ? 's' : ''} will be removed on page reload.`
+
+      const tipText = document.createElement('div')
+      tipText.className = 'temporary-tip'
+      tipText.textContent = 'Use 📄 Files or 📁 Folders buttons for persistent files.'
+
+      tempNotice.appendChild(noticeText)
+      tempNotice.appendChild(tipText)
+      this.mediaPool.appendChild(tempNotice)
+    }
+
+    // Add each media item to the display
+    mediaItems.forEach((item) => {
+      const mediaElement = document.createElement('div')
+      mediaElement.className = 'media-item'
+      mediaElement.dataset.mediaId = item.id
+
+      const nameElement = document.createElement('div')
+      nameElement.className = 'media-name'
+      nameElement.textContent = item.name
+
+      const typeElement = document.createElement('div')
+      typeElement.className = 'media-type'
+
+      // Differentiate between different types of metadata-only files
+      if (!item.file || !item.url) {
+        if (item.fromFileSystemAPI) {
+          // File from FileSystemAccessAPI that can be restored
+          typeElement.textContent = `${item.type} • ${this.formatFileSize(item.size)} • needs permission`
+          mediaElement.classList.add('needs-permission')
+        } else {
+          // File from drag & drop - truly metadata-only
+          typeElement.textContent = `${item.type} • ${this.formatFileSize(item.size)} • metadata only`
+          mediaElement.classList.add('metadata-only')
+        }
+      } else {
+        // File with full access - check if it's temporary or persistent
+        if (item.fromFileSystemAPI) {
+          // Persistent file from FileSystemAccessAPI
+          typeElement.textContent = `${item.type} • ${this.formatFileSize(item.size)}`
+        } else {
+          // Temporary file from drag & drop
+          typeElement.textContent = `${item.type} • ${this.formatFileSize(item.size)} • temporary`
+          mediaElement.classList.add('temporary-file')
+        }
+      }
+
+      mediaElement.appendChild(nameElement)
+      mediaElement.appendChild(typeElement)
+      this.mediaPool.appendChild(mediaElement)
+    })
+  }
+
+  /**
+   * Format file size for display
+   * @param {number} bytes - File size in bytes
+   * @returns {string} - Formatted file size string
+   */
+  formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes'
+
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  /**
+   * Handle browse button and welcome message click for file selection
+   */
+  async handleBrowseFilesClick() {
+    // Prevent concurrent file picker calls
+    if (this.isFilePickerActive) {
+      console.log('File picker already active, ignoring click')
+      return
+    }
+
+    try {
+      this.isFilePickerActive = true
+      const files = await fileSystemFacade.browseFiles()
+      if (files.length > 0) {
+        await mediaProcessor.processFiles(files)
+      }
+    } finally {
+      this.isFilePickerActive = false
+    }
+  }
+
+  /**
+   * Handle browse folders button click for folder selection
+   */
+  async handleBrowseFoldersClick() {
+    // Prevent concurrent file picker calls
+    if (this.isFilePickerActive) {
+      console.log('File picker already active, ignoring click')
+      return
+    }
+
+    try {
+      this.isFilePickerActive = true
+      const files = await fileSystemFacade.browseFolders()
+      if (files.length > 0) {
+        await mediaProcessor.processFiles(files)
+      }
+    } finally {
+      this.isFilePickerActive = false
+    }
+  }
+
+  /**
+   * Update welcome message visibility based on media pool state
+   */
+  updateWelcomeMessageVisibility() {
+    const mediaItems = stateManager.getMediaPool()
+
+    // Check for usable media (files that actually have file and url access)
+    const usableMedia = mediaItems.filter((item) => item.file && item.url)
+
+    if (usableMedia.length > 0) {
+      this.welcomeMessage.classList.add('hidden')
+    } else {
+      this.welcomeMessage.classList.remove('hidden')
+    }
+  }
+
+  /**
+   * Handle bulk file restore
+   * @param {Array} filesNeedingPermission - Array of files needing restoration
+   */
+  async handleBulkFileRestore(filesNeedingPermission) {
+    try {
+      console.log(`Attempting to restore ${filesNeedingPermission.length} files`)
+
+      let upgradedCount = 0
+      const upgradedItems = []
+
+      // Process each file that needs permission
+      for (const item of filesNeedingPermission) {
+        try {
+          // Get the file from FileSystemAccessAPI
+          const restoredFile = await fileSystemAccessFacade.getFileFromHandle(item.id)
+
+          if (restoredFile) {
+            // Update the existing item in StateManager with the restored file
+            const existingItem = stateManager.getMediaById(item.id)
+            if (existingItem) {
+              const upgradedItem = {
+                ...existingItem,
+                file: restoredFile.file,
+                url: restoredFile.url,
+                fromFileSystemAPI: true, // Keep the flag
+              }
+
+              // Replace the item in the media pool
+              stateManager.state.mediaPool = stateManager.state.mediaPool.map((poolItem) =>
+                poolItem.id === item.id ? upgradedItem : poolItem
+              )
+
+              upgradedItems.push(upgradedItem)
+              upgradedCount++
+            }
+          } else {
+            console.warn(`Failed to restore file: ${item.name}`)
+          }
+        } catch (error) {
+          console.warn(`Error restoring individual file ${item.name}:`, error)
+        }
+      }
+
+      if (upgradedCount > 0) {
+        // Emit update event to refresh UI and trigger other components
+        eventBus.emit('state.mediaPoolUpdated', {
+          mediaPool: stateManager.getMediaPool(),
+          addedItems: [],
+          upgradedItems: upgradedItems,
+          totalCount: stateManager.getMediaCount(),
+        })
+
+        // Toast will be shown by handleMediaPoolStateUpdate when the event is processed
+        console.log(`Successfully restored ${upgradedCount} files`)
+      } else {
+        toastManager.error('Failed to restore access to files. Permissions may have been revoked.')
+      }
+    } catch (error) {
+      console.error('Error during bulk file restore:', error)
+      toastManager.error('Error restoring access to files. Please try again.')
+    }
+  }
+}
+
+// Export singleton instance
+export const uiManager = new UIManager()
