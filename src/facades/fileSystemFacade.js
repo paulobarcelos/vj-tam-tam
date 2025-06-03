@@ -9,6 +9,7 @@ class FileSystemFacade {
   constructor() {
     this.hasFileSystemAccess = 'showOpenFilePicker' in window && 'showDirectoryPicker' in window
     this.browserInfo = this.detectBrowser()
+    this.lastOperationUsedAPI = false // Track if last operation actually used API vs fallback
     console.log('FileSystemFacade initialized:', {
       hasFileSystemAccess: this.hasFileSystemAccess,
       browser: this.browserInfo,
@@ -38,6 +39,15 @@ class FileSystemFacade {
   }
 
   /**
+   * Check if FileSystemAccessAPI is actually working (not just available)
+   * Based on the last operation result
+   * @returns {boolean} - True if last operation used API successfully
+   */
+  isFileSystemAccessActuallyWorking() {
+    return this.hasFileSystemAccess && this.lastOperationUsedAPI
+  }
+
+  /**
    * Open file browser for selecting individual files
    * @returns {Promise<File[]>} - Promise resolving to array of File objects
    */
@@ -45,6 +55,7 @@ class FileSystemFacade {
     if (this.hasFileSystemAccess) {
       return this.browseFilesWithAPI()
     } else {
+      this.lastOperationUsedAPI = false // Mark as fallback used
       return this.browseWithInput(false)
     }
   }
@@ -57,6 +68,7 @@ class FileSystemFacade {
     if (this.hasFileSystemAccess) {
       return this.browseFoldersWithAPI()
     } else {
+      this.lastOperationUsedAPI = false // Mark as fallback used
       return this.browseWithInput(true)
     }
   }
@@ -105,11 +117,13 @@ class FileSystemFacade {
       )
 
       console.log(`Selected ${files.length} files via FileSystemAccessAPI with handles`)
+      this.lastOperationUsedAPI = true // Mark as successful API usage
       return files
     } catch (error) {
       if (error.name === 'AbortError') {
         // User cancelled - this is normal, don't show error
         console.log('File picker cancelled by user')
+        this.lastOperationUsedAPI = true // User cancellation still counts as API working
         return []
       }
 
@@ -118,12 +132,14 @@ class FileSystemFacade {
 
       if (error.name === 'NotAllowedError') {
         console.log('Permission denied, falling back to HTML input file picker')
+        this.lastOperationUsedAPI = false // Mark as fallback used
         toastManager.show('FileSystemAccessAPI permission denied. Using fallback file picker.', {
           type: 'info',
         })
         // Fallback to HTML input
         return this.browseWithInput(false)
       } else {
+        this.lastOperationUsedAPI = false // Mark as fallback used
         toastManager.error('Error accessing files. Please try again.')
         return []
       }
@@ -145,11 +161,13 @@ class FileSystemFacade {
       console.log(
         `Found ${files.length} media files in folder via FileSystemAccessAPI with handles`
       )
+      this.lastOperationUsedAPI = true // Mark as successful API usage
       return files
     } catch (error) {
       if (error.name === 'AbortError') {
         // User cancelled - this is normal, don't show error
         console.log('Directory picker cancelled by user')
+        this.lastOperationUsedAPI = true // User cancellation still counts as API working
         return []
       }
 
@@ -158,12 +176,14 @@ class FileSystemFacade {
 
       if (error.name === 'NotAllowedError') {
         console.log('Permission denied, falling back to HTML input folder picker')
+        this.lastOperationUsedAPI = false // Mark as fallback used
         toastManager.show('FileSystemAccessAPI permission denied. Using fallback folder picker.', {
           type: 'info',
         })
         // Fallback to HTML input with webkitdirectory
         return this.browseWithInput(true)
       } else {
+        this.lastOperationUsedAPI = false // Mark as fallback used
         toastManager.error('Error accessing folder. Please try again.')
         return []
       }

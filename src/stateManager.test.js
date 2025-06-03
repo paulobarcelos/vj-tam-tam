@@ -74,6 +74,7 @@ describe('StateManager', () => {
             mimeType: 'image/jpeg',
             size: 100,
             addedAt: new Date().toISOString(),
+            fromFileSystemAPI: true, // Mark as FileSystemAccessAPI file
           },
           {
             id: 'p2',
@@ -82,6 +83,7 @@ describe('StateManager', () => {
             mimeType: 'video/mp4',
             size: 200,
             addedAt: new Date().toISOString(),
+            fromFileSystemAPI: true, // Mark as FileSystemAccessAPI file
           },
         ],
       }
@@ -109,6 +111,70 @@ describe('StateManager', () => {
 
       // Should set up listener for state.mediaPoolUpdated to trigger save
       expect(eventBus.on).toHaveBeenCalledWith('state.mediaPoolUpdated', expect.any(Function))
+    })
+
+    it('should clean up temporary drag & drop files on init and only restore FileSystemAccessAPI files', async () => {
+      const persistedState = {
+        mediaPool: [
+          {
+            id: 'fs1',
+            name: 'persistent.jpg',
+            type: 'image',
+            mimeType: 'image/jpeg',
+            size: 100,
+            addedAt: new Date().toISOString(),
+            fromFileSystemAPI: true, // This should be restored
+          },
+          {
+            id: 'dd1',
+            name: 'temporary.mp4',
+            type: 'video',
+            mimeType: 'video/mp4',
+            size: 200,
+            addedAt: new Date().toISOString(),
+            // No fromFileSystemAPI flag - this should be cleaned up
+          },
+          {
+            id: 'dd2',
+            name: 'temporary2.png',
+            type: 'image',
+            mimeType: 'image/png',
+            size: 150,
+            addedAt: new Date().toISOString(),
+            fromFileSystemAPI: false, // Explicitly false - this should be cleaned up
+          },
+        ],
+      }
+      storageFacade.loadState.mockReturnValue(persistedState)
+
+      // Spy on console.log to verify cleanup message
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+      await stateManager.init()
+
+      expect(storageFacade.loadState).toHaveBeenCalled()
+      const mediaPool = stateManager.getMediaPool()
+
+      // Only the FileSystemAccessAPI file should remain
+      expect(mediaPool).toHaveLength(1)
+      expect(mediaPool[0].id).toBe('fs1')
+      expect(mediaPool[0].name).toBe('persistent.jpg')
+      expect(mediaPool[0].file).toBeNull()
+      expect(mediaPool[0].url).toBeNull()
+
+      // Should log cleanup message
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        'Cleaned up 2 temporary drag & drop files that cannot be restored'
+      )
+
+      // Should emit mediaPoolRestored event
+      expect(eventBus.emit).toHaveBeenCalledWith('state.mediaPoolRestored', {
+        mediaPool: expect.any(Array),
+        totalCount: 1,
+        source: 'localStorage-metadata',
+      })
+
+      consoleLogSpy.mockRestore()
     })
 
     it('should not load state on init if no persisted state is available', async () => {

@@ -294,6 +294,16 @@ body {
   color: #4da6ff;
 }
 
+/* Media pool item temporary styling (drag & drop files) */
+.media-item.temporary-file {
+  border-left: 3px solid #ffa500;
+  background-color: rgba(255, 165, 0, 0.1);
+}
+
+.media-item.temporary-file .media-type {
+  color: #ffb84d;
+}
+
 /* Restore notice banner */
 .restore-notice {
   background-color: rgba(0, 122, 204, 0.1);
@@ -338,6 +348,29 @@ body {
 .restore-all-btn:focus {
   outline: 2px solid #4da6ff;
   outline-offset: 2px;
+}
+
+/* Temporary files notice banner */
+.temporary-notice {
+  background-color: rgba(255, 165, 0, 0.1);
+  border: 1px solid #ffa500;
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.temporary-notice-text {
+  color: #ffb84d;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.temporary-tip {
+  color: #cc8800;
+  font-size: 0.8rem;
+  font-style: italic;
 }
 
 /* Responsive design */

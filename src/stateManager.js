@@ -90,27 +90,42 @@ class StateManager {
       // Fallback to localStorage metadata restoration
       const persistedState = storageFacade.loadState()
       if (persistedState?.mediaPool?.length > 0) {
-        // Create placeholder MediaItems without File objects
-        const restoredItems = persistedState.mediaPool.map((item) => ({
-          ...item,
-          addedAt: new Date(item.addedAt), // Always convert to Date object
-          file: null, // Cannot restore File objects from localStorage
-          url: null, // Will need to be recreated or show placeholder
-        }))
+        // Filter out drag & drop files since they cannot be truly restored
+        // Only keep files that were originally from FileSystemAccessAPI
+        const restorableItems = persistedState.mediaPool.filter((item) => item.fromFileSystemAPI)
+        const removedDragDropCount = persistedState.mediaPool.length - restorableItems.length
 
-        // Note: This creates a degraded state - user will need to re-add files
-        // Future enhancement: Use FileSystemAccessAPI for true persistence
-        this.state.mediaPool = restoredItems
+        if (removedDragDropCount > 0) {
+          console.log(
+            `Cleaned up ${removedDragDropCount} temporary drag & drop files that cannot be restored`
+          )
+        }
 
-        // Emit an event indicating state was restored from persistence
-        // Use a different event name to avoid triggering auto-save immediately
-        eventBus.emit('state.mediaPoolRestored', {
-          mediaPool: this.getMediaPool(),
-          totalCount: restoredItems.length,
-          source: 'localStorage-metadata',
-        })
+        if (restorableItems.length > 0) {
+          // Create placeholder MediaItems without File objects for FileSystemAccessAPI files only
+          const restoredItems = restorableItems.map((item) => ({
+            ...item,
+            addedAt: new Date(item.addedAt), // Always convert to Date object
+            file: null, // Cannot restore File objects from localStorage
+            url: null, // Will need to be recreated or show placeholder
+          }))
 
-        console.log(`Restored ${restoredItems.length} items from localStorage (metadata only).`)
+          this.state.mediaPool = restoredItems
+
+          // Emit an event indicating state was restored from persistence
+          // Use a different event name to avoid triggering auto-save immediately
+          eventBus.emit('state.mediaPoolRestored', {
+            mediaPool: this.getMediaPool(),
+            totalCount: restoredItems.length,
+            source: 'localStorage-metadata',
+          })
+
+          console.log(
+            `Restored ${restoredItems.length} FileSystemAccessAPI items from localStorage (metadata only).`
+          )
+        } else {
+          console.log('No persistent files found after cleanup.')
+        }
       } else {
         console.log('No persisted state found or media pool is empty.')
       }

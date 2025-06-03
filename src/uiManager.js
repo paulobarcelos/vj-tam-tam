@@ -328,6 +328,13 @@ class UIManager {
       (item) => (!item.file || !item.url) && item.fromFileSystemAPI
     )
 
+    // Check if any files are temporary (drag & drop)
+    const temporaryFiles = mediaItems.filter(
+      (item) =>
+        (item.file && item.url && !item.fromFileSystemAPI) ||
+        (!item.file && !item.url && !item.fromFileSystemAPI)
+    )
+
     // Add restoration notice if needed
     if (filesNeedingPermission.length > 0) {
       const restoreNotice = document.createElement('div')
@@ -348,6 +355,25 @@ class UIManager {
       restoreNotice.appendChild(noticeText)
       restoreNotice.appendChild(restoreButton)
       this.mediaPool.appendChild(restoreNotice)
+    }
+
+    // Add temporary files notice if needed (only when FileSystemAccessAPI actually provides benefits)
+    if (temporaryFiles.length > 0 && fileSystemFacade.isFileSystemAccessActuallyWorking()) {
+      const tempNotice = document.createElement('div')
+      tempNotice.className = 'temporary-notice'
+
+      const noticeText = document.createElement('span')
+      noticeText.className = 'temporary-notice-text'
+      const fileCount = temporaryFiles.length
+      noticeText.textContent = `${fileCount} temporary file${fileCount !== 1 ? 's' : ''} will be removed on page reload.`
+
+      const tipText = document.createElement('div')
+      tipText.className = 'temporary-tip'
+      tipText.textContent = 'Use 📄 Files or 📁 Folders buttons for persistent files.'
+
+      tempNotice.appendChild(noticeText)
+      tempNotice.appendChild(tipText)
+      this.mediaPool.appendChild(tempNotice)
     }
 
     // Add each media item to the display
@@ -375,8 +401,15 @@ class UIManager {
           mediaElement.classList.add('metadata-only')
         }
       } else {
-        // File with full access
-        typeElement.textContent = `${item.type} • ${this.formatFileSize(item.size)}`
+        // File with full access - check if it's temporary or persistent
+        if (item.fromFileSystemAPI) {
+          // Persistent file from FileSystemAccessAPI
+          typeElement.textContent = `${item.type} • ${this.formatFileSize(item.size)}`
+        } else {
+          // Temporary file from drag & drop
+          typeElement.textContent = `${item.type} • ${this.formatFileSize(item.size)} • temporary`
+          mediaElement.classList.add('temporary-file')
+        }
       }
 
       mediaElement.appendChild(nameElement)
@@ -447,7 +480,11 @@ class UIManager {
    */
   updateWelcomeMessageVisibility() {
     const mediaItems = stateManager.getMediaPool()
-    if (mediaItems.length > 0) {
+
+    // Check for usable media (files that actually have file and url access)
+    const usableMedia = mediaItems.filter((item) => item.file && item.url)
+
+    if (usableMedia.length > 0) {
       this.welcomeMessage.classList.add('hidden')
     } else {
       this.welcomeMessage.classList.remove('hidden')
@@ -507,9 +544,7 @@ class UIManager {
           totalCount: stateManager.getMediaCount(),
         })
 
-        toastManager.success(
-          `Restored access to ${upgradedCount} file${upgradedCount !== 1 ? 's' : ''}`
-        )
+        // Toast will be shown by handleMediaPoolStateUpdate when the event is processed
         console.log(`Successfully restored ${upgradedCount} files`)
       } else {
         toastManager.error('Failed to restore access to files. Permissions may have been revoked.')
