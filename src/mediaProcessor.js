@@ -4,16 +4,11 @@
  */
 
 import { eventBus } from './eventBus.js'
-import { toastManager } from './toastManager.js'
 import { stateManager } from './stateManager.js'
-import {
-  isSupportedMime,
-  isSupportedExtension,
-  getMediaTypeFromMime,
-  getMediaTypeFromExtension,
-  getSupportedTypesString,
-} from './constants/mediaTypes.js'
-import { STRINGS, t } from './constants/strings.js'
+import { toastManager } from './toastManager.js'
+import { STRINGS } from './constants/strings.js'
+import { t } from './constants/strings.js'
+import { isFileSupported, getMediaType, getSupportedTypes } from './utils/mediaUtils.js'
 
 /**
  * @typedef {Object} MediaItem
@@ -31,44 +26,6 @@ import { STRINGS, t } from './constants/strings.js'
 class MediaProcessor {
   constructor() {
     this.nextId = 1
-  }
-
-  /**
-   * Get file extension from filename
-   * @param {string} filename - The filename to extract extension from
-   * @returns {string} - Lowercase file extension without dot
-   */
-  getFileExtension(filename) {
-    return filename.split('.').pop().toLowerCase()
-  }
-
-  /**
-   * Check if file type is supported based on extension and MIME type
-   * @param {File} file - File object to validate
-   * @returns {boolean} - True if file is supported
-   */
-  isFileSupported(file) {
-    const extension = this.getFileExtension(file.name)
-    const mimeType = file.type.toLowerCase()
-
-    return isSupportedExtension(extension) || isSupportedMime(mimeType)
-  }
-
-  /**
-   * Determine media type (image or video) from file
-   * @param {File} file - File object
-   * @returns {string} - 'image' or 'video'
-   */
-  getMediaType(file) {
-    const extension = this.getFileExtension(file.name)
-    const mimeType = file.type.toLowerCase()
-
-    // Try MIME type first, then extension
-    const typeFromMime = getMediaTypeFromMime(mimeType)
-    if (typeFromMime) return typeFromMime
-
-    const typeFromExtension = getMediaTypeFromExtension(extension)
-    return typeFromExtension || 'image' // Default to image if unknown
   }
 
   /**
@@ -116,7 +73,7 @@ class MediaProcessor {
     files.forEach((file) => {
       if (this.isFileAlreadyInPool(file)) {
         duplicateFiles.push(file)
-      } else if (this.isFileSupported(file)) {
+      } else if (isFileSupported(file)) {
         supportedFiles.push(file)
       } else {
         unsupportedFiles.push(file)
@@ -125,7 +82,7 @@ class MediaProcessor {
 
     // Show toast for unsupported files if any
     if (unsupportedFiles.length > 0) {
-      const supportedTypes = getSupportedTypesString()
+      const supportedTypes = getSupportedTypes()
       toastManager.error(t.importFailed(supportedTypes))
     }
 
@@ -172,7 +129,7 @@ class MediaProcessor {
     const mediaItem = {
       id: `media_${this.nextId++}`,
       name: file.name,
-      type: this.getMediaType(file),
+      type: getMediaType(file),
       mimeType: file.type,
       size: file.size,
       file: file, // This may include file.handle if available
@@ -226,7 +183,7 @@ class MediaProcessor {
    * @returns {string} - Formatted string of supported types
    */
   getSupportedTypesString() {
-    return getSupportedTypesString()
+    return getSupportedTypes()
   }
 }
 

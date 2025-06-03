@@ -7,6 +7,7 @@ import { eventBus } from './eventBus.js'
 import { storageFacade } from './facades/storageFacade.js'
 import { fileSystemAccessFacade } from './facades/fileSystemAccessFacade.js'
 import { STRINGS, t } from './constants/strings.js'
+import { filterRestorableMedia } from './utils/mediaUtils.js'
 
 /**
  * @typedef {Object} MediaItem
@@ -92,7 +93,7 @@ class StateManager {
       if (persistedState?.mediaPool?.length > 0) {
         // Filter out drag & drop files since they cannot be truly restored
         // Only keep files that were originally from FileSystemAccessAPI
-        const restorableItems = persistedState.mediaPool.filter((item) => item.fromFileSystemAPI)
+        const restorableItems = filterRestorableMedia(persistedState.mediaPool)
         const removedDragDropCount = persistedState.mediaPool.length - restorableItems.length
 
         if (removedDragDropCount > 0) {

@@ -2,7 +2,7 @@
  * Unit tests for MediaProcessor module
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { mediaProcessor } from './mediaProcessor.js'
 import {
   SUPPORTED_IMAGE_MIMES,
@@ -11,6 +11,13 @@ import {
   SUPPORTED_VIDEO_EXTENSIONS,
 } from './constants/mediaTypes.js'
 import { t } from './constants/strings.js'
+// Import utility functions that were moved from MediaProcessor
+import {
+  getFileExtension,
+  isFileSupported,
+  getMediaType,
+  getSupportedTypes,
+} from './utils/mediaUtils.js'
 
 // Mock the dependencies
 vi.mock('./eventBus.js', () => ({
@@ -45,72 +52,78 @@ describe('MediaProcessor', () => {
     vi.clearAllMocks()
   })
 
-  describe('getFileExtension', () => {
-    it('should extract file extension correctly', () => {
-      expect(mediaProcessor.getFileExtension('test.jpg')).toBe('jpg')
-      expect(mediaProcessor.getFileExtension('video.MP4')).toBe('mp4')
-      expect(mediaProcessor.getFileExtension('image.JPEG')).toBe('jpeg')
-      expect(mediaProcessor.getFileExtension('file.with.dots.png')).toBe('png')
-    })
+  afterEach(() => {
+    vi.clearAllMocks()
   })
 
-  describe('isFileSupported', () => {
-    it('should return true for supported image files', () => {
-      const supportedImages = [
-        { name: 'test.jpg', type: SUPPORTED_IMAGE_MIMES[0] },
-        { name: 'test.png', type: SUPPORTED_IMAGE_MIMES[1] },
-        { name: 'test.gif', type: SUPPORTED_IMAGE_MIMES[2] },
-        { name: 'test.heic', type: SUPPORTED_IMAGE_MIMES[3] },
-        { name: 'test.webp', type: SUPPORTED_IMAGE_MIMES[4] },
-      ]
-
-      supportedImages.forEach((file) => {
-        expect(mediaProcessor.isFileSupported(file)).toBe(true)
+  describe('utility functions (now from mediaUtils)', () => {
+    describe('getFileExtension', () => {
+      it('should extract file extension correctly', () => {
+        expect(getFileExtension('test.jpg')).toBe('jpg')
+        expect(getFileExtension('video.MP4')).toBe('mp4')
+        expect(getFileExtension('image.JPEG')).toBe('jpeg')
+        expect(getFileExtension('file.with.dots.png')).toBe('png')
       })
     })
 
-    it('should return true for supported video files', () => {
-      const supportedVideos = [
-        { name: 'test.mp4', type: SUPPORTED_VIDEO_MIMES[0] },
-        { name: 'test.mov', type: SUPPORTED_VIDEO_MIMES[1] },
-        { name: 'test.webm', type: SUPPORTED_VIDEO_MIMES[2] },
-        { name: 'test.avi', type: SUPPORTED_VIDEO_MIMES[3] },
-        { name: 'test.mkv', type: SUPPORTED_VIDEO_MIMES[4] },
-      ]
+    describe('isFileSupported', () => {
+      it('should return true for supported image files', () => {
+        const supportedImages = [
+          { name: 'test.jpg', type: SUPPORTED_IMAGE_MIMES[0] },
+          { name: 'test.png', type: SUPPORTED_IMAGE_MIMES[1] },
+          { name: 'test.gif', type: SUPPORTED_IMAGE_MIMES[2] },
+          { name: 'test.heic', type: SUPPORTED_IMAGE_MIMES[3] },
+          { name: 'test.webp', type: SUPPORTED_IMAGE_MIMES[4] },
+        ]
 
-      supportedVideos.forEach((file) => {
-        expect(mediaProcessor.isFileSupported(file)).toBe(true)
+        supportedImages.forEach((file) => {
+          expect(isFileSupported(file)).toBe(true)
+        })
+      })
+
+      it('should return true for supported video files', () => {
+        const supportedVideos = [
+          { name: 'test.mp4', type: SUPPORTED_VIDEO_MIMES[0] },
+          { name: 'test.mov', type: SUPPORTED_VIDEO_MIMES[1] },
+          { name: 'test.webm', type: SUPPORTED_VIDEO_MIMES[2] },
+          { name: 'test.avi', type: SUPPORTED_VIDEO_MIMES[3] },
+          { name: 'test.mkv', type: SUPPORTED_VIDEO_MIMES[4] },
+        ]
+
+        supportedVideos.forEach((file) => {
+          expect(isFileSupported(file)).toBe(true)
+        })
+      })
+
+      it('should return false for unsupported files', () => {
+        const unsupportedFiles = [
+          { name: 'test.txt', type: 'text/plain' },
+          { name: 'test.pdf', type: 'application/pdf' },
+          { name: 'test.doc', type: 'application/msword' },
+        ]
+
+        unsupportedFiles.forEach((file) => {
+          expect(isFileSupported(file)).toBe(false)
+        })
       })
     })
 
-    it('should return false for unsupported files', () => {
-      const unsupportedFiles = [
-        { name: 'test.txt', type: 'text/plain' },
-        { name: 'test.pdf', type: 'application/pdf' },
-        { name: 'test.doc', type: 'application/msword' },
-      ]
-
-      unsupportedFiles.forEach((file) => {
-        expect(mediaProcessor.isFileSupported(file)).toBe(false)
+    describe('getMediaType', () => {
+      it('should return "image" for image files', () => {
+        const imageFile = { name: 'test.jpg', type: SUPPORTED_IMAGE_MIMES[0] }
+        expect(getMediaType(imageFile)).toBe('image')
       })
-    })
-  })
 
-  describe('getMediaType', () => {
-    it('should return "image" for image files', () => {
-      const imageFile = { name: 'test.jpg', type: SUPPORTED_IMAGE_MIMES[0] }
-      expect(mediaProcessor.getMediaType(imageFile)).toBe('image')
-    })
-
-    it('should return "video" for video files', () => {
-      const videoFile = { name: 'test.mp4', type: SUPPORTED_VIDEO_MIMES[0] }
-      expect(mediaProcessor.getMediaType(videoFile)).toBe('video')
+      it('should return "video" for video files', () => {
+        const videoFile = { name: 'test.mp4', type: SUPPORTED_VIDEO_MIMES[0] }
+        expect(getMediaType(videoFile)).toBe('video')
+      })
     })
   })
 
   describe('getSupportedTypesString', () => {
     it('should return formatted string of supported types', () => {
-      const supportedTypes = mediaProcessor.getSupportedTypesString()
+      const supportedTypes = getSupportedTypes()
       // Check for uppercase versions of our supported extensions
       SUPPORTED_IMAGE_EXTENSIONS.forEach((ext) => {
         expect(supportedTypes).toContain(ext.toUpperCase())
