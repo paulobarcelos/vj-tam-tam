@@ -9,6 +9,7 @@ import { fileSystemFacade } from './facades/fileSystemFacade.js'
 import { stateManager } from './stateManager.js'
 import { fileSystemAccessFacade } from './facades/fileSystemAccessFacade.js'
 import { toastManager } from './toastManager.js'
+import { STRINGS, t } from './constants/strings.js'
 
 class UIManager {
   constructor() {
@@ -44,7 +45,7 @@ class UIManager {
       !this.browseFilesBtn ||
       !this.browseFoldersBtn
     ) {
-      console.error('Required DOM elements not found')
+      console.error(STRINGS.SYSTEM_MESSAGES.uiManager.requiredElementsNotFound)
       return
     }
 
@@ -173,7 +174,7 @@ class UIManager {
         await mediaProcessor.processFiles(files)
       }
     } catch (error) {
-      console.error('Error processing dropped items:', error)
+      console.error(STRINGS.SYSTEM_MESSAGES.mediaProcessor.droppedItemsError, error)
     }
   }
 
@@ -291,7 +292,7 @@ class UIManager {
           ? `Restored access to 1 file: ${data.upgradedItems[0].name}`
           : `Restored access to ${upgradeCount} files`
 
-      console.log(`Upgraded ${upgradeCount} metadata-only files to full access`)
+      console.log(t.get('SYSTEM_MESSAGES.uiManager.metadataUpgrade', { count: upgradeCount }))
       // Show a success toast for the upgrade
       toastManager.success(message)
     }
@@ -318,7 +319,7 @@ class UIManager {
     if (mediaItems.length === 0) {
       const emptyMessage = document.createElement('div')
       emptyMessage.className = 'media-pool-empty'
-      emptyMessage.textContent = 'Drop media files to get started'
+      emptyMessage.textContent = STRINGS.USER_INTERFACE.welcome.emptyPool
       this.mediaPool.appendChild(emptyMessage)
       return
     }
@@ -343,11 +344,11 @@ class UIManager {
       const noticeText = document.createElement('span')
       noticeText.className = 'restore-notice-text'
       const fileCount = filesNeedingPermission.length
-      noticeText.textContent = `${fileCount} file${fileCount !== 1 ? 's' : ''} need permission to be accessed.`
+      noticeText.textContent = t.permissionNotice(fileCount)
 
       const restoreButton = document.createElement('button')
       restoreButton.className = 'restore-all-btn'
-      restoreButton.textContent = 'Restore Access'
+      restoreButton.textContent = STRINGS.USER_INTERFACE.buttons.restoreAccess
       restoreButton.addEventListener('click', () => {
         this.handleBulkFileRestore(filesNeedingPermission)
       })
@@ -365,11 +366,11 @@ class UIManager {
       const noticeText = document.createElement('span')
       noticeText.className = 'temporary-notice-text'
       const fileCount = temporaryFiles.length
-      noticeText.textContent = `${fileCount} temporary file${fileCount !== 1 ? 's' : ''} will be removed on page reload.`
+      noticeText.textContent = t.temporaryNotice(fileCount)
 
       const tipText = document.createElement('div')
       tipText.className = 'temporary-tip'
-      tipText.textContent = 'Use 📄 Files or 📁 Folders buttons for persistent files.'
+      tipText.textContent = STRINGS.USER_MESSAGES.status.fileSystemTip
 
       tempNotice.appendChild(noticeText)
       tempNotice.appendChild(tipText)
@@ -393,21 +394,33 @@ class UIManager {
       if (!item.file || !item.url) {
         if (item.fromFileSystemAPI) {
           // File from FileSystemAccessAPI that can be restored
-          typeElement.textContent = `${item.type} • ${this.formatFileSize(item.size)} • needs permission`
+          typeElement.textContent = t.fileType(
+            item.type,
+            this.formatFileSize(item.size),
+            STRINGS.USER_INTERFACE.fileStatus.needsPermission
+          )
           mediaElement.classList.add('needs-permission')
         } else {
           // File from drag & drop - truly metadata-only
-          typeElement.textContent = `${item.type} • ${this.formatFileSize(item.size)} • metadata only`
+          typeElement.textContent = t.fileType(
+            item.type,
+            this.formatFileSize(item.size),
+            STRINGS.USER_INTERFACE.fileStatus.metadataOnly
+          )
           mediaElement.classList.add('metadata-only')
         }
       } else {
         // File with full access - check if it's temporary or persistent
         if (item.fromFileSystemAPI) {
           // Persistent file from FileSystemAccessAPI
-          typeElement.textContent = `${item.type} • ${this.formatFileSize(item.size)}`
+          typeElement.textContent = t.fileType(item.type, this.formatFileSize(item.size))
         } else {
           // Temporary file from drag & drop
-          typeElement.textContent = `${item.type} • ${this.formatFileSize(item.size)} • temporary`
+          typeElement.textContent = t.fileType(
+            item.type,
+            this.formatFileSize(item.size),
+            STRINGS.USER_INTERFACE.fileStatus.temporary
+          )
           mediaElement.classList.add('temporary-file')
         }
       }
@@ -439,7 +452,7 @@ class UIManager {
   async handleBrowseFilesClick() {
     // Prevent concurrent file picker calls
     if (this.isFilePickerActive) {
-      console.log('File picker already active, ignoring click')
+      console.log(STRINGS.USER_MESSAGES.notifications.info.filePickerActive)
       return
     }
 
@@ -460,7 +473,7 @@ class UIManager {
   async handleBrowseFoldersClick() {
     // Prevent concurrent file picker calls
     if (this.isFilePickerActive) {
-      console.log('File picker already active, ignoring click')
+      console.log(STRINGS.USER_MESSAGES.notifications.info.filePickerActive)
       return
     }
 
@@ -497,7 +510,11 @@ class UIManager {
    */
   async handleBulkFileRestore(filesNeedingPermission) {
     try {
-      console.log(`Attempting to restore ${filesNeedingPermission.length} files`)
+      console.log(
+        t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreAttempt', {
+          count: filesNeedingPermission.length,
+        })
+      )
 
       let upgradedCount = 0
       const upgradedItems = []
@@ -528,10 +545,15 @@ class UIManager {
               upgradedCount++
             }
           } else {
-            console.warn(`Failed to restore file: ${item.name}`)
+            console.warn(
+              t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreFailed', { fileName: item.name })
+            )
           }
         } catch (error) {
-          console.warn(`Error restoring individual file ${item.name}:`, error)
+          console.warn(
+            t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreError', { fileName: item.name }),
+            error
+          )
         }
       }
 
@@ -545,13 +567,60 @@ class UIManager {
         })
 
         // Toast will be shown by handleMediaPoolStateUpdate when the event is processed
-        console.log(`Successfully restored ${upgradedCount} files`)
+        console.log(t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreSuccess', { count: upgradedCount }))
       } else {
-        toastManager.error('Failed to restore access to files. Permissions may have been revoked.')
+        toastManager.error(STRINGS.USER_MESSAGES.notifications.error.fileRestoreFailed)
       }
     } catch (error) {
       console.error('Error during bulk file restore:', error)
-      toastManager.error('Error restoring access to files. Please try again.')
+      toastManager.error(STRINGS.USER_MESSAGES.notifications.error.fileRestoreError)
+    }
+  }
+
+  /**
+   * Update DOM elements with centralized strings
+   * Call this after DOM is loaded to replace static content with dynamic strings
+   */
+  updateDOMStrings() {
+    // Update page title
+    if (document.title !== STRINGS.USER_INTERFACE.meta.title) {
+      document.title = STRINGS.USER_INTERFACE.meta.title
+    }
+
+    // Update media pool header
+    const mediaPoolHeader = document.querySelector('.drawer-header h2')
+    if (mediaPoolHeader) {
+      mediaPoolHeader.textContent = STRINGS.USER_INTERFACE.labels.mediaPool
+    }
+
+    // Update button texts
+    const filesBtn = document.getElementById('browse-files-btn')
+    if (filesBtn) {
+      filesBtn.textContent = STRINGS.USER_INTERFACE.buttons.files
+      filesBtn.title = STRINGS.USER_INTERFACE.tooltips.filesButton
+    }
+
+    const foldersBtn = document.getElementById('browse-folders-btn')
+    if (foldersBtn) {
+      foldersBtn.textContent = STRINGS.USER_INTERFACE.buttons.folders
+      foldersBtn.title = STRINGS.USER_INTERFACE.tooltips.foldersButton
+    }
+
+    // Update welcome message
+    const welcomeHeading = document.querySelector('#welcome-message h1')
+    if (welcomeHeading) {
+      welcomeHeading.textContent = STRINGS.USER_INTERFACE.welcome.heading
+    }
+
+    const welcomeText = document.querySelector('#welcome-message p')
+    if (welcomeText) {
+      welcomeText.textContent = STRINGS.USER_INTERFACE.welcome.instructions
+    }
+
+    // Update drop message
+    const dropMessageEl = document.querySelector('.drop-message p:first-child')
+    if (dropMessageEl) {
+      dropMessageEl.textContent = STRINGS.USER_INTERFACE.dropZone.message
     }
   }
 }

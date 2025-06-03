@@ -7,12 +7,16 @@ import { uiManager } from './uiManager.js'
 import { toastManager } from './toastManager.js'
 import { stateManager } from './stateManager.js'
 import { playbackEngine } from './playbackEngine.js'
+import { STRINGS, t } from './constants/strings.js'
 
 /**
  * Initialize the application
  */
 async function init() {
   try {
+    // Update DOM strings from centralized constants
+    uiManager.updateDOMStrings()
+
     // Initialize UI Manager first so it can listen to events
     uiManager.init()
 
@@ -22,12 +26,16 @@ async function init() {
     // Initialize StateManager last to load persisted state and emit events
     await stateManager.init()
 
-    console.log('StateManager initialized. Media pool size:', stateManager.getMediaCount())
+    console.log(
+      t.get('SYSTEM_MESSAGES.application.initializationSuccess', {
+        count: stateManager.getMediaCount(),
+      })
+    )
 
-    console.log('VJ Tam Tam initialized successfully')
+    console.log(STRINGS.SYSTEM_MESSAGES.application.initialized)
   } catch (error) {
-    console.error('Error initializing VJ Tam Tam:', error)
-    toastManager.error('Failed to initialize application. Please refresh the page.')
+    console.error(STRINGS.SYSTEM_MESSAGES.application.initializationError, error)
+    toastManager.error(STRINGS.USER_MESSAGES.notifications.error.appInitFailed)
   }
 }
 

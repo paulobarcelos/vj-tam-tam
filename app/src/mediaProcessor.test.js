@@ -10,6 +10,7 @@ import {
   SUPPORTED_IMAGE_EXTENSIONS,
   SUPPORTED_VIDEO_EXTENSIONS,
 } from './constants/mediaTypes.js'
+import { t } from './constants/strings.js'
 
 // Mock the dependencies
 vi.mock('./eventBus.js', () => ({
@@ -234,7 +235,7 @@ describe('MediaProcessor', () => {
       await mediaProcessor.processFiles([duplicateFile])
 
       // Should show duplicate message
-      expect(toastManager.error).toHaveBeenCalledWith('1 file already in media pool (skipped)')
+      expect(toastManager.error).toHaveBeenCalledWith(t.filesSkipped(1))
 
       // Should not add to StateManager or show success message
       expect(stateManager.addMediaToPool).not.toHaveBeenCalled()
@@ -265,7 +266,7 @@ describe('MediaProcessor', () => {
         }),
       ])
 
-      expect(toastManager.success).toHaveBeenCalledWith('Added 1 media file to pool')
+      expect(toastManager.success).toHaveBeenCalledWith(t.filesAdded(1))
     })
   })
 })

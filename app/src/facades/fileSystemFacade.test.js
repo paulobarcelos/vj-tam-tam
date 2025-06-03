@@ -74,16 +74,8 @@ describe('FileSystemFacade', () => {
         multiple: true,
         types: [
           {
-            description: 'Images',
-            accept: {
-              'image/*': FILE_ACCEPT_PATTERNS['image/*'],
-            },
-          },
-          {
-            description: 'Videos',
-            accept: {
-              'video/*': FILE_ACCEPT_PATTERNS['video/*'],
-            },
+            description: 'Media files',
+            accept: FILE_ACCEPT_PATTERNS,
           },
         ],
       })
