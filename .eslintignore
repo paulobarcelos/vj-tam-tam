@@ -1,9 +1,0 @@
-# Exclude lib directory as per project structure
-lib/
-
-# Exclude node_modules
-node_modules/
-
-# Exclude build artifacts and temporary files
-*.log
-.DS_Store 

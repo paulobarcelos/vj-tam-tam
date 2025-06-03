@@ -1,2 +1,5 @@
 .DS_Store
 node_modules
+
+# Generated coverage reports
+coverage/

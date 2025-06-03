@@ -36,7 +36,14 @@ export default [
   },
   // Global ignores
   {
-    ignores: ['lib/**/*', 'bmad-agent/**/*', 'node_modules/**/*'],
+    ignores: [
+      'lib/**/*',
+      'bmad-agent/**/*',
+      'node_modules/**/*',
+      'coverage/**/*',
+      '*.log',
+      '.DS_Store',
+    ],
   },
 
   // Prettier integration - must be last to override formatting rules
