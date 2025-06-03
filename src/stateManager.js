@@ -6,6 +6,7 @@
 import { eventBus } from './eventBus.js'
 import { storageFacade } from './facades/storageFacade.js'
 import { fileSystemAccessFacade } from './facades/fileSystemAccessFacade.js'
+import { STRINGS, t } from './constants/strings.js'
 
 /**
  * @typedef {Object} MediaItem
@@ -35,10 +36,7 @@ class StateManager {
     try {
       await fileSystemAccessFacade.init()
     } catch (error) {
-      console.warn(
-        'FileSystemAccessAPI initialization failed, continuing with localStorage only:',
-        error
-      )
+      console.warn(STRINGS.SYSTEM_MESSAGES.stateManager.initError, error)
     }
 
     // Load persisted state
@@ -57,12 +55,14 @@ class StateManager {
     try {
       // First, try to restore files from FileSystemAccessAPI if supported
       if (fileSystemAccessFacade.isSupported) {
-        console.log('Attempting to restore files from FileSystemAccessAPI...')
+        console.log(STRINGS.SYSTEM_MESSAGES.stateManager.restorationAttempt)
         const restoredFiles = await fileSystemAccessFacade.getAllFiles()
 
         if (restoredFiles.length > 0) {
           console.log(
-            `Successfully restored ${restoredFiles.length} files from FileSystemAccessAPI`
+            t.get('SYSTEM_MESSAGES.stateManager.restorationSuccess', {
+              count: restoredFiles.length,
+            })
           )
 
           // Ensure all restored files have proper Date objects for addedAt
@@ -97,7 +97,7 @@ class StateManager {
 
         if (removedDragDropCount > 0) {
           console.log(
-            `Cleaned up ${removedDragDropCount} temporary drag & drop files that cannot be restored`
+            t.get('SYSTEM_MESSAGES.stateManager.cleanedUp', { count: removedDragDropCount })
           )
         }
 
@@ -121,16 +121,16 @@ class StateManager {
           })
 
           console.log(
-            `Restored ${restoredItems.length} FileSystemAccessAPI items from localStorage (metadata only).`
+            t.get('SYSTEM_MESSAGES.stateManager.restored', { count: restoredItems.length })
           )
         } else {
-          console.log('No persistent files found after cleanup.')
+          console.log(STRINGS.SYSTEM_MESSAGES.stateManager.restorationNone)
         }
       } else {
-        console.log('No persisted state found or media pool is empty.')
+        console.log(STRINGS.SYSTEM_MESSAGES.stateManager.restorationEmpty)
       }
     } catch (error) {
-      console.error('Error during persistence restoration:', error)
+      console.error(STRINGS.SYSTEM_MESSAGES.stateManager.restorationError, error)
     }
   }
 
@@ -155,9 +155,9 @@ class StateManager {
         // lastPlaybackState: this.state.lastPlaybackState,
       }
       storageFacade.saveState(stateToPersist)
-      console.log('Current state saved to localStorage.')
+      console.log(STRINGS.SYSTEM_MESSAGES.stateManager.stateSaved)
     } catch (error) {
-      console.error('Error saving current state:', error)
+      console.error(STRINGS.SYSTEM_MESSAGES.stateManager.stateSaveError, error)
     }
   }
 
@@ -176,7 +176,7 @@ class StateManager {
    */
   addMediaToPool(newMediaItems) {
     if (!Array.isArray(newMediaItems)) {
-      console.warn('StateManager.addMediaToPool: newMediaItems must be an array')
+      console.warn(STRINGS.SYSTEM_MESSAGES.stateManager.invalidInput)
       return
     }
 
@@ -195,7 +195,7 @@ class StateManager {
 
         // Check if existing item is metadata-only (no file or url) and new item has actual file
         if ((!existingItem.file || !existingItem.url) && newItem.file && newItem.url) {
-          console.log(`Upgrading metadata-only file: ${newItem.name}`)
+          console.log(t.get('SYSTEM_MESSAGES.stateManager.fileUpgrade', { fileName: newItem.name }))
 
           // Upgrade the existing item with the actual File object and URL
           const upgradedItem = {
@@ -212,7 +212,9 @@ class StateManager {
           upgradedItems.push(upgradedItem)
         } else {
           // True duplicate - skip
-          console.log(`File already in media pool (skipped): ${newItem.name}`)
+          console.log(
+            t.get('SYSTEM_MESSAGES.stateManager.fileDuplicate', { fileName: newItem.name })
+          )
         }
       } else {
         // Truly new item
@@ -269,7 +271,10 @@ class StateManager {
 
           await fileSystemAccessFacade.storeFileHandle(item.id, item.file.handle, metadata)
         } catch (error) {
-          console.warn(`Failed to store file handle for ${item.name}:`, error)
+          console.warn(
+            t.get('SYSTEM_MESSAGES.stateManager.handleStoreFailed', { fileName: item.name }),
+            error
+          )
         }
       }
     }
@@ -314,7 +319,7 @@ class StateManager {
       try {
         await fileSystemAccessFacade.removeFileHandle(id)
       } catch (error) {
-        console.warn(`Failed to remove file handle for ID ${id}:`, error)
+        console.warn(t.get('SYSTEM_MESSAGES.stateManager.handleRemoveFailed', { id }), error)
       }
     }
   }
@@ -352,7 +357,7 @@ class StateManager {
       try {
         await fileSystemAccessFacade.clearAllFiles()
       } catch (error) {
-        console.warn('Failed to clear file handles:', error)
+        console.warn(STRINGS.SYSTEM_MESSAGES.stateManager.handlesClearFailed, error)
       }
     }
   }

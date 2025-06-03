@@ -5,16 +5,19 @@
 
 import { toastManager } from '../toastManager.js'
 import { FILE_ACCEPT_PATTERNS, isSupportedExtension } from '../constants/mediaTypes.js'
+import { STRINGS, t } from '../constants/strings.js'
 
 class FileSystemFacade {
   constructor() {
     this.hasFileSystemAccess = 'showOpenFilePicker' in window && 'showDirectoryPicker' in window
     this.browserInfo = this.detectBrowser()
     this.lastOperationUsedAPI = false // Track if last operation actually used API vs fallback
-    console.log('FileSystemFacade initialized:', {
-      hasFileSystemAccess: this.hasFileSystemAccess,
-      browser: this.browserInfo,
-    })
+    console.log(
+      t.get('SYSTEM_MESSAGES.fileSystemFacade.initialized', {
+        hasAccess: this.hasFileSystemAccess,
+        browser: this.browserInfo,
+      })
+    )
   }
 
   /**
@@ -88,23 +91,15 @@ class FileSystemFacade {
    */
   async browseFilesWithAPI() {
     try {
-      console.log('Attempting to open file picker with FileSystemAccessAPI...')
+      console.log(STRINGS.SYSTEM_MESSAGES.fileSystemFacade.filePickerAttempt)
       const fileHandles = await window.showOpenFilePicker({
-        multiple: true,
         types: [
           {
-            description: 'Images',
-            accept: {
-              'image/*': FILE_ACCEPT_PATTERNS['image/*'],
-            },
-          },
-          {
-            description: 'Videos',
-            accept: {
-              'video/*': FILE_ACCEPT_PATTERNS['video/*'],
-            },
+            description: 'Media files',
+            accept: FILE_ACCEPT_PATTERNS,
           },
         ],
+        multiple: true,
       })
 
       // Convert file handles to File objects with handles preserved
@@ -117,33 +112,38 @@ class FileSystemFacade {
         })
       )
 
-      console.log(`Selected ${files.length} files via FileSystemAccessAPI with handles`)
+      console.log(t.get('SYSTEM_MESSAGES.fileSystemFacade.filesSelected', { count: files.length }))
       this.lastOperationUsedAPI = true // Mark as successful API usage
       return files
     } catch (error) {
       if (error.name === 'AbortError') {
         // User cancelled - this is normal, don't show error
-        console.log('File picker cancelled by user')
+        console.log(STRINGS.SYSTEM_MESSAGES.fileSystemFacade.filePickerCancelled)
         this.lastOperationUsedAPI = true // User cancellation still counts as API working
         return []
       }
 
-      console.error('Error browsing files with FileSystemAccessAPI:', error)
-      console.log('Error details:', { name: error.name, message: error.message })
+      console.error(STRINGS.SYSTEM_MESSAGES.fileSystemFacade.filePickerError, error)
+      console.log(
+        t.get('SYSTEM_MESSAGES.fileSystemFacade.filePickerErrorDetails', {
+          name: error.name,
+          message: error.message,
+        })
+      )
 
       if (error.name === 'NotAllowedError') {
-        console.log('Permission denied, falling back to HTML input file picker')
-        this.lastOperationUsedAPI = false // Mark as fallback used
-        toastManager.show('FileSystemAccessAPI permission denied. Using fallback file picker.', {
+        console.log(STRINGS.SYSTEM_MESSAGES.fileSystemFacade.filePickerFallback)
+
+        toastManager.show(STRINGS.USER_MESSAGES.notifications.info.filePickerFallback, {
           type: 'info',
         })
-        // Fallback to HTML input
+
+        // Fall back to HTML input file picker
         return this.browseWithInput(false)
-      } else {
-        this.lastOperationUsedAPI = false // Mark as fallback used
-        toastManager.error('Error accessing files. Please try again.')
-        return []
       }
+
+      toastManager.error(STRINGS.USER_MESSAGES.notifications.error.fileAccessFailed)
+      return []
     }
   }
 
@@ -153,39 +153,49 @@ class FileSystemFacade {
    */
   async browseFoldersWithAPI() {
     try {
-      console.log('Attempting to open directory picker with FileSystemAccessAPI...')
+      console.log(STRINGS.SYSTEM_MESSAGES.fileSystemFacade.directoryPickerAttempt)
       const directoryHandle = await window.showDirectoryPicker()
 
-      console.log(`Selected folder: ${directoryHandle.name}`)
+      console.log(
+        t.get('SYSTEM_MESSAGES.fileSystemFacade.directorySelected', {
+          folderName: directoryHandle.name,
+        })
+      )
       const files = await this.extractFilesFromDirectory(directoryHandle)
 
       console.log(
-        `Found ${files.length} media files in folder via FileSystemAccessAPI with handles`
+        t.get('SYSTEM_MESSAGES.fileSystemFacade.directoryFilesFound', { count: files.length })
       )
       this.lastOperationUsedAPI = true // Mark as successful API usage
       return files
     } catch (error) {
       if (error.name === 'AbortError') {
         // User cancelled - this is normal, don't show error
-        console.log('Directory picker cancelled by user')
+        console.log(STRINGS.SYSTEM_MESSAGES.fileSystemFacade.directoryPickerCancelled)
         this.lastOperationUsedAPI = true // User cancellation still counts as API working
         return []
       }
 
-      console.error('Error browsing folder with FileSystemAccessAPI:', error)
-      console.log('Error details:', { name: error.name, message: error.message })
+      console.error(STRINGS.SYSTEM_MESSAGES.fileSystemFacade.directoryPickerError, error)
+      console.log(
+        t.get('SYSTEM_MESSAGES.fileSystemFacade.filePickerErrorDetails', {
+          name: error.name,
+          message: error.message,
+        })
+      )
 
       if (error.name === 'NotAllowedError') {
-        console.log('Permission denied, falling back to HTML input folder picker')
-        this.lastOperationUsedAPI = false // Mark as fallback used
-        toastManager.show('FileSystemAccessAPI permission denied. Using fallback folder picker.', {
+        console.log(STRINGS.SYSTEM_MESSAGES.fileSystemFacade.directoryPickerFallback)
+
+        toastManager.show(STRINGS.USER_MESSAGES.notifications.info.folderPickerFallback, {
           type: 'info',
         })
-        // Fallback to HTML input with webkitdirectory
+
+        // Fall back to HTML input folder picker
         return this.browseWithInput(true)
       } else {
         this.lastOperationUsedAPI = false // Mark as fallback used
-        toastManager.error('Error accessing folder. Please try again.')
+        toastManager.error(STRINGS.USER_MESSAGES.notifications.error.folderAccessFailed)
         return []
       }
     }
@@ -211,7 +221,10 @@ class FileSystemFacade {
               file.handle = handle
               mediaFiles.push(file)
             } catch (error) {
-              console.warn(`Failed to access file ${name}:`, error)
+              console.warn(
+                t.get('SYSTEM_MESSAGES.fileSystemFacade.fileAccessError', { fileName: name }),
+                error
+              )
             }
           }
         } else if (handle.kind === 'directory') {
@@ -221,7 +234,7 @@ class FileSystemFacade {
         }
       }
     } catch (error) {
-      console.error('Error extracting files from directory:', error)
+      console.error(STRINGS.SYSTEM_MESSAGES.fileSystemFacade.fileExtractionError, error)
     }
 
     return mediaFiles

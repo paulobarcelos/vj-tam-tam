@@ -1,0 +1,361 @@
+/**
+ * ============================================================================
+ * VJ TAM TAM - CENTRALIZED STRINGS MODULE
+ * ============================================================================
+ *
+ * All user-facing text and console messages are defined here.
+ * See docs/operational-guidelines.md Section 16 for usage guidelines.
+ */
+
+/**
+ * Interpolate a template string with values
+ * @param {string} template - Template string with {{key}} placeholders
+ * @param {Object} values - Object with values to interpolate
+ * @returns {string} - Interpolated string
+ */
+export const interpolate = (template, values = {}) => {
+  return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+    return values[key] !== undefined ? values[key] : match
+  })
+}
+
+/**
+ * ============================================================================
+ * CENTRALIZED STRINGS - FULLY SERIALIZABLE FOR I18N
+ * ============================================================================
+ */
+export const STRINGS = {
+  // ========================================================================
+  // USER INTERFACE - All visible UI elements
+  // ========================================================================
+  USER_INTERFACE: {
+    // Page metadata
+    meta: {
+      title: 'VJ Tam Tam',
+    },
+
+    // Buttons and controls
+    buttons: {
+      files: '📄 Files',
+      folders: '📁 Folders',
+      clearMedia: '🗑️ Clear Media',
+      restoreAccess: '🔓 Restore Access',
+      bulkRestore: '↗️ Bulk Restore All',
+    },
+
+    // Tooltips and help text
+    tooltips: {
+      filesButton: 'Browse for individual files',
+      foldersButton: 'Browse for entire folders',
+    },
+
+    // Labels and headings
+    labels: {
+      mediaPool: 'Media Pool',
+      temporaryFiles: 'Temporary Files',
+      persistentFiles: 'Persistent Files',
+    },
+
+    // File status indicators
+    fileStatus: {
+      needsPermission: 'needs permission',
+      metadataOnly: 'metadata only',
+      temporary: 'temporary',
+    },
+
+    // Welcome and instruction text
+    welcome: {
+      heading: 'Welcome to VJ Tam Tam',
+      instructions:
+        'Please drag and drop your photos and videos here, or click to browse, to start your performance',
+      emptyPool: 'Drop media files to get started',
+    },
+
+    // Drop zone text
+    dropZone: {
+      message: 'Drop your media files here',
+      supportedFormats: 'Supported: {{supportedTypes}}',
+    },
+  },
+
+  // ========================================================================
+  // USER MESSAGES - All messages shown to users
+  // ========================================================================
+  USER_MESSAGES: {
+    // Toast notifications
+    notifications: {
+      success: {
+        mediaAdded: 'Added {{count}} media file{{plural}} to pool',
+        accessRestored: 'File access restored',
+        bulkRestoreComplete: 'All files restored successfully',
+        filesRestored: 'Restored access to {{count}} file{{plural}}',
+      },
+      error: {
+        fileNotSupported: 'File type not supported. Supported types: {{supportedTypes}}',
+        fileAccessFailed: 'Error accessing files. Please try again.',
+        folderAccessFailed: 'Error accessing folder. Please try again.',
+        fileProcessingFailed: 'Error processing some files. Please try again.',
+        appInitFailed: 'Failed to initialize application. Please refresh the page.',
+        settingsSaveFailed: 'Settings could not be saved',
+        filesSkipped: '{{count}} file{{plural}} already in media pool (skipped)',
+        importFailed: 'Some files could not be imported. Supported formats: {{supportedTypes}}',
+        fileRestoreFailed: 'Failed to restore file access',
+        fileRestoreError: 'Error occurred while restoring files',
+        mediaDisplayFailed: 'Failed to display media file',
+      },
+      info: {
+        filePickerFallback: 'FileSystemAccessAPI permission denied. Using fallback file picker.',
+        folderPickerFallback:
+          'FileSystemAccessAPI permission denied. Using fallback folder picker.',
+        filePickerActive: 'File picker already active, ignoring click',
+      },
+    },
+
+    // Status banners and notices
+    status: {
+      permissionNotice: '{{count}} file{{plural}} need permission to be accessed.',
+      temporaryNotice: '{{count}} temporary file{{plural}} will be removed on page reload.',
+      fileSystemTip:
+        'Use 📄 Files or 📁 Folders buttons for persistent files that will be available next time you visit',
+      permissionBanner: 'Click to restore access to your files',
+    },
+  },
+
+  // ========================================================================
+  // SYSTEM MESSAGES - All console and debug messages
+  // ========================================================================
+  SYSTEM_MESSAGES: {
+    // File System Access API messages
+    fileSystemAccess: {
+      initialized: 'FileSystemAccessAPI facade initialized successfully',
+      notSupported: 'FileSystemAccessAPI not supported, falling back to metadata-only persistence',
+      initError: 'Error initializing FileSystemAccessAPI facade:',
+      dbOpenError: 'Failed to open IndexedDB:',
+
+      // File handle operations
+      handleStored: 'File handle stored for {{fileName}}',
+      handleStoreFailed: 'Failed to store file handle:',
+      handleStoreError: 'Error storing file handle:',
+      handleRemoved: 'File handle removed for ID: {{id}}',
+      handleRemoveFailed: 'Failed to remove file handle:',
+      handleRemoveError: 'Error removing file handle:',
+      handlesCleared: 'All file handles cleared',
+      handlesClearFailed: 'Failed to clear file handles:',
+      handlesClearError: 'Error clearing file handles:',
+
+      // File access and permissions
+      permissionDenied: 'Permission denied for file: {{fileName}}',
+      fileAccessFailed: 'Failed to access file handle for {{fileName}}:',
+      fileAccessError: 'Error retrieving file handle:',
+      fileRetrieveFailed: 'Failed to retrieve file handle:',
+      fileRetrieveError: 'Error retrieving all files:',
+
+      // User activation
+      userActivationUnavailable: 'User activation API not available, assuming no activation',
+      userActivationError: 'Error checking user activation:',
+      userActivationCheck:
+        'User activation check: isActive={{isActive}}, hasBeenActive={{hasBeenActive}}, result={{result}}',
+
+      // File discovery and processing
+      noHandlesFound: 'No file handles found in storage',
+      handlesFound: 'Found {{count}} stored file handles',
+      handlesFoundForAccess: 'Found {{count}} stored file handles for access request',
+      metadataOnlyReturn: 'Returning metadata-only files to avoid user activation race conditions',
+      accessRequested: 'Requesting access to stored files with user activation...',
+      accessSuccess: 'Successfully accessed {{validCount}} of {{totalCount}} stored files',
+      accessUnavailable: 'FileSystemAccessAPI not supported or database not available',
+      accessError: 'Error requesting stored files access:',
+      accessFailed: 'Failed to retrieve file handles for user activation:',
+    },
+
+    // File System Facade messages
+    fileSystemFacade: {
+      initialized:
+        'FileSystemFacade initialized: hasFileSystemAccess={{hasAccess}}, browser={{browser}}',
+      filePickerAttempt: 'Attempting to open file picker with FileSystemAccessAPI...',
+      filesSelected: 'Selected {{count}} files via FileSystemAccessAPI with handles',
+      filePickerCancelled: 'File picker cancelled by user',
+      filePickerError: 'Error browsing files with FileSystemAccessAPI:',
+      filePickerErrorDetails: 'Error details: name={{name}}, message={{message}}',
+      filePickerFallback: 'Permission denied, falling back to HTML input file picker',
+
+      directoryPickerAttempt: 'Attempting to open directory picker with FileSystemAccessAPI...',
+      directorySelected: 'Selected folder: {{folderName}}',
+      directoryFilesFound:
+        'Found {{count}} media files in folder via FileSystemAccessAPI with handles',
+      directoryPickerCancelled: 'Directory picker cancelled by user',
+      directoryPickerError: 'Error browsing folder with FileSystemAccessAPI:',
+      directoryPickerFallback: 'Permission denied, falling back to HTML input folder picker',
+
+      fileExtractionError: 'Error extracting files from directory:',
+      fileAccessError: 'Failed to access file {{fileName}}:',
+    },
+
+    // State Management messages
+    stateManager: {
+      initError: 'FileSystemAccessAPI initialization failed, continuing with localStorage only:',
+      restorationAttempt: 'Attempting to restore files from FileSystemAccessAPI...',
+      restorationSuccess: 'Successfully restored {{count}} files from FileSystemAccessAPI',
+      restorationNone: 'No persistent files found after cleanup.',
+      restorationEmpty: 'No persisted state found or media pool is empty.',
+      restorationError: 'Error during persistence restoration:',
+
+      stateSaved: 'Current state saved to localStorage.',
+      stateSaveError: 'Error saving current state:',
+
+      invalidInput: 'StateManager.addMediaToPool: newMediaItems must be an array',
+      fileUpgrade: 'Upgrading metadata-only file: {{fileName}}',
+      fileDuplicate: 'File already in media pool (skipped): {{fileName}}',
+      handleStoreFailed: 'Failed to store file handle for {{fileName}}:',
+      handleRemoveFailed: 'Failed to remove file handle for ID {{id}}:',
+      handlesClearFailed: 'Failed to clear file handles:',
+      cleanedUp: 'Cleaned up {{count}} temporary drag & drop files that cannot be restored',
+      restored: 'Restored {{count}} FileSystemAccessAPI items from localStorage (metadata only).',
+    },
+
+    // Media Processor messages
+    mediaProcessor: {
+      fileMetadataUpgrade: 'File {{fileName}} exists as metadata-only, will attempt upgrade',
+      fileDuplicateSkip: 'File {{fileName}} already exists with full data, skipping',
+      fileHandleAvailable:
+        'File handle available for {{fileName}} - will be stored for persistence',
+      fileHandleUnavailable:
+        'No file handle for {{fileName}} - drag-and-drop file, metadata-only persistence',
+      fileProcessingError: 'Error processing files:',
+      droppedItemsError: 'Error processing dropped items:',
+    },
+
+    // UI Manager messages
+    uiManager: {
+      requiredElementsNotFound: 'Required DOM elements not found',
+      bulkRestoreAttempt: 'Attempting to restore {{count}} files',
+      bulkRestoreSuccess: 'Successfully restored {{count}} files',
+      bulkRestoreFailed: 'Failed to restore file: {{fileName}}',
+      bulkRestoreError: 'Error restoring individual file {{fileName}}:',
+      metadataUpgrade: 'Upgraded {{count}} metadata-only files to full access',
+    },
+
+    // Playback Engine messages
+    playbackEngine: {
+      initialized: 'PlaybackEngine initialized successfully',
+      initError: 'Error initializing PlaybackEngine:',
+      autoPlaybackStarted: 'Automatic playback started',
+      autoPlaybackStopped: 'Automatic playback stopped',
+      cleanupCompleted: 'PlaybackEngine cleanup completed',
+      cleanupError: 'Error during PlaybackEngine cleanup:',
+
+      windowResized: 'Window resized - media element will auto-adjust via CSS',
+      windowResizeError: 'Error handling window resize:',
+
+      mediaPoolUpdatedActive: 'Media pool updated while playback active',
+      mediaPoolUpdateError: 'Error handling media pool update:',
+
+      invalidMediaItem: 'Invalid media item provided to displayMedia',
+      unsupportedMediaType: 'Unsupported media type: {{mediaType}}',
+      mediaDisplayError: 'Error displaying media:',
+      currentMediaClearError: 'Error clearing current media:',
+
+      imageCreationError: 'Error creating image element:',
+      imageLoadError: 'Error loading image: {{fileName}}',
+      videoCreationError: 'Error creating video element:',
+      videoLoadError: 'Error loading video: {{fileName}}',
+      videoMetadataLoaded: 'Video metadata loaded for: {{fileName}}',
+    },
+
+    // Event Bus messages
+    eventBus: {
+      listenerError: "Error in event listener for '{{event}}':",
+    },
+
+    // Storage Facade messages
+    storageFacade: {
+      localStorageLoadError: 'Error loading state from localStorage:',
+      localStorageSaveError: 'Error saving state to localStorage:',
+    },
+
+    // Application initialization messages
+    application: {
+      initialized: 'VJ Tam Tam application ready',
+      initializationSuccess: 'Application initialized successfully. Media count: {{count}}',
+      initializationError: 'Error during application initialization:',
+    },
+  },
+
+  // ========================================================================
+  // TEMPLATES - Reusable string templates
+  // ========================================================================
+  TEMPLATES: {
+    fileCount: '{{count}} file{{plural}}',
+    fileCountWithType: '{{count}} {{type}} file{{plural}}',
+    fileDisplay: '{{type}} • {{size}}{{status}}',
+    fileDisplayWithStatus: '{{type}} • {{size}} • {{status}}',
+    accessCount: '{{validCount}} of {{totalCount}}',
+    upgradeNotification: 'Restored access to {{count}} file{{plural}}: {{fileName}}',
+  },
+}
+
+/**
+ * ============================================================================
+ * HELPER FUNCTIONS
+ * ============================================================================
+ */
+
+/**
+ * Helper function to get a nested string value by path
+ * @param {string} path - Dot-separated path (e.g., 'USER_MESSAGES.notifications.success.mediaAdded')
+ * @returns {string} - The string value or empty string if not found
+ */
+export const getString = (path) => {
+  return path.split('.').reduce((obj, key) => obj?.[key], STRINGS) || ''
+}
+
+/**
+ * Helper function to handle pluralization
+ * @param {number} count - Count to determine plurality
+ * @returns {string} - 's' if plural, empty string if singular
+ */
+const getPlural = (count) => (count !== 1 ? 's' : '')
+
+/**
+ * ============================================================================
+ * INTERPOLATION HELPERS
+ * ============================================================================
+ */
+export const t = {
+  /**
+   * Get string with interpolation and automatic pluralization
+   * @param {string} path - Path to string template
+   * @param {Object} values - Values to interpolate
+   * @returns {string} - Interpolated string
+   */
+  get: (path, values = {}) => {
+    const template = getString(path)
+    if (!template) return ''
+
+    // Handle pluralization automatically
+    const interpolationValues = {
+      ...values,
+      plural: values.count !== undefined ? getPlural(values.count) : '',
+    }
+
+    return interpolate(template, interpolationValues)
+  },
+
+  // Commonly used interpolated strings
+  filesAdded: (count) => t.get('USER_MESSAGES.notifications.success.mediaAdded', { count }),
+  filesSkipped: (count) => t.get('USER_MESSAGES.notifications.error.filesSkipped', { count }),
+  permissionNotice: (count) => t.get('USER_MESSAGES.status.permissionNotice', { count }),
+  temporaryNotice: (count) => t.get('USER_MESSAGES.status.temporaryNotice', { count }),
+  supportedFormats: (supportedTypes) =>
+    t.get('USER_INTERFACE.dropZone.supportedFormats', { supportedTypes }),
+  fileNotSupported: (supportedTypes) =>
+    t.get('USER_MESSAGES.notifications.error.fileNotSupported', { supportedTypes }),
+  importFailed: (supportedTypes) =>
+    t.get('USER_MESSAGES.notifications.error.importFailed', { supportedTypes }),
+  fileType: (type, size, status) => {
+    if (status) {
+      return t.get('TEMPLATES.fileDisplayWithStatus', { type, size, status })
+    }
+    return t.get('TEMPLATES.fileDisplay', { type, size, status: '' })
+  },
+}

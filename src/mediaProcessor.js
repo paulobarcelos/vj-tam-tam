@@ -13,6 +13,7 @@ import {
   getMediaTypeFromExtension,
   getSupportedTypesString,
 } from './constants/mediaTypes.js'
+import { STRINGS, t } from './constants/strings.js'
 
 /**
  * @typedef {Object} MediaItem
@@ -90,10 +91,14 @@ class MediaProcessor {
     const isMetadataOnly = !existingFile.file || !existingFile.url
 
     if (isMetadataOnly) {
-      console.log(`File ${file.name} exists as metadata-only, will attempt upgrade`)
+      console.log(
+        t.get('SYSTEM_MESSAGES.mediaProcessor.fileMetadataUpgrade', { fileName: file.name })
+      )
       return false // Allow processing to trigger upgrade
     } else {
-      console.log(`File ${file.name} already exists with full data, skipping`)
+      console.log(
+        t.get('SYSTEM_MESSAGES.mediaProcessor.fileDuplicateSkip', { fileName: file.name })
+      )
       return true // Real duplicate, skip
     }
   }
@@ -118,18 +123,15 @@ class MediaProcessor {
       }
     })
 
-    // Show error for unsupported files
+    // Show toast for unsupported files if any
     if (unsupportedFiles.length > 0) {
       const supportedTypes = getSupportedTypesString()
-
-      toastManager.error(`Some files could not be imported. Supported formats: ${supportedTypes}`)
+      toastManager.error(t.importFailed(supportedTypes))
     }
 
-    // Show info for duplicate files
+    // Show toast for duplicate files if any
     if (duplicateFiles.length > 0) {
-      toastManager.error(
-        `${duplicateFiles.length} file${duplicateFiles.length !== 1 ? 's' : ''} already in media pool (skipped)`
-      )
+      toastManager.error(t.filesSkipped(duplicateFiles.length))
     }
 
     // Process supported files
@@ -142,18 +144,19 @@ class MediaProcessor {
         // Add to media pool via StateManager (additive behavior)
         stateManager.addMediaToPool(mediaItems)
 
-        // Emit legacy event for backward compatibility
-        eventBus.emit('media.filesAdded', {
-          files: mediaItems,
-          count: mediaItems.length,
-        })
+        // Emit events for successful additions
+        if (mediaItems.length > 0) {
+          eventBus.emit('media.filesAdded', {
+            files: mediaItems,
+            count: mediaItems.length,
+          })
 
-        toastManager.success(
-          `Added ${mediaItems.length} media file${mediaItems.length !== 1 ? 's' : ''} to pool`
-        )
+          // Show success toast
+          toastManager.success(t.filesAdded(mediaItems.length))
+        }
       } catch (error) {
-        console.error('Error processing files:', error)
-        toastManager.error('Error processing some files. Please try again.')
+        console.error(STRINGS.SYSTEM_MESSAGES.mediaProcessor.fileProcessingError, error)
+        toastManager.error(STRINGS.USER_MESSAGES.notifications.error.fileProcessingFailed)
       }
     }
   }
@@ -181,9 +184,13 @@ class MediaProcessor {
 
     // Log handle availability for debugging
     if (file.handle) {
-      console.log(`File handle available for ${file.name} - will be stored for persistence`)
+      console.log(
+        t.get('SYSTEM_MESSAGES.mediaProcessor.fileHandleAvailable', { fileName: file.name })
+      )
     } else {
-      console.log(`No file handle for ${file.name} - drag-and-drop file, metadata-only persistence`)
+      console.log(
+        t.get('SYSTEM_MESSAGES.mediaProcessor.fileHandleUnavailable', { fileName: file.name })
+      )
     }
 
     return mediaItem

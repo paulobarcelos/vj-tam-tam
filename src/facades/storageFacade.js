@@ -1,4 +1,10 @@
+/**
+ * Storage Facade for localStorage operations
+ * Provides error handling and fallback for storage operations
+ */
+
 import { toastManager } from '../toastManager.js'
+import { STRINGS } from '../constants/strings.js'
 
 const STORAGE_KEY = 'vj-tam-tam-state'
 
@@ -11,9 +17,9 @@ export const storageFacade = {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
     } catch (error) {
-      console.error('Failed to save state to localStorage:', error)
+      console.error(STRINGS.SYSTEM_MESSAGES.storageFacade.localStorageSaveError, error)
       // Per error handling strategy: show toast but continue
-      toastManager.error('Settings could not be saved')
+      toastManager.error(STRINGS.USER_MESSAGES.notifications.error.settingsSaveFailed)
     }
   },
 
@@ -26,8 +32,8 @@ export const storageFacade = {
       const stored = localStorage.getItem(STORAGE_KEY)
       return stored ? JSON.parse(stored) : null
     } catch (error) {
-      console.error('Failed to load state from localStorage:', error)
-      return null // Graceful fallback to empty state
+      console.error(STRINGS.SYSTEM_MESSAGES.storageFacade.localStorageLoadError, error)
+      return null
     }
   },
 }

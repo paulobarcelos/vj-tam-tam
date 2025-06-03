@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { storageFacade } from './storageFacade'
+import { STRINGS } from '../constants/strings.js'
 
 // Mock the toastManager module
 vi.mock('../toastManager.js', () => ({
@@ -95,6 +96,8 @@ describe('storageFacade', () => {
 
     expect(globalThis.localStorage.setItem).toHaveBeenCalled()
     expect(consoleErrorSpy).toHaveBeenCalled() // Log the error
-    expect(toastManager.error).toHaveBeenCalledWith('Settings could not be saved') // Show user warning
+    expect(toastManager.error).toHaveBeenCalledWith(
+      STRINGS.USER_MESSAGES.notifications.error.settingsSaveFailed
+    ) // Show user warning
   })
 })
