@@ -79,15 +79,31 @@ class MediaProcessor {
   }
 
   /**
-   * Check if a file already exists in the media pool
+   * Check if a file already exists in the media pool and should be skipped
    * @param {File} file - File object to check
-   * @returns {boolean} - True if file already exists
+   * @returns {boolean} - True if file should be skipped (real duplicate), false if it should be processed (new or upgrade candidate)
    */
   isFileAlreadyInPool(file) {
     const existingFiles = stateManager.getMediaPool()
-    return existingFiles.some(
+    const existingFile = existingFiles.find(
       (mediaItem) => mediaItem.name === file.name && mediaItem.size === file.size
     )
+
+    if (!existingFile) {
+      // File doesn't exist, should be processed
+      return false
+    }
+
+    // File exists - check if it's metadata-only (upgrade candidate) or real duplicate
+    const isMetadataOnly = !existingFile.file || !existingFile.url
+
+    if (isMetadataOnly) {
+      console.log(`File ${file.name} exists as metadata-only, will attempt upgrade`)
+      return false // Allow processing to trigger upgrade
+    } else {
+      console.log(`File ${file.name} already exists with full data, skipping`)
+      return true // Real duplicate, skip
+    }
   }
 
   /**

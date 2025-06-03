@@ -284,6 +284,62 @@ body {
   color: #ff9500;
 }
 
+/* Media pool item needs-permission styling (FileSystemAccessAPI files) */
+.media-item.needs-permission {
+  border-left: 3px solid #007acc;
+  background-color: rgba(0, 122, 204, 0.1);
+}
+
+.media-item.needs-permission .media-type {
+  color: #4da6ff;
+}
+
+/* Restore notice banner */
+.restore-notice {
+  background-color: rgba(0, 122, 204, 0.1);
+  border: 1px solid #007acc;
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.restore-notice-text {
+  color: #4da6ff;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.restore-all-btn {
+  background-color: #007acc;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.restore-all-btn:hover {
+  background-color: #005a9e;
+  transform: translateY(-1px);
+}
+
+.restore-all-btn:active {
+  transform: translateY(0);
+}
+
+.restore-all-btn:focus {
+  outline: 2px solid #4da6ff;
+  outline-offset: 2px;
+}
+
 /* Permission overlay for user activation */
 .permission-overlay {
   position: fixed;

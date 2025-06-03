@@ -157,16 +157,31 @@ describe('MediaProcessor', () => {
       stateManager.getMediaPool.mockReturnValue([])
       expect(mediaProcessor.isFileAlreadyInPool(file)).toBe(false)
 
-      // Mock pool with matching file
+      // Mock pool with matching file that has full data (real duplicate)
       stateManager.getMediaPool.mockReturnValue([
         {
           id: 'test_1',
           name: 'test.jpg',
           size: 1024,
           type: 'image',
+          file: new File([''], 'test.jpg'),
+          url: 'blob:test',
         },
       ])
       expect(mediaProcessor.isFileAlreadyInPool(file)).toBe(true)
+
+      // Mock pool with matching file that is metadata-only (upgrade candidate)
+      stateManager.getMediaPool.mockReturnValue([
+        {
+          id: 'test_1',
+          name: 'test.jpg',
+          size: 1024,
+          type: 'image',
+          file: null,
+          url: null,
+        },
+      ])
+      expect(mediaProcessor.isFileAlreadyInPool(file)).toBe(false) // Should allow processing for upgrade
     })
 
     it('should not detect different files as duplicates', async () => {
@@ -180,6 +195,8 @@ describe('MediaProcessor', () => {
           name: 'test1.jpg',
           size: 1024,
           type: 'image',
+          file: new File([''], 'test1.jpg'),
+          url: 'blob:test',
         },
       ])
 
@@ -190,17 +207,19 @@ describe('MediaProcessor', () => {
       expect(mediaProcessor.isFileAlreadyInPool(file3)).toBe(false)
     })
 
-    it('should skip duplicate files during processing and show appropriate message', async () => {
+    it('should skip real duplicate files during processing and show appropriate message', async () => {
       const { toastManager } = await import('./toastManager.js')
       const { stateManager } = await import('./stateManager.js')
 
-      // Mock existing file in pool
+      // Mock existing file in pool with full data (real duplicate, not metadata-only)
       stateManager.getMediaPool.mockReturnValue([
         {
           id: 'test_1',
           name: 'test.jpg',
           size: 1024,
           type: 'image',
+          file: new File([''], 'test.jpg'),
+          url: 'blob:test',
         },
       ])
 

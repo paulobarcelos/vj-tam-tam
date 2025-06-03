@@ -8,6 +8,7 @@ import { mediaProcessor } from './mediaProcessor.js'
 import { fileSystemFacade } from './facades/fileSystemFacade.js'
 import { stateManager } from './stateManager.js'
 import { fileSystemAccessFacade } from './facades/fileSystemAccessFacade.js'
+import { toastManager } from './toastManager.js'
 
 class UIManager {
   constructor() {
@@ -280,9 +281,22 @@ class UIManager {
   /**
    * Handle media pool state update
    */
-  handleMediaPoolStateUpdate() {
+  handleMediaPoolStateUpdate(data) {
     this.updateMediaPoolDisplay()
     this.updateWelcomeMessageVisibility()
+
+    // Provide user feedback for upgraded files
+    if (data && data.upgradedItems && data.upgradedItems.length > 0) {
+      const upgradeCount = data.upgradedItems.length
+      const message =
+        upgradeCount === 1
+          ? `Restored access to 1 file: ${data.upgradedItems[0].name}`
+          : `Restored access to ${upgradeCount} files`
+
+      console.log(`Upgraded ${upgradeCount} metadata-only files to full access`)
+      // Show a success toast for the upgrade
+      toastManager.success(message)
+    }
   }
 
   /**
@@ -315,6 +329,33 @@ class UIManager {
       return
     }
 
+    // Check if any files need permission restoration
+    const filesNeedingPermission = mediaItems.filter(
+      (item) => (!item.file || !item.url) && item.fromFileSystemAPI
+    )
+
+    // Add restoration notice if needed
+    if (filesNeedingPermission.length > 0) {
+      const restoreNotice = document.createElement('div')
+      restoreNotice.className = 'restore-notice'
+
+      const noticeText = document.createElement('span')
+      noticeText.className = 'restore-notice-text'
+      const fileCount = filesNeedingPermission.length
+      noticeText.textContent = `${fileCount} file${fileCount !== 1 ? 's' : ''} need permission to be accessed.`
+
+      const restoreButton = document.createElement('button')
+      restoreButton.className = 'restore-all-btn'
+      restoreButton.textContent = 'Restore Access'
+      restoreButton.addEventListener('click', () => {
+        this.handleBulkFileRestore(filesNeedingPermission)
+      })
+
+      restoreNotice.appendChild(noticeText)
+      restoreNotice.appendChild(restoreButton)
+      this.mediaPool.appendChild(restoreNotice)
+    }
+
     // Add each media item to the display
     mediaItems.forEach((item) => {
       const mediaElement = document.createElement('div')
@@ -328,11 +369,19 @@ class UIManager {
       const typeElement = document.createElement('div')
       typeElement.className = 'media-type'
 
-      // Show if this is metadata-only (restored from localStorage)
+      // Differentiate between different types of metadata-only files
       if (!item.file || !item.url) {
-        typeElement.textContent = `${item.type} • ${this.formatFileSize(item.size)} • metadata only`
-        mediaElement.classList.add('metadata-only')
+        if (item.fromFileSystemAPI) {
+          // File from FileSystemAccessAPI that can be restored
+          typeElement.textContent = `${item.type} • ${this.formatFileSize(item.size)} • needs permission`
+          mediaElement.classList.add('needs-permission')
+        } else {
+          // File from drag & drop - truly metadata-only
+          typeElement.textContent = `${item.type} • ${this.formatFileSize(item.size)} • metadata only`
+          mediaElement.classList.add('metadata-only')
+        }
       } else {
+        // File with full access
         typeElement.textContent = `${item.type} • ${this.formatFileSize(item.size)}`
       }
 
@@ -488,6 +537,72 @@ class UIManager {
       }
     } catch (error) {
       console.error('Error restoring files:', error)
+    }
+  }
+
+  /**
+   * Handle bulk file restore
+   * @param {Array} filesNeedingPermission - Array of files needing restoration
+   */
+  async handleBulkFileRestore(filesNeedingPermission) {
+    try {
+      console.log(`Attempting to restore ${filesNeedingPermission.length} files`)
+
+      let upgradedCount = 0
+      const upgradedItems = []
+
+      // Process each file that needs permission
+      for (const item of filesNeedingPermission) {
+        try {
+          // Get the file from FileSystemAccessAPI
+          const restoredFile = await fileSystemAccessFacade.getFileFromHandle(item.id)
+
+          if (restoredFile) {
+            // Update the existing item in StateManager with the restored file
+            const existingItem = stateManager.getMediaById(item.id)
+            if (existingItem) {
+              const upgradedItem = {
+                ...existingItem,
+                file: restoredFile.file,
+                url: restoredFile.url,
+                fromFileSystemAPI: true, // Keep the flag
+              }
+
+              // Replace the item in the media pool
+              stateManager.state.mediaPool = stateManager.state.mediaPool.map((poolItem) =>
+                poolItem.id === item.id ? upgradedItem : poolItem
+              )
+
+              upgradedItems.push(upgradedItem)
+              upgradedCount++
+            }
+          } else {
+            console.warn(`Failed to restore file: ${item.name}`)
+          }
+        } catch (error) {
+          console.warn(`Error restoring individual file ${item.name}:`, error)
+        }
+      }
+
+      if (upgradedCount > 0) {
+        // Emit update event to refresh UI and trigger other components
+        eventBus.emit('state.mediaPoolUpdated', {
+          mediaPool: stateManager.getMediaPool(),
+          addedItems: [],
+          upgradedItems: upgradedItems,
+          totalCount: stateManager.getMediaCount(),
+        })
+
+        toastManager.success(
+          `Restored access to ${upgradedCount} file${upgradedCount !== 1 ? 's' : ''}`
+        )
+        console.log(`Successfully restored ${upgradedCount} files`)
+      } else {
+        toastManager.error('Failed to restore access to files. Permissions may have been revoked.')
+      }
+    } catch (error) {
+      console.error('Error during bulk file restore:', error)
+      toastManager.error('Error restoring access to files. Please try again.')
     }
   }
 }

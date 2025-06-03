@@ -165,26 +165,68 @@ class StateManager {
       return
     }
 
-    // Filter out duplicates based on name and size
     const existingItems = this.state.mediaPool
-    const uniqueNewItems = newMediaItems.filter((newItem) => {
-      return !existingItems.some(
+    const upgradedItems = []
+    const actuallyNewItems = []
+
+    // Process each new item to check for duplicates and metadata-only upgrades
+    newMediaItems.forEach((newItem) => {
+      const existingIndex = existingItems.findIndex(
         (existingItem) => existingItem.name === newItem.name && existingItem.size === newItem.size
       )
+
+      if (existingIndex !== -1) {
+        const existingItem = existingItems[existingIndex]
+
+        // Check if existing item is metadata-only (no file or url) and new item has actual file
+        if ((!existingItem.file || !existingItem.url) && newItem.file && newItem.url) {
+          console.log(`Upgrading metadata-only file: ${newItem.name}`)
+
+          // Upgrade the existing item with the actual File object and URL
+          const upgradedItem = {
+            ...existingItem, // Keep existing metadata (id, addedAt, etc.)
+            file: newItem.file,
+            url: newItem.url,
+            // Update any other properties that might have changed
+            mimeType: newItem.mimeType,
+            type: newItem.type,
+          }
+
+          // Replace the existing item in the pool
+          this.state.mediaPool[existingIndex] = upgradedItem
+          upgradedItems.push(upgradedItem)
+        } else {
+          // True duplicate - skip
+          console.log(`File already in media pool (skipped): ${newItem.name}`)
+        }
+      } else {
+        // Truly new item
+        actuallyNewItems.push(newItem)
+      }
     })
 
-    // Add unique items to the pool
-    this.state.mediaPool = [...this.state.mediaPool, ...uniqueNewItems]
+    // Add truly new items to the pool
+    if (actuallyNewItems.length > 0) {
+      this.state.mediaPool = [...this.state.mediaPool, ...actuallyNewItems]
+    }
 
-    // Store file handles for the new items if FileSystemAccessAPI is supported
-    this.storeFileHandlesAsync(uniqueNewItems)
+    // Store file handles for new and upgraded items
+    if (actuallyNewItems.length > 0) {
+      this.storeFileHandlesAsync(actuallyNewItems)
+    }
+    if (upgradedItems.length > 0) {
+      this.storeFileHandlesAsync(upgradedItems)
+    }
 
-    // Emit state change notification
-    eventBus.emit('state.mediaPoolUpdated', {
-      mediaPool: this.getMediaPool(),
-      addedItems: uniqueNewItems,
-      totalCount: this.state.mediaPool.length,
-    })
+    // Emit state change notification if anything was added or upgraded
+    if (actuallyNewItems.length > 0 || upgradedItems.length > 0) {
+      eventBus.emit('state.mediaPoolUpdated', {
+        mediaPool: this.getMediaPool(),
+        addedItems: actuallyNewItems,
+        upgradedItems: upgradedItems,
+        totalCount: this.state.mediaPool.length,
+      })
+    }
   }
 
   /**

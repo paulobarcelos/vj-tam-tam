@@ -251,6 +251,7 @@ describe('StateManager', () => {
       expect(eventBus.emit).toHaveBeenCalledWith('state.mediaPoolUpdated', {
         mediaPool: expect.any(Array),
         addedItems: mediaItems,
+        upgradedItems: [],
         totalCount: 2,
       })
     })
@@ -348,6 +349,58 @@ describe('StateManager', () => {
       const mediaPool = stateManager.getMediaPool()
       expect(mediaPool.find((item) => item.name === 'test.jpg')).toBeTruthy()
       expect(mediaPool.find((item) => item.name === 'new.png')).toBeTruthy()
+    })
+
+    it('should upgrade metadata-only files when re-added with actual File objects', () => {
+      // Add metadata-only item (simulating restored from localStorage)
+      const metadataOnlyItem = {
+        id: 'media_1',
+        name: 'restored.jpg',
+        type: 'image',
+        mimeType: 'image/jpeg',
+        size: 1000,
+        file: null, // No actual file
+        url: null, // No URL
+        addedAt: new Date(),
+      }
+      stateManager.state.mediaPool = [metadataOnlyItem] // Direct assignment to simulate restoration
+
+      // Try to add the same file with actual File object
+      const upgradeItems = [
+        {
+          id: 'media_2',
+          name: 'restored.jpg', // Same name and size
+          type: 'image',
+          mimeType: 'image/jpeg',
+          size: 1000,
+          file: new File([''], 'restored.jpg'),
+          url: 'blob:restored',
+          addedAt: new Date(),
+        },
+      ]
+
+      stateManager.addMediaToPool(upgradeItems)
+
+      expect(stateManager.getMediaCount()).toBe(1) // Still only one item
+      const upgradedItem = stateManager.getMediaById('media_1')
+      expect(upgradedItem.file).toBeTruthy() // Now has File object
+      expect(upgradedItem.url).toBe('blob:restored') // Now has URL
+      expect(upgradedItem.id).toBe('media_1') // Kept original ID
+
+      // Check event was emitted with upgrade info
+      expect(eventBus.emit).toHaveBeenCalledWith('state.mediaPoolUpdated', {
+        mediaPool: expect.any(Array),
+        addedItems: [],
+        upgradedItems: [
+          expect.objectContaining({
+            id: 'media_1',
+            name: 'restored.jpg',
+            file: expect.any(File),
+            url: 'blob:restored',
+          }),
+        ],
+        totalCount: 1,
+      })
     })
 
     it('should handle invalid input gracefully', () => {
