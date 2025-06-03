@@ -164,6 +164,14 @@ _The following ideas have been recorded during the initial architectural design 
   2.  **Deeper Control & Understanding:** A custom library would provide complete control over this core visual feature, allowing for easier integration of specific needs, potential performance optimizations tailored to VJ Tam Tam, and a modern codebase.
   3.  **User Engagement & Passion:** The user (Vibe CEO) has expressed a particular interest in this aspect of the technology, which could drive innovation and quality for this key feature.
 
+### 7.2. Enhanced File Persistence (ACHIEVED in Story 1.5)
+
+- **Implementation Status:** COMPLETED - FileSystemAccessAPI integration with dual persistence strategy
+- **Capabilities:** True file persistence across browser sessions with graceful fallback to localStorage metadata-only persistence
+- **Architecture:** Automatic browser detection, permission management, and seamless file restoration workflows
+- **Cross-Browser Support:** Full FileSystemAccessAPI support in modern browsers with intelligent fallback for unsupported browsers (Arc, older versions)
+- **User Experience:** Banner-based access restoration, bulk file operations, and clear visual indicators for file persistence status
+
 ---
 
 ## 8. Epics, Stories, and Acceptance Criteria
