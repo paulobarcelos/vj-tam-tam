@@ -6,6 +6,13 @@
 import { eventBus } from './eventBus.js'
 import { toastManager } from './toastManager.js'
 import { stateManager } from './stateManager.js'
+import {
+  isSupportedMime,
+  isSupportedExtension,
+  getMediaTypeFromMime,
+  getMediaTypeFromExtension,
+  getSupportedTypesString,
+} from './constants/mediaTypes.js'
 
 /**
  * @typedef {Object} MediaItem
@@ -19,18 +26,6 @@ import { stateManager } from './stateManager.js'
  * @property {Date} addedAt - Timestamp when added
  * @property {boolean} fromFileSystemAPI - Whether file was added via FileSystemAccessAPI (persistent) or drag-and-drop (temporary)
  */
-
-// Supported file types as defined in AC 1.1, 1.2, 1.4
-const SUPPORTED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'heic', 'webp']
-const SUPPORTED_VIDEO_EXTENSIONS = ['mp4', 'mov', 'avi', 'webm', 'mkv']
-const SUPPORTED_IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/heic', 'image/webp']
-const SUPPORTED_VIDEO_MIMES = [
-  'video/mp4',
-  'video/quicktime',
-  'video/webm',
-  'video/avi',
-  'video/mkv',
-]
 
 class MediaProcessor {
   constructor() {
@@ -55,13 +50,7 @@ class MediaProcessor {
     const extension = this.getFileExtension(file.name)
     const mimeType = file.type.toLowerCase()
 
-    const isSupportedImage =
-      SUPPORTED_IMAGE_EXTENSIONS.includes(extension) || SUPPORTED_IMAGE_MIMES.includes(mimeType)
-
-    const isSupportedVideo =
-      SUPPORTED_VIDEO_EXTENSIONS.includes(extension) || SUPPORTED_VIDEO_MIMES.includes(mimeType)
-
-    return isSupportedImage || isSupportedVideo
+    return isSupportedExtension(extension) || isSupportedMime(mimeType)
   }
 
   /**
@@ -73,10 +62,12 @@ class MediaProcessor {
     const extension = this.getFileExtension(file.name)
     const mimeType = file.type.toLowerCase()
 
-    const isImage =
-      SUPPORTED_IMAGE_EXTENSIONS.includes(extension) || SUPPORTED_IMAGE_MIMES.includes(mimeType)
+    // Try MIME type first, then extension
+    const typeFromMime = getMediaTypeFromMime(mimeType)
+    if (typeFromMime) return typeFromMime
 
-    return isImage ? 'image' : 'video'
+    const typeFromExtension = getMediaTypeFromExtension(extension)
+    return typeFromExtension || 'image' // Default to image if unknown
   }
 
   /**
@@ -129,10 +120,7 @@ class MediaProcessor {
 
     // Show error for unsupported files
     if (unsupportedFiles.length > 0) {
-      const supportedTypes = [
-        ...SUPPORTED_IMAGE_EXTENSIONS.map((ext) => ext.toUpperCase()),
-        ...SUPPORTED_VIDEO_EXTENSIONS.map((ext) => ext.toUpperCase()),
-      ].join(', ')
+      const supportedTypes = getSupportedTypesString()
 
       toastManager.error(`Some files could not be imported. Supported formats: ${supportedTypes}`)
     }
@@ -231,9 +219,7 @@ class MediaProcessor {
    * @returns {string} - Formatted string of supported types
    */
   getSupportedTypesString() {
-    const imageTypes = SUPPORTED_IMAGE_EXTENSIONS.map((ext) => ext.toUpperCase())
-    const videoTypes = SUPPORTED_VIDEO_EXTENSIONS.map((ext) => ext.toUpperCase())
-    return [...imageTypes, ...videoTypes].join(', ')
+    return getSupportedTypesString()
   }
 }
 

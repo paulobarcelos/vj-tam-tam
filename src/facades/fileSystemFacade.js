@@ -4,6 +4,7 @@
  */
 
 import { toastManager } from '../toastManager.js'
+import { FILE_ACCEPT_PATTERNS, isSupportedExtension } from '../constants/mediaTypes.js'
 
 class FileSystemFacade {
   constructor() {
@@ -94,13 +95,13 @@ class FileSystemFacade {
           {
             description: 'Images',
             accept: {
-              'image/*': ['.jpg', '.jpeg', '.png', '.gif', '.heic', '.webp'],
+              'image/*': FILE_ACCEPT_PATTERNS['image/*'],
             },
           },
           {
             description: 'Videos',
             accept: {
-              'video/*': ['.mp4', '.mov', '.avi', '.webm', '.mkv'],
+              'video/*': FILE_ACCEPT_PATTERNS['video/*'],
             },
           },
         ],
@@ -197,26 +198,13 @@ class FileSystemFacade {
    */
   async extractFilesFromDirectory(directoryHandle) {
     const mediaFiles = []
-    const supportedExtensions = [
-      'jpg',
-      'jpeg',
-      'png',
-      'gif',
-      'heic',
-      'webp',
-      'mp4',
-      'mov',
-      'avi',
-      'webm',
-      'mkv',
-    ]
 
     try {
       for await (const [name, handle] of directoryHandle.entries()) {
         if (handle.kind === 'file') {
           // Check if file has supported extension
           const extension = name.split('.').pop()?.toLowerCase()
-          if (extension && supportedExtensions.includes(extension)) {
+          if (extension && isSupportedExtension(extension)) {
             try {
               const file = await handle.getFile()
               // Preserve the file handle for persistence

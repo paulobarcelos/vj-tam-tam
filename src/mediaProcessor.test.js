@@ -4,6 +4,12 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mediaProcessor } from './mediaProcessor.js'
+import {
+  SUPPORTED_IMAGE_MIMES,
+  SUPPORTED_VIDEO_MIMES,
+  SUPPORTED_IMAGE_EXTENSIONS,
+  SUPPORTED_VIDEO_EXTENSIONS,
+} from './constants/mediaTypes.js'
 
 // Mock the dependencies
 vi.mock('./eventBus.js', () => ({
@@ -50,11 +56,11 @@ describe('MediaProcessor', () => {
   describe('isFileSupported', () => {
     it('should return true for supported image files', () => {
       const supportedImages = [
-        { name: 'test.jpg', type: 'image/jpeg' },
-        { name: 'test.png', type: 'image/png' },
-        { name: 'test.gif', type: 'image/gif' },
-        { name: 'test.webp', type: 'image/webp' },
-        { name: 'test.heic', type: 'image/heic' },
+        { name: 'test.jpg', type: SUPPORTED_IMAGE_MIMES[0] },
+        { name: 'test.png', type: SUPPORTED_IMAGE_MIMES[1] },
+        { name: 'test.gif', type: SUPPORTED_IMAGE_MIMES[2] },
+        { name: 'test.heic', type: SUPPORTED_IMAGE_MIMES[3] },
+        { name: 'test.webp', type: SUPPORTED_IMAGE_MIMES[4] },
       ]
 
       supportedImages.forEach((file) => {
@@ -64,11 +70,11 @@ describe('MediaProcessor', () => {
 
     it('should return true for supported video files', () => {
       const supportedVideos = [
-        { name: 'test.mp4', type: 'video/mp4' },
-        { name: 'test.mov', type: 'video/quicktime' },
-        { name: 'test.webm', type: 'video/webm' },
-        { name: 'test.mkv', type: 'video/mkv' },
-        { name: 'test.avi', type: 'video/avi' },
+        { name: 'test.mp4', type: SUPPORTED_VIDEO_MIMES[0] },
+        { name: 'test.mov', type: SUPPORTED_VIDEO_MIMES[1] },
+        { name: 'test.webm', type: SUPPORTED_VIDEO_MIMES[2] },
+        { name: 'test.avi', type: SUPPORTED_VIDEO_MIMES[3] },
+        { name: 'test.mkv', type: SUPPORTED_VIDEO_MIMES[4] },
       ]
 
       supportedVideos.forEach((file) => {
@@ -91,12 +97,12 @@ describe('MediaProcessor', () => {
 
   describe('getMediaType', () => {
     it('should return "image" for image files', () => {
-      const imageFile = { name: 'test.jpg', type: 'image/jpeg' }
+      const imageFile = { name: 'test.jpg', type: SUPPORTED_IMAGE_MIMES[0] }
       expect(mediaProcessor.getMediaType(imageFile)).toBe('image')
     })
 
     it('should return "video" for video files', () => {
-      const videoFile = { name: 'test.mp4', type: 'video/mp4' }
+      const videoFile = { name: 'test.mp4', type: SUPPORTED_VIDEO_MIMES[0] }
       expect(mediaProcessor.getMediaType(videoFile)).toBe('video')
     })
   })
@@ -104,14 +110,13 @@ describe('MediaProcessor', () => {
   describe('getSupportedTypesString', () => {
     it('should return formatted string of supported types', () => {
       const supportedTypes = mediaProcessor.getSupportedTypesString()
-      expect(supportedTypes).toContain('JPG')
-      expect(supportedTypes).toContain('PNG')
-      expect(supportedTypes).toContain('MP4')
-      expect(supportedTypes).toContain('MOV')
-      expect(supportedTypes).toContain('WEBM')
-      expect(supportedTypes).toContain('HEIC')
-      expect(supportedTypes).toContain('GIF')
-      expect(supportedTypes).toContain('WEBP')
+      // Check for uppercase versions of our supported extensions
+      SUPPORTED_IMAGE_EXTENSIONS.forEach((ext) => {
+        expect(supportedTypes).toContain(ext.toUpperCase())
+      })
+      SUPPORTED_VIDEO_EXTENSIONS.forEach((ext) => {
+        expect(supportedTypes).toContain(ext.toUpperCase())
+      })
     })
   })
 
@@ -123,7 +128,7 @@ describe('MediaProcessor', () => {
           id: 'test_1',
           name: 'test.jpg',
           type: 'image',
-          mimeType: 'image/jpeg',
+          mimeType: SUPPORTED_IMAGE_MIMES[0],
           size: 1024,
           file: {},
           url: 'blob:test',
@@ -151,7 +156,7 @@ describe('MediaProcessor', () => {
   describe('duplicate detection', () => {
     it('should detect if file is already in pool using StateManager', async () => {
       const { stateManager } = await import('./stateManager.js')
-      const file = { name: 'test.jpg', size: 1024, type: 'image/jpeg' }
+      const file = { name: 'test.jpg', size: 1024, type: SUPPORTED_IMAGE_MIMES[0] }
 
       // Mock empty pool
       stateManager.getMediaPool.mockReturnValue([])
@@ -186,8 +191,8 @@ describe('MediaProcessor', () => {
 
     it('should not detect different files as duplicates', async () => {
       const { stateManager } = await import('./stateManager.js')
-      const file2 = { name: 'test2.jpg', size: 1024, type: 'image/jpeg' }
-      const file3 = { name: 'test1.jpg', size: 2048, type: 'image/jpeg' }
+      const file2 = { name: 'test2.jpg', size: 1024, type: SUPPORTED_IMAGE_MIMES[0] }
+      const file3 = { name: 'test1.jpg', size: 2048, type: SUPPORTED_IMAGE_MIMES[0] }
 
       stateManager.getMediaPool.mockReturnValue([
         {
@@ -223,7 +228,7 @@ describe('MediaProcessor', () => {
         },
       ])
 
-      const duplicateFile = new File(['content'], 'test.jpg', { type: 'image/jpeg' })
+      const duplicateFile = new File(['content'], 'test.jpg', { type: SUPPORTED_IMAGE_MIMES[0] })
       Object.defineProperty(duplicateFile, 'size', { value: 1024 })
 
       await mediaProcessor.processFiles([duplicateFile])
@@ -245,7 +250,7 @@ describe('MediaProcessor', () => {
       // Mock empty pool initially
       stateManager.getMediaPool.mockReturnValue([])
 
-      const newFile = new File(['content'], 'new.jpg', { type: 'image/jpeg' })
+      const newFile = new File(['content'], 'new.jpg', { type: SUPPORTED_IMAGE_MIMES[0] })
       Object.defineProperty(newFile, 'size', { value: 2048 })
 
       await mediaProcessor.processFiles([newFile])
@@ -255,7 +260,7 @@ describe('MediaProcessor', () => {
         expect.objectContaining({
           name: 'new.jpg',
           type: 'image',
-          mimeType: 'image/jpeg',
+          mimeType: SUPPORTED_IMAGE_MIMES[0],
           size: 2048,
         }),
       ])

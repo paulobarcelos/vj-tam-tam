@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { eventBus } from './eventBus.js'
 import { stateManager } from './stateManager.js'
 import { storageFacade } from './facades/storageFacade.js'
+import { SUPPORTED_IMAGE_MIMES, SUPPORTED_VIDEO_MIMES } from './constants/mediaTypes.js'
 
 // Mock eventBus
 vi.mock('./eventBus.js', () => ({
@@ -71,7 +72,7 @@ describe('StateManager', () => {
             id: 'p1',
             name: 'persisted1.jpg',
             type: 'image',
-            mimeType: 'image/jpeg',
+            mimeType: SUPPORTED_IMAGE_MIMES[0],
             size: 100,
             addedAt: new Date().toISOString(),
             fromFileSystemAPI: true, // Mark as FileSystemAccessAPI file
@@ -80,7 +81,7 @@ describe('StateManager', () => {
             id: 'p2',
             name: 'persisted2.mp4',
             type: 'video',
-            mimeType: 'video/mp4',
+            mimeType: SUPPORTED_VIDEO_MIMES[0],
             size: 200,
             addedAt: new Date().toISOString(),
             fromFileSystemAPI: true, // Mark as FileSystemAccessAPI file
@@ -120,7 +121,7 @@ describe('StateManager', () => {
             id: 'fs1',
             name: 'persistent.jpg',
             type: 'image',
-            mimeType: 'image/jpeg',
+            mimeType: SUPPORTED_IMAGE_MIMES[0],
             size: 100,
             addedAt: new Date().toISOString(),
             fromFileSystemAPI: true, // This should be restored
@@ -129,7 +130,7 @@ describe('StateManager', () => {
             id: 'dd1',
             name: 'temporary.mp4',
             type: 'video',
-            mimeType: 'video/mp4',
+            mimeType: SUPPORTED_VIDEO_MIMES[0],
             size: 200,
             addedAt: new Date().toISOString(),
             // No fromFileSystemAPI flag - this should be cleaned up
@@ -138,7 +139,7 @@ describe('StateManager', () => {
             id: 'dd2',
             name: 'temporary2.png',
             type: 'image',
-            mimeType: 'image/png',
+            mimeType: SUPPORTED_IMAGE_MIMES[1],
             size: 150,
             addedAt: new Date().toISOString(),
             fromFileSystemAPI: false, // Explicitly false - this should be cleaned up
@@ -250,7 +251,7 @@ describe('StateManager', () => {
           id: 'media_1',
           name: 'test1.jpg',
           type: 'image',
-          mimeType: 'image/jpeg',
+          mimeType: SUPPORTED_IMAGE_MIMES[0],
           size: 1000,
           file: new File([''], 'test1.jpg'),
           url: 'blob:test1',
@@ -275,7 +276,7 @@ describe('StateManager', () => {
         id: 'media_1',
         name: 'test1.jpg',
         type: 'image',
-        mimeType: 'image/jpeg',
+        mimeType: SUPPORTED_IMAGE_MIMES[0],
         size: 1000,
         addedAt: expect.any(String), // Should be ISO string
       })
@@ -291,7 +292,7 @@ describe('StateManager', () => {
           id: 'media_1',
           name: 'test1.jpg',
           type: 'image',
-          mimeType: 'image/jpeg',
+          mimeType: SUPPORTED_IMAGE_MIMES[0],
           size: 1000,
           file: new File([''], 'test1.jpg'),
           url: 'blob:test1',
@@ -301,7 +302,7 @@ describe('StateManager', () => {
           id: 'media_2',
           name: 'test2.mp4',
           type: 'video',
-          mimeType: 'video/mp4',
+          mimeType: SUPPORTED_VIDEO_MIMES[0],
           size: 2000,
           file: new File([''], 'test2.mp4'),
           url: 'blob:test2',
@@ -329,7 +330,7 @@ describe('StateManager', () => {
           id: 'media_1',
           name: 'existing.jpg',
           type: 'image',
-          mimeType: 'image/jpeg',
+          mimeType: SUPPORTED_IMAGE_MIMES[0],
           size: 1000,
           file: new File([''], 'existing.jpg'),
           url: 'blob:existing',
@@ -344,7 +345,7 @@ describe('StateManager', () => {
           id: 'media_2',
           name: 'new1.mp4',
           type: 'video',
-          mimeType: 'video/mp4',
+          mimeType: SUPPORTED_VIDEO_MIMES[0],
           size: 2000,
           file: new File([''], 'new1.mp4'),
           url: 'blob:new1',
@@ -354,7 +355,7 @@ describe('StateManager', () => {
           id: 'media_3',
           name: 'new2.png',
           type: 'image',
-          mimeType: 'image/png',
+          mimeType: SUPPORTED_IMAGE_MIMES[1],
           size: 1500,
           file: new File([''], 'new2.png'),
           url: 'blob:new2',
@@ -377,7 +378,7 @@ describe('StateManager', () => {
           id: 'media_1',
           name: 'test.jpg',
           type: 'image',
-          mimeType: 'image/jpeg',
+          mimeType: SUPPORTED_IMAGE_MIMES[0],
           size: 1000,
           file: new File([''], 'test.jpg'),
           url: 'blob:test1',
@@ -392,7 +393,7 @@ describe('StateManager', () => {
           id: 'media_2',
           name: 'test.jpg', // Same name and size as existing
           type: 'image',
-          mimeType: 'image/jpeg',
+          mimeType: SUPPORTED_IMAGE_MIMES[0],
           size: 1000,
           file: new File([''], 'test.jpg'),
           url: 'blob:test2',
@@ -402,7 +403,7 @@ describe('StateManager', () => {
           id: 'media_3',
           name: 'new.png',
           type: 'image',
-          mimeType: 'image/png',
+          mimeType: SUPPORTED_IMAGE_MIMES[1],
           size: 1500,
           file: new File([''], 'new.png'),
           url: 'blob:new',
@@ -423,7 +424,7 @@ describe('StateManager', () => {
         id: 'media_1',
         name: 'restored.jpg',
         type: 'image',
-        mimeType: 'image/jpeg',
+        mimeType: SUPPORTED_IMAGE_MIMES[0],
         size: 1000,
         file: null, // No actual file
         url: null, // No URL
@@ -437,7 +438,7 @@ describe('StateManager', () => {
           id: 'media_2',
           name: 'restored.jpg', // Same name and size
           type: 'image',
-          mimeType: 'image/jpeg',
+          mimeType: SUPPORTED_IMAGE_MIMES[0],
           size: 1000,
           file: new File([''], 'restored.jpg'),
           url: 'blob:restored',
@@ -491,7 +492,7 @@ describe('StateManager', () => {
           id: 'media_1',
           name: 'test1.jpg',
           type: 'image',
-          mimeType: 'image/jpeg',
+          mimeType: SUPPORTED_IMAGE_MIMES[0],
           size: 1000,
           file: new File([''], 'test1.jpg'),
           url: 'blob:test1',
@@ -501,7 +502,7 @@ describe('StateManager', () => {
           id: 'media_2',
           name: 'test2.mp4',
           type: 'video',
-          mimeType: 'video/mp4',
+          mimeType: SUPPORTED_VIDEO_MIMES[0],
           size: 2000,
           file: new File([''], 'test2.mp4'),
           url: 'blob:test2',
@@ -540,7 +541,7 @@ describe('StateManager', () => {
           id: 'media_1',
           name: 'test1.jpg',
           type: 'image',
-          mimeType: 'image/jpeg',
+          mimeType: SUPPORTED_IMAGE_MIMES[0],
           size: 1000,
           file: new File([''], 'test1.jpg'),
           url: 'blob:test1',
@@ -573,7 +574,7 @@ describe('StateManager', () => {
           id: 'media_1',
           name: 'test.jpg',
           type: 'image',
-          mimeType: 'image/jpeg',
+          mimeType: SUPPORTED_IMAGE_MIMES[0],
           size: 1000,
           file: new File([''], 'test.jpg'),
           url: 'blob:test',
