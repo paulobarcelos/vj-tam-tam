@@ -6,6 +6,7 @@
 import { uiManager } from './uiManager.js'
 import { toastManager } from './toastManager.js'
 import { stateManager } from './stateManager.js'
+import { playbackEngine } from './playbackEngine.js'
 
 /**
  * Initialize the application
@@ -18,6 +19,9 @@ function init() {
 
     // Initialize UI Manager (which handles drag and drop)
     uiManager.init()
+
+    // Initialize PlaybackEngine (which handles media display)
+    playbackEngine.init()
 
     console.log('VJ Tam Tam initialized successfully')
   } catch (error) {

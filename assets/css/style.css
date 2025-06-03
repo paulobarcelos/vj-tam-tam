@@ -80,6 +80,25 @@ body {
   display: none;
 }
 
+/* Fullscreen media display */
+.stage-media {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+.stage-media.image {
+  /* Additional image-specific styles if needed */
+}
+
+.stage-media.video {
+  /* Additional video-specific styles if needed */
+}
+
 /* Drop indicator overlay */
 .drop-indicator {
   position: absolute;
