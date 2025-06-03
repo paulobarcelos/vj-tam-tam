@@ -37,7 +37,7 @@ export default [
   // Global ignores
   {
     ignores: [
-      'lib/**/*',
+      'app/lib/**/*',
       '.ai/**/*',
       'bmad-agent/**/*',
       'node_modules/**/*',

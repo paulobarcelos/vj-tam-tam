@@ -5,9 +5,9 @@ export default defineConfig({
     // Use JSDOM environment for DOM testing
     environment: 'jsdom',
 
-    // Test file patterns
-    include: ['**/*.{test,spec}.{js,mjs,ts}'],
-    exclude: ['node_modules', 'lib'],
+    // Test file patterns - include tests in new app/src structure
+    include: ['app/src/**/*.{test,spec}.{js,mjs,ts}', '**/*.{test,spec}.{js,mjs,ts}'],
+    exclude: ['node_modules', 'app/lib'],
 
     // Enable globals for test environment (describe, it, expect, etc.)
     globals: true,
@@ -18,7 +18,7 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
       exclude: [
         'node_modules/',
-        'lib/',
+        'app/lib/',
         '**/*.{test,spec}.{js,mjs,ts}',
         '**/vitest.config.js',
         '**/eslint.config.js',
