@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { SUPPORTED_IMAGE_MIMES, FILE_ACCEPT_PATTERNS } from '../constants/mediaTypes.js'
 
 // Mock toastManager
 vi.mock('../toastManager.js', () => ({
@@ -56,7 +57,7 @@ describe('FileSystemFacade', () => {
 
   describe('browse', () => {
     it('should use FileSystemAccessAPI when available', async () => {
-      const mockFiles = [new File(['content'], 'test.jpg', { type: 'image/jpeg' })]
+      const mockFiles = [new File(['content'], 'test.jpg', { type: SUPPORTED_IMAGE_MIMES[0] })]
 
       const mockFileHandles = [{ getFile: vi.fn().mockResolvedValue(mockFiles[0]) }]
 
@@ -75,13 +76,13 @@ describe('FileSystemFacade', () => {
           {
             description: 'Images',
             accept: {
-              'image/*': ['.jpg', '.jpeg', '.png', '.gif', '.heic', '.webp'],
+              'image/*': FILE_ACCEPT_PATTERNS['image/*'],
             },
           },
           {
             description: 'Videos',
             accept: {
-              'video/*': ['.mp4', '.mov', '.avi', '.webm', '.mkv'],
+              'video/*': FILE_ACCEPT_PATTERNS['video/*'],
             },
           },
         ],
@@ -121,7 +122,7 @@ describe('FileSystemFacade', () => {
       const facade = new FileSystemFacade()
 
       // Mock the fallback method
-      const mockFiles = [new File(['content'], 'test.jpg', { type: 'image/jpeg' })]
+      const mockFiles = [new File(['content'], 'test.jpg', { type: SUPPORTED_IMAGE_MIMES[0] })]
       vi.spyOn(facade, 'browseWithInput').mockResolvedValue(mockFiles)
 
       const result = await facade.browse()
@@ -140,7 +141,7 @@ describe('FileSystemFacade', () => {
       const facade = new FileSystemFacade()
 
       // Mock the fallback method
-      const mockFiles = [new File(['content'], 'test.jpg', { type: 'image/jpeg' })]
+      const mockFiles = [new File(['content'], 'test.jpg', { type: SUPPORTED_IMAGE_MIMES[0] })]
       vi.spyOn(facade, 'browseWithInput').mockResolvedValue(mockFiles)
 
       const result = await facade.browse()

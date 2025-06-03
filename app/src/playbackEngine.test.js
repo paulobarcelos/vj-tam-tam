@@ -5,6 +5,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { playbackEngine } from './playbackEngine.js'
+import { SUPPORTED_IMAGE_MIMES, SUPPORTED_VIDEO_MIMES } from './constants/mediaTypes.js'
 
 // Mock dependencies
 vi.mock('./eventBus.js', () => ({
@@ -44,9 +45,9 @@ const mockImageItem = {
   id: 'test-image-1',
   name: 'test-image.jpg',
   type: 'image',
-  mimeType: 'image/jpeg',
+  mimeType: SUPPORTED_IMAGE_MIMES[0],
   size: 1024000,
-  file: new File([''], 'test-image.jpg', { type: 'image/jpeg' }),
+  file: new File([''], 'test-image.jpg', { type: SUPPORTED_IMAGE_MIMES[0] }),
   url: 'blob:test-image-url',
   addedAt: new Date(),
 }
@@ -55,9 +56,9 @@ const mockVideoItem = {
   id: 'test-video-1',
   name: 'test-video.mp4',
   type: 'video',
-  mimeType: 'video/mp4',
+  mimeType: SUPPORTED_VIDEO_MIMES[0],
   size: 5120000,
-  file: new File([''], 'test-video.mp4', { type: 'video/mp4' }),
+  file: new File([''], 'test-video.mp4', { type: SUPPORTED_VIDEO_MIMES[0] }),
   url: 'blob:test-video-url',
   addedAt: new Date(),
 }
