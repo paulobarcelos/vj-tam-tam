@@ -4,8 +4,9 @@
  */
 
 import { toastManager } from '../toastManager.js'
-import { FILE_ACCEPT_PATTERNS, isSupportedExtension } from '../constants/mediaTypes.js'
+import { FILE_ACCEPT_PATTERNS } from '../constants/mediaTypes.js'
 import { STRINGS, t } from '../constants/strings.js'
+import { hasValidMediaExtension } from '../utils/mediaUtils.js'
 
 class FileSystemFacade {
   constructor() {
@@ -213,8 +214,7 @@ class FileSystemFacade {
       for await (const [name, handle] of directoryHandle.entries()) {
         if (handle.kind === 'file') {
           // Check if file has supported extension
-          const extension = name.split('.').pop()?.toLowerCase()
-          if (extension && isSupportedExtension(extension)) {
+          if (hasValidMediaExtension(name)) {
             try {
               const file = await handle.getFile()
               // Preserve the file handle for persistence

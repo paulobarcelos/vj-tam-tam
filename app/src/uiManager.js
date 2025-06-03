@@ -10,6 +10,12 @@ import { stateManager } from './stateManager.js'
 import { fileSystemAccessFacade } from './facades/fileSystemAccessFacade.js'
 import { toastManager } from './toastManager.js'
 import { STRINGS, t } from './constants/strings.js'
+import {
+  filterMediaNeedingPermission,
+  filterTemporaryMedia,
+  filterUsableMedia,
+} from './utils/mediaUtils.js'
+import { formatFileSize } from './utils/stringUtils.js'
 
 class UIManager {
   constructor() {
@@ -325,16 +331,10 @@ class UIManager {
     }
 
     // Check if any files need permission restoration
-    const filesNeedingPermission = mediaItems.filter(
-      (item) => (!item.file || !item.url) && item.fromFileSystemAPI
-    )
+    const filesNeedingPermission = filterMediaNeedingPermission(mediaItems)
 
     // Check if any files are temporary (drag & drop)
-    const temporaryFiles = mediaItems.filter(
-      (item) =>
-        (item.file && item.url && !item.fromFileSystemAPI) ||
-        (!item.file && !item.url && !item.fromFileSystemAPI)
-    )
+    const temporaryFiles = filterTemporaryMedia(mediaItems)
 
     // Add restoration notice if needed
     if (filesNeedingPermission.length > 0) {
@@ -396,7 +396,7 @@ class UIManager {
           // File from FileSystemAccessAPI that can be restored
           typeElement.textContent = t.fileType(
             item.type,
-            this.formatFileSize(item.size),
+            formatFileSize(item.size),
             STRINGS.USER_INTERFACE.fileStatus.needsPermission
           )
           mediaElement.classList.add('needs-permission')
@@ -404,7 +404,7 @@ class UIManager {
           // File from drag & drop - truly metadata-only
           typeElement.textContent = t.fileType(
             item.type,
-            this.formatFileSize(item.size),
+            formatFileSize(item.size),
             STRINGS.USER_INTERFACE.fileStatus.metadataOnly
           )
           mediaElement.classList.add('metadata-only')
@@ -413,12 +413,12 @@ class UIManager {
         // File with full access - check if it's temporary or persistent
         if (item.fromFileSystemAPI) {
           // Persistent file from FileSystemAccessAPI
-          typeElement.textContent = t.fileType(item.type, this.formatFileSize(item.size))
+          typeElement.textContent = t.fileType(item.type, formatFileSize(item.size))
         } else {
           // Temporary file from drag & drop
           typeElement.textContent = t.fileType(
             item.type,
-            this.formatFileSize(item.size),
+            formatFileSize(item.size),
             STRINGS.USER_INTERFACE.fileStatus.temporary
           )
           mediaElement.classList.add('temporary-file')
@@ -429,21 +429,6 @@ class UIManager {
       mediaElement.appendChild(typeElement)
       this.mediaPool.appendChild(mediaElement)
     })
-  }
-
-  /**
-   * Format file size for display
-   * @param {number} bytes - File size in bytes
-   * @returns {string} - Formatted file size string
-   */
-  formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes'
-
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
   /**
@@ -495,7 +480,7 @@ class UIManager {
     const mediaItems = stateManager.getMediaPool()
 
     // Check for usable media (files that actually have file and url access)
-    const usableMedia = mediaItems.filter((item) => item.file && item.url)
+    const usableMedia = filterUsableMedia(mediaItems)
 
     if (usableMedia.length > 0) {
       this.welcomeMessage.classList.add('hidden')
