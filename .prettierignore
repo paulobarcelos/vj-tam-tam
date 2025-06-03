@@ -3,6 +3,7 @@ lib/
 
 # Exclude bmad-agent
 bmad-agent/
+.ai/
 
 # Exclude node_modules
 node_modules/

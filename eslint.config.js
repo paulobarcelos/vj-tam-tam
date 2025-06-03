@@ -38,6 +38,7 @@ export default [
   {
     ignores: [
       'lib/**/*',
+      '.ai/**/*',
       'bmad-agent/**/*',
       'node_modules/**/*',
       'coverage/**/*',
