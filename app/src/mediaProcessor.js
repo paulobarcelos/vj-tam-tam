@@ -17,6 +17,7 @@ import { stateManager } from './stateManager.js'
  * @property {File} file - Original File object
  * @property {string} url - Object URL for the file
  * @property {Date} addedAt - Timestamp when added
+ * @property {boolean} fromFileSystemAPI - Whether file was added via FileSystemAccessAPI (persistent) or drag-and-drop (temporary)
  */
 
 // Supported file types as defined in AC 1.1, 1.2, 1.4
@@ -186,6 +187,8 @@ class MediaProcessor {
       file: file, // This may include file.handle if available
       url: URL.createObjectURL(file),
       addedAt: new Date(),
+      // Mark files with handles as coming from FileSystemAccessAPI for proper persistence handling
+      fromFileSystemAPI: !!file.handle,
     }
 
     // Log handle availability for debugging
