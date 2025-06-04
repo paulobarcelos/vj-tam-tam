@@ -212,9 +212,9 @@ class PlaybackEngine {
   }
 
   /**
-   * Create a video element for display
+   * Create a video element for display with enhanced segment timing precision
    * @param {MediaItem} mediaItem - Video media item
-   * @param {Object} segmentSettings - Segment settings for the video
+   * @param {Object} segmentSettings - Segment configuration settings
    * @returns {HTMLVideoElement} - Configured video element
    */
   createVideoElement(mediaItem, segmentSettings) {
@@ -231,9 +231,23 @@ class PlaybackEngine {
       video._segmentSettings = segmentSettings
       video._mediaItem = mediaItem
 
+      // Initialize video segment state
+      video._segmentState = {
+        startPoint: null,
+        segmentDuration: null,
+        segmentEndTime: null,
+        isMonitoring: false,
+        fallbackUsed: null,
+        seekTarget: null,
+        seekAttempts: 0,
+        lastTimeUpdateCheck: 0, // For throttling timeupdate checks
+      }
+
       // Handle video end - transition to next media if cycling is active
       video.addEventListener('ended', () => {
         if (this.isCyclingActive) {
+          // Clear monitoring state when video ends naturally
+          video._segmentState.isMonitoring = false
           this.transitionToNextMedia()
         }
       })
@@ -248,20 +262,29 @@ class PlaybackEngine {
           // Calculate video segment parameters with fallback logic
           const segmentParams = getVideoSegmentParameters(video.duration, segmentSettings)
 
-          // Set video start time to calculated start point
-          video.currentTime = segmentParams.startPoint
+          // Store segment parameters in video state
+          video._segmentState.startPoint = segmentParams.startPoint
+          video._segmentState.segmentDuration = segmentParams.segmentDuration
+          video._segmentState.segmentEndTime =
+            segmentParams.startPoint + segmentParams.segmentDuration
+          video._segmentState.fallbackUsed = segmentParams.fallbackUsed
+          video._segmentState.seekTarget = segmentParams.startPoint
+          video._segmentState.seekAttempts = 0
 
-          // Store segment parameters on video element
+          // Store segment parameters on video element (for backward compatibility)
           video._segmentParams = segmentParams
+
+          // Seek to start point with retry mechanism
+          this.seekToStartPoint(video, segmentParams.startPoint)
 
           // Show toast notification if fallback was used (AC 1.9)
           if (segmentParams.fallbackUsed === 'both') {
             toastManager.info(STRINGS.USER_MESSAGES.notifications.info.videoOffsetFallback)
           }
 
-          // Schedule segment end transition if cycling is active
+          // Start segment monitoring if cycling is active
           if (this.isCyclingActive) {
-            this.scheduleVideoSegmentTransition(segmentParams.segmentDuration)
+            video._segmentState.isMonitoring = true
           }
         } catch (error) {
           console.error('Error calculating video segment parameters:', error)
@@ -269,6 +292,68 @@ class PlaybackEngine {
           if (this.isCyclingActive) {
             this.scheduleVideoMaxDurationTransition()
           }
+        }
+      })
+
+      // Enhanced timeupdate event for precise segment timing
+      video.addEventListener('timeupdate', () => {
+        if (!this.isCyclingActive || !video._segmentState.isMonitoring) {
+          return
+        }
+
+        const currentTime = video.currentTime
+        const segmentState = video._segmentState
+
+        // Throttle timeupdate checks to avoid excessive processing
+        if (
+          currentTime - segmentState.lastTimeUpdateCheck <
+          PLAYBACK_CONFIG.VIDEO_TIMING.TIMEUPDATE_CHECK_THRESHOLD
+        ) {
+          return
+        }
+        segmentState.lastTimeUpdateCheck = currentTime
+
+        // Check if segment duration is complete
+        if (
+          segmentState.segmentEndTime &&
+          currentTime >=
+            segmentState.segmentEndTime - PLAYBACK_CONFIG.VIDEO_TIMING.SEGMENT_END_TOLERANCE
+        ) {
+          // Segment duration reached, transition to next media
+          segmentState.isMonitoring = false
+          this.transitionToNextMedia()
+        }
+      })
+
+      // Enhanced seeked event for seeking accuracy verification
+      video.addEventListener('seeked', () => {
+        const segmentState = video._segmentState
+        if (!segmentState.seekTarget) return
+
+        const target = segmentState.seekTarget
+        const actual = video.currentTime
+        const tolerance = PLAYBACK_CONFIG.VIDEO_TIMING.SEEKING_TOLERANCE
+
+        // Check if seeking was accurate enough
+        if (
+          Math.abs(actual - target) > tolerance &&
+          segmentState.seekAttempts < PLAYBACK_CONFIG.VIDEO_TIMING.MAX_SEEKING_ATTEMPTS
+        ) {
+          // Retry seeking
+          segmentState.seekAttempts++
+          console.warn(
+            `Seeking retry ${segmentState.seekAttempts} for ${mediaItem.name}: target=${target}, actual=${actual}`
+          )
+          video.currentTime = target
+        } else {
+          // Seeking complete (successful or max attempts reached)
+          if (segmentState.seekAttempts >= PLAYBACK_CONFIG.VIDEO_TIMING.MAX_SEEKING_ATTEMPTS) {
+            console.warn(
+              `Max seeking attempts reached for ${mediaItem.name}: target=${target}, final=${actual}`
+            )
+          }
+          segmentState.seekTarget = null
+          segmentState.seekAttempts = 0
         }
       })
 
@@ -280,6 +365,9 @@ class PlaybackEngine {
         toastManager.error(
           t.get('USER_MESSAGES.notifications.error.videoLoadFailed', { fileName: mediaItem.name })
         )
+
+        // Clean up segment state
+        video._segmentState.isMonitoring = false
 
         // If cycling is active and video fails to load, transition to next media
         if (this.isCyclingActive) {
@@ -295,11 +383,39 @@ class PlaybackEngine {
   }
 
   /**
-   * Clear the currently displayed media
+   * Seek video to start point with retry mechanism
+   * @param {HTMLVideoElement} video - Video element to seek
+   * @param {number} startPoint - Target start point in seconds
+   */
+  seekToStartPoint(video, startPoint) {
+    try {
+      video._segmentState.seekTarget = startPoint
+      video._segmentState.seekAttempts = 0
+      video.currentTime = startPoint
+    } catch (error) {
+      console.error('Error seeking video to start point:', error)
+      // Continue playback from current position if seeking fails
+      video._segmentState.seekTarget = null
+    }
+  }
+
+  /**
+   * Clear the currently displayed media with enhanced cleanup
    */
   clearCurrentMedia() {
     try {
       if (this.currentMediaElement) {
+        // Clean up video segment state if it's a video element
+        if (
+          this.currentMediaElement.tagName === 'VIDEO' &&
+          this.currentMediaElement._segmentState
+        ) {
+          // Stop monitoring
+          this.currentMediaElement._segmentState.isMonitoring = false
+          // Clear any pending seek operations
+          this.currentMediaElement._segmentState.seekTarget = null
+        }
+
         // Remove from DOM
         if (this.currentMediaElement.parentNode) {
           this.currentMediaElement.parentNode.removeChild(this.currentMediaElement)
@@ -467,12 +583,25 @@ class PlaybackEngine {
   }
 
   /**
-   * Transition to the next random media item
+   * Transition to the next random media item with enhanced cleanup and error handling
    */
   transitionToNextMedia() {
     try {
       if (!this.isCyclingActive) {
         return
+      }
+
+      // Store reference to previous media for cleanup
+      const previousMedia = this.currentMediaItem
+
+      // Clean up any video timing state from current media
+      if (
+        this.currentMediaElement &&
+        this.currentMediaElement.tagName === 'VIDEO' &&
+        this.currentMediaElement._segmentState
+      ) {
+        this.currentMediaElement._segmentState.isMonitoring = false
+        this.currentMediaElement._segmentState.seekTarget = null
       }
 
       const nextMediaItem = this.getRandomMediaItem()
@@ -483,7 +612,7 @@ class PlaybackEngine {
 
         // Emit cycling event
         eventBus.emit(CYCLING_EVENTS.MEDIA_CHANGED, {
-          previousMedia: this.currentMediaItem,
+          previousMedia: previousMedia,
           currentMedia: nextMediaItem,
         })
       } else {
@@ -492,6 +621,29 @@ class PlaybackEngine {
       }
     } catch (error) {
       console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.cyclingTransitionError, error)
+
+      // Fail-safe: Try to continue cycling with any available media
+      try {
+        const mediaPool = stateManager.getMediaPool()
+        const usableMedia = filterUsableMedia(mediaPool)
+        if (usableMedia.length > 0) {
+          console.log('Attempting fail-safe media transition...')
+          // Reset recent history to allow any media to be selected
+          this.recentMediaHistory = []
+          const fallbackMedia = this.getRandomMediaItem()
+          if (fallbackMedia) {
+            this.currentMediaItem = fallbackMedia
+            this.addToRecentHistory(fallbackMedia)
+            this.displayMedia(fallbackMedia)
+            return
+          }
+        }
+      } catch (fallbackError) {
+        console.error('Fail-safe transition also failed:', fallbackError)
+      }
+
+      // Ultimate fallback: stop cycling
+      this.stopCycling()
       eventBus.emit(CYCLING_EVENTS.ERROR, { error })
     }
   }

@@ -16,6 +16,18 @@ export const PLAYBACK_CONFIG = {
   // Minimum delay between cycling transitions (milliseconds)
   MIN_TRANSITION_DELAY: 100,
 
+  // Video timing precision settings
+  VIDEO_TIMING: {
+    // Timing tolerance for segment end detection (seconds)
+    SEGMENT_END_TOLERANCE: 0.1,
+    // Seeking accuracy tolerance (seconds)
+    SEEKING_TOLERANCE: 0.5,
+    // Maximum seeking retry attempts
+    MAX_SEEKING_ATTEMPTS: 3,
+    // Timeupdate monitoring interval check (to avoid excessive processing)
+    TIMEUPDATE_CHECK_THRESHOLD: 0.1, // Only check timing every 0.1 seconds
+  },
+
   // Segment settings defaults and ranges
   SEGMENT_SETTINGS: {
     // Default values (in seconds)

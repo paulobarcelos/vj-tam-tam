@@ -1084,9 +1084,7 @@ describe('PlaybackEngine', () => {
         expect(transitionSpy).toHaveBeenCalled()
       })
 
-      it('should schedule segment transition when video metadata loads during cycling', () => {
-        const scheduleVideoSegmentSpy = vi.spyOn(playbackEngine, 'scheduleVideoSegmentTransition')
-
+      it('should initialize video segment monitoring when video metadata loads during cycling', () => {
         const videoElement = playbackEngine.createVideoElement(mockVideoItem, {
           minDuration: 5,
           maxDuration: 5,
@@ -1103,7 +1101,11 @@ describe('PlaybackEngine', () => {
         )[1]
         metadataHandler()
 
-        expect(scheduleVideoSegmentSpy).toHaveBeenCalled()
+        // Should initialize segment state for monitoring
+        expect(videoElement._segmentState.isMonitoring).toBe(true)
+        expect(videoElement._segmentState.startPoint).toBeDefined()
+        expect(videoElement._segmentState.segmentDuration).toBeDefined()
+        expect(videoElement._segmentState.segmentEndTime).toBeDefined()
       })
 
       it('should ensure video loop is disabled for cycling', () => {
