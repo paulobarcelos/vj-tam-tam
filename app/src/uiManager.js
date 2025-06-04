@@ -26,6 +26,7 @@ class UIManager {
     this.welcomeMessage = null
     this.browseFilesBtn = null
     this.browseFoldersBtn = null
+    this.clearMediaBtn = null
     this.dragCounter = 0 // Track drag enter/leave events
     this.isFilePickerActive = false // Lock to prevent concurrent file picker calls
   }
@@ -41,6 +42,7 @@ class UIManager {
     this.welcomeMessage = document.getElementById('welcome-message')
     this.browseFilesBtn = document.getElementById('browse-files-btn')
     this.browseFoldersBtn = document.getElementById('browse-folders-btn')
+    this.clearMediaBtn = document.getElementById('clear-media-btn')
 
     if (
       !this.stage ||
@@ -49,7 +51,8 @@ class UIManager {
       !this.mediaPool ||
       !this.welcomeMessage ||
       !this.browseFilesBtn ||
-      !this.browseFoldersBtn
+      !this.browseFoldersBtn ||
+      !this.clearMediaBtn
     ) {
       console.error(STRINGS.SYSTEM_MESSAGES.uiManager.requiredElementsNotFound)
       return
@@ -103,6 +106,9 @@ class UIManager {
     // Browse button handlers
     this.browseFilesBtn.addEventListener('click', this.handleBrowseFilesClick.bind(this))
     this.browseFoldersBtn.addEventListener('click', this.handleBrowseFoldersClick.bind(this))
+
+    // Clear media button handler
+    this.clearMediaBtn.addEventListener('click', this.handleClearMediaClick.bind(this))
   }
 
   /**
@@ -474,6 +480,26 @@ class UIManager {
   }
 
   /**
+   * Handle clear media button click
+   */
+  handleClearMediaClick() {
+    const mediaItems = stateManager.getMediaPool()
+
+    // Only show confirmation if there are items to clear
+    if (mediaItems.length === 0) {
+      return
+    }
+
+    // Show confirmation dialog
+    const confirmed = window.confirm(STRINGS.USER_MESSAGES.status.clearMediaConfirm)
+
+    if (confirmed) {
+      stateManager.clearMediaPool()
+      toastManager.success(t.get('USER_MESSAGES.notifications.success.mediaCleared'))
+    }
+  }
+
+  /**
    * Update welcome message visibility based on media pool state
    */
   updateWelcomeMessageVisibility() {
@@ -589,6 +615,11 @@ class UIManager {
     if (foldersBtn) {
       foldersBtn.textContent = STRINGS.USER_INTERFACE.buttons.folders
       foldersBtn.title = STRINGS.USER_INTERFACE.tooltips.foldersButton
+    }
+
+    const clearBtn = document.getElementById('clear-media-btn')
+    if (clearBtn) {
+      clearBtn.textContent = STRINGS.USER_INTERFACE.buttons.clearMedia
     }
 
     // Update welcome message
