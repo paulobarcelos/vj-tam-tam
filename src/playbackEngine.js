@@ -1,13 +1,15 @@
 /**
  * PlaybackEngine module for managing fullscreen media display
- * Handles displaying images and videos with object-fit: cover behavior
- * and responsive window resizing
+ * Handles displaying images and videos with object-fit: cover behavior,
+ * continuous cycling through media pool, and responsive window resizing
  */
 
 import { eventBus } from './eventBus.js'
 import { toastManager } from './toastManager.js'
 import { stateManager } from './stateManager.js'
 import { STRINGS, t } from './constants/strings.js'
+import { PLAYBACK_CONFIG, PLAYBACK_STATES, CYCLING_EVENTS } from './constants/playbackConfig.js'
+import { filterUsableMedia } from './utils/mediaUtils.js'
 
 /**
  * @typedef {Object} MediaItem
@@ -28,6 +30,13 @@ class PlaybackEngine {
     this.handleWindowResize = this.handleWindowResize.bind(this)
     this.isPlaybackActive = false
     this.autoPlaybackEnabled = true
+
+    // Cycling-specific properties
+    this.isCyclingActive = false
+    this.cyclingTimer = null
+    this.currentMediaItem = null
+    this.recentMediaHistory = [] // Track recent items to avoid immediate repetition
+    this.playbackState = PLAYBACK_STATES.INACTIVE
   }
 
   /**
@@ -70,7 +79,7 @@ class PlaybackEngine {
    */
   handleMediaPoolUpdate(updateData) {
     try {
-      const { mediaPool, totalCount, cleared } = updateData
+      const { totalCount, cleared } = updateData
 
       if (cleared || totalCount === 0) {
         this.stopAutoPlayback()
@@ -80,9 +89,13 @@ class PlaybackEngine {
       // If playback is not active and auto playback is enabled, start it
       if (!this.isPlaybackActive && this.autoPlaybackEnabled) {
         this.startAutoPlayback()
-      } else if (this.isPlaybackActive && mediaPool.length > 0) {
+      } else if (this.isPlaybackActive) {
+        // If cycling is active, let it continue with updated pool
+        // If not cycling but playback is active, restart cycling with updated pool
+        if (!this.isCyclingActive) {
+          this.startCycling()
+        }
         console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.mediaPoolUpdatedActive)
-        this.displayMedia(mediaPool[0])
       }
     } catch (error) {
       console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.mediaPoolUpdateError, error)
@@ -97,8 +110,8 @@ class PlaybackEngine {
     // Same logic as media pool update
     this.handleMediaPoolUpdate(
       updateData || {
-        mediaPool: stateManager.getMediaPool(),
         totalCount: stateManager.getMediaCount(),
+        cleared: false,
       }
     )
   }
@@ -155,12 +168,24 @@ class PlaybackEngine {
       img.src = mediaItem.url
       img.alt = mediaItem.name
 
+      // Handle image load success - schedule cycling transition if cycling is active
+      img.addEventListener('load', () => {
+        if (this.isCyclingActive) {
+          this.scheduleImageTransition()
+        }
+      })
+
       // Handle image load errors
       img.addEventListener('error', () => {
         console.error(
           t.get('SYSTEM_MESSAGES.playbackEngine.imageLoadError', { fileName: mediaItem.name })
         )
         toastManager.error(`Failed to load image: ${mediaItem.name}`)
+
+        // If cycling is active and image fails to load, transition to next media
+        if (this.isCyclingActive) {
+          setTimeout(() => this.transitionToNextMedia(), PLAYBACK_CONFIG.MIN_TRANSITION_DELAY)
+        }
       })
 
       return img
@@ -182,8 +207,27 @@ class PlaybackEngine {
       video.src = mediaItem.url
       video.autoplay = true
       video.muted = true
-      video.loop = true
+      video.loop = false // Disable loop for cycling
       video.controls = false
+
+      // Handle video end - transition to next media if cycling is active
+      video.addEventListener('ended', () => {
+        if (this.isCyclingActive) {
+          this.transitionToNextMedia()
+        }
+      })
+
+      // Handle video metadata loaded - set up maximum duration fallback if cycling is active
+      video.addEventListener('loadedmetadata', () => {
+        console.log(
+          t.get('SYSTEM_MESSAGES.playbackEngine.videoMetadataLoaded', { fileName: mediaItem.name })
+        )
+
+        // Schedule maximum duration fallback if cycling is active
+        if (this.isCyclingActive) {
+          this.scheduleVideoMaxDurationTransition()
+        }
+      })
 
       // Handle video load errors
       video.addEventListener('error', () => {
@@ -191,13 +235,11 @@ class PlaybackEngine {
           t.get('SYSTEM_MESSAGES.playbackEngine.videoLoadError', { fileName: mediaItem.name })
         )
         toastManager.error(`Failed to load video: ${mediaItem.name}`)
-      })
 
-      // Handle video metadata loaded event
-      video.addEventListener('loadedmetadata', () => {
-        console.log(
-          t.get('SYSTEM_MESSAGES.playbackEngine.videoMetadataLoaded', { fileName: mediaItem.name })
-        )
+        // If cycling is active and video fails to load, transition to next media
+        if (this.isCyclingActive) {
+          setTimeout(() => this.transitionToNextMedia(), PLAYBACK_CONFIG.MIN_TRANSITION_DELAY)
+        }
       })
 
       return video
@@ -269,8 +311,184 @@ class PlaybackEngine {
 
       // Stop playback and clear current media
       this.stopAutoPlayback()
+      this.stopCycling()
 
       console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.cleanupCompleted)
+    } catch (error) {
+      console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.cleanupError, error)
+    }
+  }
+
+  /**
+   * Get a random media item from the pool, avoiding recently played items
+   * @returns {MediaItem|null} - Random media item or null if none available
+   */
+  getRandomMediaItem() {
+    try {
+      const mediaPool = stateManager.getMediaPool()
+      const usableMedia = filterUsableMedia(mediaPool)
+
+      if (usableMedia.length === 0) {
+        return null
+      }
+
+      if (usableMedia.length === 1) {
+        return usableMedia[0]
+      }
+
+      // Filter out recently played items to avoid immediate repetition
+      let availableMedia = usableMedia
+      if (this.recentMediaHistory.length > 0) {
+        const recentIds = this.recentMediaHistory.map((item) => item.id)
+        availableMedia = usableMedia.filter((item) => !recentIds.includes(item.id))
+
+        // If all items are recent, use all items (shouldn't happen with proper history management)
+        if (availableMedia.length === 0) {
+          availableMedia = usableMedia
+        }
+      }
+
+      // Select random item from available media
+      const randomIndex = Math.floor(Math.random() * availableMedia.length)
+      return availableMedia[randomIndex]
+    } catch (error) {
+      console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.randomMediaSelectionError, error)
+      return null
+    }
+  }
+
+  /**
+   * Add media item to recent history to avoid immediate repetition
+   * @param {MediaItem} mediaItem - Media item to add to history
+   */
+  addToRecentHistory(mediaItem) {
+    if (!mediaItem) return
+
+    // Remove item if it already exists in history
+    this.recentMediaHistory = this.recentMediaHistory.filter((item) => item.id !== mediaItem.id)
+
+    // Add to beginning of history
+    this.recentMediaHistory.unshift(mediaItem)
+
+    // Limit history size
+    if (this.recentMediaHistory.length > PLAYBACK_CONFIG.RECENT_ITEMS_HISTORY_SIZE) {
+      this.recentMediaHistory = this.recentMediaHistory.slice(
+        0,
+        PLAYBACK_CONFIG.RECENT_ITEMS_HISTORY_SIZE
+      )
+    }
+  }
+
+  /**
+   * Clear cycling timer and reset cycling state
+   */
+  clearCyclingTimer() {
+    if (this.cyclingTimer) {
+      clearTimeout(this.cyclingTimer)
+      this.cyclingTimer = null
+    }
+  }
+
+  /**
+   * Schedule transition to next media item after image display duration
+   */
+  scheduleImageTransition() {
+    this.clearCyclingTimer()
+    this.cyclingTimer = setTimeout(() => {
+      this.transitionToNextMedia()
+    }, PLAYBACK_CONFIG.IMAGE_DISPLAY_DURATION)
+  }
+
+  /**
+   * Schedule transition to next media item after video max duration
+   */
+  scheduleVideoMaxDurationTransition() {
+    this.clearCyclingTimer()
+    this.cyclingTimer = setTimeout(() => {
+      this.transitionToNextMedia()
+    }, PLAYBACK_CONFIG.VIDEO_MAX_DURATION)
+  }
+
+  /**
+   * Transition to the next random media item
+   */
+  transitionToNextMedia() {
+    try {
+      if (!this.isCyclingActive) {
+        return
+      }
+
+      const nextMediaItem = this.getRandomMediaItem()
+      if (nextMediaItem) {
+        this.currentMediaItem = nextMediaItem
+        this.addToRecentHistory(nextMediaItem)
+        this.displayMedia(nextMediaItem)
+
+        // Emit cycling event
+        eventBus.emit(CYCLING_EVENTS.MEDIA_CHANGED, {
+          previousMedia: this.currentMediaItem,
+          currentMedia: nextMediaItem,
+        })
+      } else {
+        // No media available, stop cycling
+        this.stopCycling()
+      }
+    } catch (error) {
+      console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.cyclingTransitionError, error)
+      eventBus.emit(CYCLING_EVENTS.ERROR, { error })
+    }
+  }
+
+  /**
+   * Start continuous cycling through media pool
+   */
+  startCycling() {
+    try {
+      if (this.isCyclingActive) {
+        return // Already cycling
+      }
+
+      const firstMediaItem = this.getRandomMediaItem()
+      if (!firstMediaItem) {
+        console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.noUsableMediaForCycling)
+        return
+      }
+
+      this.isCyclingActive = true
+      this.playbackState = PLAYBACK_STATES.CYCLING
+      this.currentMediaItem = firstMediaItem
+      this.addToRecentHistory(firstMediaItem)
+      this.displayMedia(firstMediaItem)
+
+      console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.cyclingStarted)
+      eventBus.emit(CYCLING_EVENTS.STARTED, {
+        currentMedia: firstMediaItem,
+      })
+    } catch (error) {
+      console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.cyclingStartError, error)
+      eventBus.emit(CYCLING_EVENTS.ERROR, { error })
+    }
+  }
+
+  /**
+   * Stop continuous cycling
+   */
+  stopCycling() {
+    try {
+      if (!this.isCyclingActive) {
+        return // Not cycling
+      }
+
+      this.isCyclingActive = false
+      this.clearCyclingTimer()
+      this.playbackState = this.hasCurrentMedia()
+        ? PLAYBACK_STATES.ACTIVE
+        : PLAYBACK_STATES.INACTIVE
+
+      console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.cyclingStopped)
+      eventBus.emit(CYCLING_EVENTS.STOPPED, {
+        finalMedia: this.currentMediaItem,
+      })
     } catch (error) {
       console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.cleanupError, error)
     }
@@ -282,12 +500,12 @@ class PlaybackEngine {
   startAutoPlayback() {
     const mediaPool = stateManager.getMediaPool()
     if (mediaPool.length > 0 && !this.isPlaybackActive && this.autoPlaybackEnabled) {
-      // Find the first media item with a valid URL
-      const validMediaItem = mediaPool.find((item) => item.url && item.file)
+      // Find usable media items (with valid URLs)
+      const usableMedia = filterUsableMedia(mediaPool)
 
-      if (validMediaItem) {
+      if (usableMedia.length > 0) {
         this.isPlaybackActive = true
-        this.displayMedia(validMediaItem)
+        this.startCycling() // Start cycling instead of displaying single item
         console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.autoPlaybackStarted)
       } else {
         console.log(
@@ -295,7 +513,6 @@ class PlaybackEngine {
         )
         // Don't start playback, but could show a message to user about re-adding files
       }
-      // Future enhancement: Start cycling/playlist logic here
     }
   }
 
@@ -305,6 +522,7 @@ class PlaybackEngine {
   stopAutoPlayback() {
     if (this.isPlaybackActive) {
       this.isPlaybackActive = false
+      this.stopCycling()
       this.clearCurrentMedia()
       console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.autoPlaybackStopped)
     }

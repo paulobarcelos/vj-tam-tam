@@ -268,13 +268,13 @@ describe('PlaybackEngine', () => {
       stateManagerMock.getMediaPool.mockReturnValue(mockMediaPool)
       playbackEngine.isPlaybackActive = false
       playbackEngine.autoPlaybackEnabled = true
-      const displayMediaSpy = vi.spyOn(playbackEngine, 'displayMedia')
+      const startCyclingSpy = vi.spyOn(playbackEngine, 'startCycling')
 
       playbackEngine.startAutoPlayback()
 
       expect(stateManagerMock.getMediaPool).toHaveBeenCalled()
       expect(playbackEngine.isPlaybackActive).toBe(true)
-      expect(displayMediaSpy).toHaveBeenCalledWith(mockMediaPool[0])
+      expect(startCyclingSpy).toHaveBeenCalled()
       expect(console.log).toHaveBeenCalledWith(
         STRINGS.SYSTEM_MESSAGES.playbackEngine.autoPlaybackStarted
       )
@@ -333,10 +333,12 @@ describe('PlaybackEngine', () => {
     it('stopAutoPlayback should stop playback if active', () => {
       playbackEngine.isPlaybackActive = true
       const clearMediaSpy = vi.spyOn(playbackEngine, 'clearCurrentMedia')
+      const stopCyclingSpy = vi.spyOn(playbackEngine, 'stopCycling')
 
       playbackEngine.stopAutoPlayback()
 
       expect(playbackEngine.isPlaybackActive).toBe(false)
+      expect(stopCyclingSpy).toHaveBeenCalled()
       expect(clearMediaSpy).toHaveBeenCalled()
       expect(console.log).toHaveBeenCalledWith(
         STRINGS.SYSTEM_MESSAGES.playbackEngine.autoPlaybackStopped
@@ -382,7 +384,7 @@ describe('PlaybackEngine', () => {
       expect(videoElement.src).toBe(mockVideoItem.url)
       expect(videoElement.autoplay).toBe(true)
       expect(videoElement.muted).toBe(true)
-      expect(videoElement.loop).toBe(true)
+      expect(videoElement.loop).toBe(false)
       expect(videoElement.controls).toBe(false)
       expect(videoElement.addEventListener).toHaveBeenCalledWith('error', expect.any(Function))
       expect(videoElement.addEventListener).toHaveBeenCalledWith(
@@ -579,15 +581,16 @@ describe('PlaybackEngine', () => {
 
     it('should update display when media pool is updated while playback is active', () => {
       playbackEngine.isPlaybackActive = true // Assume active playback
-      const mockMediaPool = [mockImageItem, mockVideoItem] // New media added
-      const updateData = { mediaPool: mockMediaPool, totalCount: 2, cleared: false }
+      playbackEngine.isCyclingActive = false // Not cycling yet
+      const updateData = { totalCount: 2, cleared: false }
+      const startCyclingSpy = vi.spyOn(playbackEngine, 'startCycling')
 
       playbackEngine.handleMediaPoolUpdate(updateData)
 
       expect(playbackEngine.stopAutoPlayback).not.toHaveBeenCalled()
       expect(playbackEngine.startAutoPlayback).not.toHaveBeenCalled() // Should not restart, just update display
-      // Expect displayMedia to be called with the *first* item in the updated pool
-      expect(playbackEngine.displayMedia).toHaveBeenCalledWith(mockMediaPool[0])
+      // Expect startCycling to be called since cycling is not active
+      expect(startCyclingSpy).toHaveBeenCalled()
     })
 
     it('should handle mediaPoolRestored event the same as mediaPoolUpdated', async () => {
@@ -727,6 +730,365 @@ describe('PlaybackEngine', () => {
         STRINGS.SYSTEM_MESSAGES.playbackEngine.currentMediaClearError,
         expect.any(Error)
       )
+    })
+  })
+
+  describe('media cycling functionality', () => {
+    let stateManagerMock
+    let eventBusMock
+
+    beforeEach(async () => {
+      const stateManagerModule = await import('./stateManager.js')
+      stateManagerMock = stateManagerModule.stateManager
+
+      const eventBusModule = await import('./eventBus.js')
+      eventBusMock = eventBusModule.eventBus
+
+      playbackEngine.init()
+
+      // Reset cycling state
+      playbackEngine.isCyclingActive = false
+      playbackEngine.cyclingTimer = null
+      playbackEngine.currentMediaItem = null
+      playbackEngine.recentMediaHistory = []
+      playbackEngine.playbackState = 'inactive'
+    })
+
+    describe('getRandomMediaItem', () => {
+      it('should return null when media pool is empty', () => {
+        stateManagerMock.getMediaPool.mockReturnValue([])
+
+        const result = playbackEngine.getRandomMediaItem()
+
+        expect(result).toBeNull()
+      })
+
+      it('should return the only item when media pool has one item', () => {
+        const mockMediaPool = [mockImageItem]
+        stateManagerMock.getMediaPool.mockReturnValue(mockMediaPool)
+
+        const result = playbackEngine.getRandomMediaItem()
+
+        expect(result).toBe(mockImageItem)
+      })
+
+      it('should return a random item from multiple items', () => {
+        const mockMediaPool = [mockImageItem, mockVideoItem]
+        stateManagerMock.getMediaPool.mockReturnValue(mockMediaPool)
+
+        const result = playbackEngine.getRandomMediaItem()
+
+        expect(mockMediaPool).toContain(result)
+      })
+
+      it('should avoid recently played items', () => {
+        const mockItem3 = { ...mockImageItem, id: 'test-image-3', name: 'test3.jpg' }
+        const mockMediaPool = [mockImageItem, mockVideoItem, mockItem3]
+        stateManagerMock.getMediaPool.mockReturnValue(mockMediaPool)
+
+        // Add items to recent history
+        playbackEngine.recentMediaHistory = [mockImageItem, mockVideoItem]
+
+        const result = playbackEngine.getRandomMediaItem()
+
+        expect(result).toBe(mockItem3)
+      })
+
+      it('should handle errors gracefully', () => {
+        stateManagerMock.getMediaPool.mockImplementation(() => {
+          throw new Error('State error')
+        })
+
+        playbackEngine.startCycling()
+
+        expect(console.error).toHaveBeenCalledWith(
+          STRINGS.SYSTEM_MESSAGES.playbackEngine.randomMediaSelectionError,
+          expect.any(Error)
+        )
+        expect(playbackEngine.isCyclingActive).toBe(false)
+      })
+    })
+
+    describe('addToRecentHistory', () => {
+      it('should add item to beginning of history', () => {
+        playbackEngine.addToRecentHistory(mockImageItem)
+
+        expect(playbackEngine.recentMediaHistory).toHaveLength(1)
+        expect(playbackEngine.recentMediaHistory[0]).toBe(mockImageItem)
+      })
+
+      it('should remove duplicate items before adding', () => {
+        playbackEngine.recentMediaHistory = [mockVideoItem, mockImageItem]
+        playbackEngine.addToRecentHistory(mockImageItem)
+
+        expect(playbackEngine.recentMediaHistory).toHaveLength(2)
+        expect(playbackEngine.recentMediaHistory[0]).toBe(mockImageItem)
+        expect(playbackEngine.recentMediaHistory[1]).toBe(mockVideoItem)
+      })
+
+      it('should limit history size', () => {
+        const mockItem3 = { ...mockImageItem, id: 'test-3' }
+        const mockItem4 = { ...mockImageItem, id: 'test-4' }
+        const mockItem5 = { ...mockImageItem, id: 'test-5' }
+
+        playbackEngine.addToRecentHistory(mockImageItem)
+        playbackEngine.addToRecentHistory(mockVideoItem)
+        playbackEngine.addToRecentHistory(mockItem3)
+        playbackEngine.addToRecentHistory(mockItem4)
+        playbackEngine.addToRecentHistory(mockItem5)
+
+        expect(playbackEngine.recentMediaHistory).toHaveLength(3) // RECENT_ITEMS_HISTORY_SIZE
+        expect(playbackEngine.recentMediaHistory[0]).toBe(mockItem5)
+      })
+
+      it('should handle null input gracefully', () => {
+        playbackEngine.addToRecentHistory(null)
+
+        expect(playbackEngine.recentMediaHistory).toHaveLength(0)
+      })
+    })
+
+    describe('cycling timer management', () => {
+      it('should clear cycling timer', () => {
+        const mockTimer = setTimeout(() => {}, 1000)
+        playbackEngine.cyclingTimer = mockTimer
+
+        playbackEngine.clearCyclingTimer()
+
+        expect(playbackEngine.cyclingTimer).toBeNull()
+      })
+
+      it('should schedule image transition', () => {
+        vi.useFakeTimers()
+        const transitionSpy = vi.spyOn(playbackEngine, 'transitionToNextMedia')
+
+        playbackEngine.scheduleImageTransition()
+
+        expect(playbackEngine.cyclingTimer).toBeDefined()
+
+        vi.advanceTimersByTime(4000) // IMAGE_DISPLAY_DURATION
+        expect(transitionSpy).toHaveBeenCalled()
+
+        vi.useRealTimers()
+      })
+
+      it('should schedule video max duration transition', () => {
+        vi.useFakeTimers()
+        const transitionSpy = vi.spyOn(playbackEngine, 'transitionToNextMedia')
+
+        playbackEngine.scheduleVideoMaxDurationTransition()
+
+        expect(playbackEngine.cyclingTimer).toBeDefined()
+
+        vi.advanceTimersByTime(30000) // VIDEO_MAX_DURATION
+        expect(transitionSpy).toHaveBeenCalled()
+
+        vi.useRealTimers()
+      })
+    })
+
+    describe('startCycling', () => {
+      it('should start cycling with first random media item', () => {
+        const mockMediaPool = [mockImageItem, mockVideoItem]
+        stateManagerMock.getMediaPool.mockReturnValue(mockMediaPool)
+        const displayMediaSpy = vi.spyOn(playbackEngine, 'displayMedia')
+
+        playbackEngine.startCycling()
+
+        expect(playbackEngine.isCyclingActive).toBe(true)
+        expect(playbackEngine.playbackState).toBe('cycling')
+        expect(playbackEngine.currentMediaItem).toBeDefined()
+        expect(displayMediaSpy).toHaveBeenCalled()
+        expect(eventBusMock.emit).toHaveBeenCalledWith('cycling.started', expect.any(Object))
+      })
+
+      it('should not start cycling if already active', () => {
+        playbackEngine.isCyclingActive = true
+        const displayMediaSpy = vi.spyOn(playbackEngine, 'displayMedia')
+
+        playbackEngine.startCycling()
+
+        expect(displayMediaSpy).not.toHaveBeenCalled()
+      })
+
+      it('should not start cycling if no usable media available', () => {
+        stateManagerMock.getMediaPool.mockReturnValue([])
+        const displayMediaSpy = vi.spyOn(playbackEngine, 'displayMedia')
+
+        playbackEngine.startCycling()
+
+        expect(playbackEngine.isCyclingActive).toBe(false)
+        expect(displayMediaSpy).not.toHaveBeenCalled()
+      })
+
+      it('should handle errors gracefully', () => {
+        stateManagerMock.getMediaPool.mockImplementation(() => {
+          throw new Error('State error')
+        })
+
+        playbackEngine.startCycling()
+
+        expect(console.error).toHaveBeenCalledWith(
+          STRINGS.SYSTEM_MESSAGES.playbackEngine.randomMediaSelectionError,
+          expect.any(Error)
+        )
+        expect(playbackEngine.isCyclingActive).toBe(false)
+      })
+    })
+
+    describe('stopCycling', () => {
+      it('should stop cycling and clear timer', () => {
+        playbackEngine.isCyclingActive = true
+        playbackEngine.cyclingTimer = setTimeout(() => {}, 1000)
+        playbackEngine.currentMediaElement = document.createElement('img')
+
+        playbackEngine.stopCycling()
+
+        expect(playbackEngine.isCyclingActive).toBe(false)
+        expect(playbackEngine.cyclingTimer).toBeNull()
+        expect(playbackEngine.playbackState).toBe('active')
+        expect(eventBusMock.emit).toHaveBeenCalledWith('cycling.stopped', expect.any(Object))
+      })
+
+      it('should not stop cycling if not active', () => {
+        playbackEngine.isCyclingActive = false
+
+        playbackEngine.stopCycling()
+
+        expect(eventBusMock.emit).not.toHaveBeenCalledWith('cycling.stopped', expect.any(Object))
+      })
+
+      it('should set correct playback state based on current media', () => {
+        playbackEngine.isCyclingActive = true
+        playbackEngine.currentMediaElement = null
+
+        playbackEngine.stopCycling()
+
+        expect(playbackEngine.playbackState).toBe('inactive')
+      })
+    })
+
+    describe('transitionToNextMedia', () => {
+      it('should transition to next media item', () => {
+        const mockMediaPool = [mockImageItem, mockVideoItem]
+        stateManagerMock.getMediaPool.mockReturnValue(mockMediaPool)
+        playbackEngine.isCyclingActive = true
+        const displayMediaSpy = vi.spyOn(playbackEngine, 'displayMedia')
+
+        playbackEngine.transitionToNextMedia()
+
+        expect(displayMediaSpy).toHaveBeenCalled()
+        expect(playbackEngine.currentMediaItem).toBeDefined()
+        expect(eventBusMock.emit).toHaveBeenCalledWith('cycling.mediaChanged', expect.any(Object))
+      })
+
+      it('should not transition if cycling is not active', () => {
+        playbackEngine.isCyclingActive = false
+        const displayMediaSpy = vi.spyOn(playbackEngine, 'displayMedia')
+
+        playbackEngine.transitionToNextMedia()
+
+        expect(displayMediaSpy).not.toHaveBeenCalled()
+      })
+
+      it('should stop cycling if no media available', () => {
+        playbackEngine.isCyclingActive = true
+        stateManagerMock.getMediaPool.mockReturnValue([])
+        const stopCyclingSpy = vi.spyOn(playbackEngine, 'stopCycling')
+
+        playbackEngine.transitionToNextMedia()
+
+        expect(stopCyclingSpy).toHaveBeenCalled()
+      })
+
+      it('should handle errors gracefully', () => {
+        playbackEngine.isCyclingActive = true
+        stateManagerMock.getMediaPool.mockImplementation(() => {
+          throw new Error('Transition error')
+        })
+
+        playbackEngine.transitionToNextMedia()
+
+        expect(console.error).toHaveBeenCalledWith(
+          STRINGS.SYSTEM_MESSAGES.playbackEngine.randomMediaSelectionError,
+          expect.any(Error)
+        )
+      })
+    })
+
+    describe('integration with media element creation', () => {
+      beforeEach(() => {
+        playbackEngine.isCyclingActive = true
+      })
+
+      it('should schedule image transition when image loads during cycling', () => {
+        const scheduleImageTransitionSpy = vi.spyOn(playbackEngine, 'scheduleImageTransition')
+
+        const imageElement = playbackEngine.createImageElement(mockImageItem)
+
+        // Simulate image load event
+        const loadHandler = imageElement.addEventListener.mock.calls.find(
+          (call) => call[0] === 'load'
+        )[1]
+        loadHandler()
+
+        expect(scheduleImageTransitionSpy).toHaveBeenCalled()
+      })
+
+      it('should transition to next media when image fails to load during cycling', () => {
+        vi.useFakeTimers()
+        const transitionSpy = vi.spyOn(playbackEngine, 'transitionToNextMedia')
+
+        const imageElement = playbackEngine.createImageElement(mockImageItem)
+
+        // Simulate image error event
+        const errorHandler = imageElement.addEventListener.mock.calls.find(
+          (call) => call[0] === 'error'
+        )[1]
+        errorHandler()
+
+        vi.advanceTimersByTime(100) // MIN_TRANSITION_DELAY
+        expect(transitionSpy).toHaveBeenCalled()
+
+        vi.useRealTimers()
+      })
+
+      it('should transition to next media when video ends during cycling', () => {
+        const transitionSpy = vi.spyOn(playbackEngine, 'transitionToNextMedia')
+
+        const videoElement = playbackEngine.createVideoElement(mockVideoItem)
+
+        // Simulate video ended event
+        const endedHandler = videoElement.addEventListener.mock.calls.find(
+          (call) => call[0] === 'ended'
+        )[1]
+        endedHandler()
+
+        expect(transitionSpy).toHaveBeenCalled()
+      })
+
+      it('should schedule max duration transition when video metadata loads during cycling', () => {
+        const scheduleVideoMaxDurationSpy = vi.spyOn(
+          playbackEngine,
+          'scheduleVideoMaxDurationTransition'
+        )
+
+        const videoElement = playbackEngine.createVideoElement(mockVideoItem)
+
+        // Simulate video loadedmetadata event
+        const metadataHandler = videoElement.addEventListener.mock.calls.find(
+          (call) => call[0] === 'loadedmetadata'
+        )[1]
+        metadataHandler()
+
+        expect(scheduleVideoMaxDurationSpy).toHaveBeenCalled()
+      })
+
+      it('should ensure video loop is disabled for cycling', () => {
+        const videoElement = playbackEngine.createVideoElement(mockVideoItem)
+
+        expect(videoElement.loop).toBe(false)
+      })
     })
   })
 })

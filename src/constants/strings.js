@@ -260,6 +260,14 @@ export const STRINGS = {
       videoCreationError: 'Error creating video element:',
       videoLoadError: 'Error loading video: {{fileName}}',
       videoMetadataLoaded: 'Video metadata loaded for: {{fileName}}',
+
+      // Cycling-specific messages
+      cyclingStarted: 'Media cycling started',
+      cyclingStopped: 'Media cycling stopped',
+      noUsableMediaForCycling: 'No usable media available for cycling',
+      randomMediaSelectionError: 'Error selecting random media item:',
+      cyclingStartError: 'Error starting media cycling:',
+      cyclingTransitionError: 'Error transitioning to next media:',
     },
 
     // Event Bus messages
