@@ -10,6 +10,7 @@ import { stateManager } from './stateManager.js'
 import { STRINGS, t } from './constants/strings.js'
 import { PLAYBACK_CONFIG, PLAYBACK_STATES, CYCLING_EVENTS } from './constants/playbackConfig.js'
 import { filterUsableMedia } from './utils/mediaUtils.js'
+import { calculateRandomSegmentDuration, getVideoSegmentParameters } from './utils/mediaUtils.js'
 
 /**
  * @typedef {Object} MediaItem
@@ -128,15 +129,23 @@ class PlaybackEngine {
         return
       }
 
+      // Get segment settings from state manager
+      const segmentSettings = stateManager.getSegmentSettings()
+
       // Clear any existing media
       this.clearCurrentMedia()
 
       let mediaElement
 
       if (mediaItem.type === 'image') {
-        mediaElement = this.createImageElement(mediaItem)
+        // Calculate random segment duration for images
+        const segmentDuration = calculateRandomSegmentDuration(
+          segmentSettings.minDuration,
+          segmentSettings.maxDuration
+        )
+        mediaElement = this.createImageElement(mediaItem, segmentDuration)
       } else if (mediaItem.type === 'video') {
-        mediaElement = this.createVideoElement(mediaItem)
+        mediaElement = this.createVideoElement(mediaItem, segmentSettings)
       } else {
         console.warn(
           t.get('SYSTEM_MESSAGES.playbackEngine.unsupportedMediaType', {
@@ -163,9 +172,10 @@ class PlaybackEngine {
   /**
    * Create an image element for display
    * @param {MediaItem} mediaItem - Image media item
+   * @param {number} segmentDuration - Duration of the segment
    * @returns {HTMLImageElement} - Configured image element
    */
-  createImageElement(mediaItem) {
+  createImageElement(mediaItem, segmentDuration) {
     try {
       const img = document.createElement('img')
       img.className = 'stage-media image'
@@ -175,7 +185,7 @@ class PlaybackEngine {
       // Handle image load success - schedule cycling transition if cycling is active
       img.addEventListener('load', () => {
         if (this.isCyclingActive) {
-          this.scheduleImageTransition()
+          this.scheduleImageTransition(segmentDuration)
         }
       })
 
@@ -204,9 +214,10 @@ class PlaybackEngine {
   /**
    * Create a video element for display
    * @param {MediaItem} mediaItem - Video media item
+   * @param {Object} segmentSettings - Segment settings for the video
    * @returns {HTMLVideoElement} - Configured video element
    */
-  createVideoElement(mediaItem) {
+  createVideoElement(mediaItem, segmentSettings) {
     try {
       const video = document.createElement('video')
       video.className = 'stage-media video'
@@ -216,6 +227,10 @@ class PlaybackEngine {
       video.loop = false // Disable loop for cycling
       video.controls = false
 
+      // Store segment settings on the video element for later use
+      video._segmentSettings = segmentSettings
+      video._mediaItem = mediaItem
+
       // Handle video end - transition to next media if cycling is active
       video.addEventListener('ended', () => {
         if (this.isCyclingActive) {
@@ -223,15 +238,37 @@ class PlaybackEngine {
         }
       })
 
-      // Handle video metadata loaded - set up maximum duration fallback if cycling is active
+      // Handle video metadata loaded - calculate segment parameters and set start time
       video.addEventListener('loadedmetadata', () => {
         console.log(
           t.get('SYSTEM_MESSAGES.playbackEngine.videoMetadataLoaded', { fileName: mediaItem.name })
         )
 
-        // Schedule maximum duration fallback if cycling is active
-        if (this.isCyclingActive) {
-          this.scheduleVideoMaxDurationTransition()
+        try {
+          // Calculate video segment parameters with fallback logic
+          const segmentParams = getVideoSegmentParameters(video.duration, segmentSettings)
+
+          // Set video start time to calculated start point
+          video.currentTime = segmentParams.startPoint
+
+          // Store segment parameters on video element
+          video._segmentParams = segmentParams
+
+          // Show toast notification if fallback was used (AC 1.9)
+          if (segmentParams.fallbackUsed === 'both') {
+            toastManager.info(STRINGS.USER_MESSAGES.notifications.info.videoOffsetFallback)
+          }
+
+          // Schedule segment end transition if cycling is active
+          if (this.isCyclingActive) {
+            this.scheduleVideoSegmentTransition(segmentParams.segmentDuration)
+          }
+        } catch (error) {
+          console.error('Error calculating video segment parameters:', error)
+          // Fallback to original behavior if segment calculation fails
+          if (this.isCyclingActive) {
+            this.scheduleVideoMaxDurationTransition()
+          }
         }
       })
 
@@ -399,12 +436,24 @@ class PlaybackEngine {
 
   /**
    * Schedule transition to next media item after image display duration
+   * @param {number} segmentDuration - Duration in seconds
    */
-  scheduleImageTransition() {
+  scheduleImageTransition(segmentDuration) {
     this.clearCyclingTimer()
     this.cyclingTimer = setTimeout(() => {
       this.transitionToNextMedia()
-    }, PLAYBACK_CONFIG.IMAGE_DISPLAY_DURATION)
+    }, segmentDuration * 1000) // Convert seconds to milliseconds
+  }
+
+  /**
+   * Schedule transition to next media item after video segment duration
+   * @param {number} segmentDuration - Duration in seconds
+   */
+  scheduleVideoSegmentTransition(segmentDuration) {
+    this.clearCyclingTimer()
+    this.cyclingTimer = setTimeout(() => {
+      this.transitionToNextMedia()
+    }, segmentDuration * 1000) // Convert seconds to milliseconds
   }
 
   /**
@@ -414,7 +463,7 @@ class PlaybackEngine {
     this.clearCyclingTimer()
     this.cyclingTimer = setTimeout(() => {
       this.transitionToNextMedia()
-    }, PLAYBACK_CONFIG.VIDEO_MAX_DURATION)
+    }, PLAYBACK_CONFIG.SEGMENT_SETTINGS.DURATION_MAX_LIMIT * 1000) // Convert seconds to milliseconds
   }
 
   /**

@@ -112,6 +112,8 @@ export const STRINGS = {
         folderPickerFallback:
           'FileSystemAccessAPI permission denied. Using fallback folder picker.',
         filePickerActive: 'File picker already active, ignoring click',
+        videoOffsetFallback:
+          'Video offsets were too large for this video and were temporarily ignored for playback',
       },
     },
 
@@ -216,6 +218,10 @@ export const STRINGS = {
       handlesClearFailed: 'Failed to clear file handles:',
       cleanedUp: 'Cleaned up {{count}} temporary drag & drop files that cannot be restored',
       restored: 'Restored {{count}} FileSystemAccessAPI items from localStorage (metadata only).',
+
+      // Segment settings messages
+      segmentSettingsRestored: 'Segment settings restored from localStorage',
+      invalidSegmentSettings: 'Invalid segment settings provided - must be a valid object',
     },
 
     // Media Processor messages

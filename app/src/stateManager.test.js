@@ -45,7 +45,16 @@ globalThis.URL.createObjectURL = vi.fn(() => 'blob:mock-url')
 describe('StateManager', () => {
   beforeEach(() => {
     // Reset state manually instead of calling clearMediaPool to avoid URL.revokeObjectURL calls
-    stateManager.state = { mediaPool: [] }
+    // Include complete default state structure
+    stateManager.state = {
+      mediaPool: [],
+      segmentSettings: {
+        minDuration: 2,
+        maxDuration: 5,
+        skipStart: 0,
+        skipEnd: 0,
+      },
+    }
     vi.clearAllMocks()
 
     // Reset mocks for storageFacade
@@ -61,6 +70,16 @@ describe('StateManager', () => {
       expect(stateManager.getMediaPool()).toEqual([])
       expect(stateManager.getMediaCount()).toBe(0)
       expect(stateManager.isMediaPoolEmpty()).toBe(true)
+    })
+
+    it('should start with default segment settings', () => {
+      const segmentSettings = stateManager.getSegmentSettings()
+      expect(segmentSettings).toEqual({
+        minDuration: 2,
+        maxDuration: 5,
+        skipStart: 0,
+        skipEnd: 0,
+      })
     })
   })
 
@@ -591,6 +610,236 @@ describe('StateManager', () => {
     it('should return null for non-existent ID', () => {
       const result = stateManager.getMediaById('non-existent')
       expect(result).toBeNull()
+    })
+  })
+
+  describe('segment settings', () => {
+    beforeEach(() => {
+      // Reset segment settings to defaults
+      stateManager.state.segmentSettings = {
+        minDuration: 2,
+        maxDuration: 5,
+        skipStart: 0,
+        skipEnd: 0,
+      }
+      vi.clearAllMocks()
+    })
+
+    describe('getSegmentSettings', () => {
+      it('should return current segment settings', () => {
+        const settings = stateManager.getSegmentSettings()
+        expect(settings).toEqual({
+          minDuration: 2,
+          maxDuration: 5,
+          skipStart: 0,
+          skipEnd: 0,
+        })
+      })
+
+      it('should return a copy to prevent external mutation', () => {
+        const settings = stateManager.getSegmentSettings()
+        settings.minDuration = 10
+
+        const settingsAgain = stateManager.getSegmentSettings()
+        expect(settingsAgain.minDuration).toBe(2) // Should not be affected
+      })
+    })
+
+    describe('updateSegmentSettings', () => {
+      it('should update valid segment settings', () => {
+        const newSettings = {
+          minDuration: 3,
+          maxDuration: 8,
+          skipStart: 2,
+          skipEnd: 1,
+        }
+
+        stateManager.updateSegmentSettings(newSettings)
+
+        const updatedSettings = stateManager.getSegmentSettings()
+        expect(updatedSettings).toEqual(newSettings)
+      })
+
+      it('should support partial updates', () => {
+        stateManager.updateSegmentSettings({ minDuration: 10 })
+
+        const settings = stateManager.getSegmentSettings()
+        expect(settings.minDuration).toBe(10)
+        expect(settings.maxDuration).toBe(5) // Should remain unchanged
+        expect(settings.skipStart).toBe(0) // Should remain unchanged
+        expect(settings.skipEnd).toBe(0) // Should remain unchanged
+      })
+
+      it('should validate duration ranges (1-30 seconds)', () => {
+        // Valid values
+        stateManager.updateSegmentSettings({ minDuration: 1, maxDuration: 30 })
+        let settings = stateManager.getSegmentSettings()
+        expect(settings.minDuration).toBe(1)
+        expect(settings.maxDuration).toBe(30)
+
+        // Invalid values should be ignored
+        stateManager.updateSegmentSettings({ minDuration: 0, maxDuration: 31 })
+        settings = stateManager.getSegmentSettings()
+        expect(settings.minDuration).toBe(1) // Should remain unchanged
+        expect(settings.maxDuration).toBe(30) // Should remain unchanged
+      })
+
+      it('should validate skip values (0+ seconds)', () => {
+        // Valid values
+        stateManager.updateSegmentSettings({ skipStart: 0, skipEnd: 100 })
+        let settings = stateManager.getSegmentSettings()
+        expect(settings.skipStart).toBe(0)
+        expect(settings.skipEnd).toBe(100)
+
+        // Invalid negative values should be ignored
+        stateManager.updateSegmentSettings({ skipStart: -1, skipEnd: -5 })
+        settings = stateManager.getSegmentSettings()
+        expect(settings.skipStart).toBe(0) // Should remain unchanged
+        expect(settings.skipEnd).toBe(100) // Should remain unchanged
+      })
+
+      it('should ignore invalid data types', () => {
+        const originalSettings = stateManager.getSegmentSettings()
+
+        stateManager.updateSegmentSettings({
+          minDuration: 'invalid',
+          maxDuration: null,
+          skipStart: undefined,
+          skipEnd: {},
+        })
+
+        const settings = stateManager.getSegmentSettings()
+        expect(settings).toEqual(originalSettings) // Should remain unchanged
+      })
+
+      it('should save state after successful update', () => {
+        stateManager.updateSegmentSettings({ minDuration: 7 })
+
+        expect(storageFacade.saveState).toHaveBeenCalledWith(
+          expect.objectContaining({
+            segmentSettings: expect.objectContaining({
+              minDuration: 7,
+            }),
+          })
+        )
+      })
+
+      it('should emit segmentSettingsUpdated event', () => {
+        const newSettings = { minDuration: 8, maxDuration: 12 }
+        stateManager.updateSegmentSettings(newSettings)
+
+        expect(eventBus.emit).toHaveBeenCalledWith('state.segmentSettingsUpdated', {
+          segmentSettings: expect.objectContaining({
+            minDuration: 8,
+            maxDuration: 12,
+          }),
+        })
+      })
+
+      it('should handle invalid input gracefully', () => {
+        console.warn = vi.fn()
+
+        // Capture current state before invalid calls
+        const currentSettings = stateManager.getSegmentSettings()
+
+        stateManager.updateSegmentSettings(null)
+        expect(console.warn).toHaveBeenCalledWith(
+          'Invalid segment settings provided - must be a valid object'
+        )
+
+        stateManager.updateSegmentSettings('invalid')
+        expect(console.warn).toHaveBeenCalledTimes(2)
+
+        // Settings should remain unchanged from what they were before
+        const settings = stateManager.getSegmentSettings()
+        expect(settings).toEqual(currentSettings)
+      })
+    })
+
+    describe('segment settings persistence', () => {
+      it('should restore segment settings from localStorage on init', async () => {
+        const persistedState = {
+          mediaPool: [],
+          segmentSettings: {
+            minDuration: 3,
+            maxDuration: 15,
+            skipStart: 5,
+            skipEnd: 2,
+          },
+        }
+        storageFacade.loadState.mockReturnValue(persistedState)
+
+        // Spy on console.log to verify restoration message
+        const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+        await stateManager.init()
+
+        const settings = stateManager.getSegmentSettings()
+        expect(settings).toEqual({
+          minDuration: 3,
+          maxDuration: 15,
+          skipStart: 5,
+          skipEnd: 2,
+        })
+
+        expect(consoleLogSpy).toHaveBeenCalledWith('Segment settings restored from localStorage')
+
+        consoleLogSpy.mockRestore()
+      })
+
+      it('should use defaults if no segment settings in localStorage', async () => {
+        const persistedState = {
+          mediaPool: [],
+          // No segmentSettings property
+        }
+        storageFacade.loadState.mockReturnValue(persistedState)
+
+        await stateManager.init()
+
+        const settings = stateManager.getSegmentSettings()
+        expect(settings).toEqual({
+          minDuration: 2,
+          maxDuration: 5,
+          skipStart: 0,
+          skipEnd: 0,
+        })
+      })
+
+      it('should merge persisted settings with defaults', async () => {
+        const persistedState = {
+          mediaPool: [],
+          segmentSettings: {
+            minDuration: 10,
+            // Missing maxDuration, skipStart, skipEnd
+          },
+        }
+        storageFacade.loadState.mockReturnValue(persistedState)
+
+        await stateManager.init()
+
+        const settings = stateManager.getSegmentSettings()
+        expect(settings).toEqual({
+          minDuration: 10, // From persisted state
+          maxDuration: 5, // From defaults
+          skipStart: 0, // From defaults
+          skipEnd: 0, // From defaults
+        })
+      })
+
+      it('should include segment settings in saved state', () => {
+        stateManager.updateSegmentSettings({ minDuration: 7, maxDuration: 14 })
+
+        expect(storageFacade.saveState).toHaveBeenCalledWith(
+          expect.objectContaining({
+            segmentSettings: {
+              minDuration: 7,
+              maxDuration: 14,
+              skipStart: 0,
+              skipEnd: 0,
+            },
+          })
+        )
+      })
     })
   })
 })

@@ -31,7 +31,24 @@ vi.mock('./stateManager.js', () => ({
     getMediaPool: vi.fn(),
     getMediaCount: vi.fn(), // Add if needed in future tests
     isMediaPoolEmpty: vi.fn(), // Add if needed in future tests
+    getSegmentSettings: vi.fn(() => ({
+      minDuration: 2,
+      maxDuration: 5,
+      skipStart: 0,
+      skipEnd: 0,
+    })),
   },
+}))
+
+// Mock mediaUtils
+vi.mock('./utils/mediaUtils.js', () => ({
+  filterUsableMedia: vi.fn((mediaPool) => mediaPool), // Return all items as usable by default
+  calculateRandomSegmentDuration: vi.fn(() => 5), // Return default 5 seconds
+  getVideoSegmentParameters: vi.fn(() => ({
+    startPoint: 0,
+    segmentDuration: 5,
+    fallbackUsed: null,
+  })),
 }))
 
 // Mock DOM
@@ -866,7 +883,7 @@ describe('PlaybackEngine', () => {
 
         expect(playbackEngine.cyclingTimer).toBeDefined()
 
-        vi.advanceTimersByTime(4000) // IMAGE_DISPLAY_DURATION
+        vi.advanceTimersByTime(4000) // Default segment duration (was IMAGE_DISPLAY_DURATION)
         expect(transitionSpy).toHaveBeenCalled()
 
         vi.useRealTimers()
@@ -880,7 +897,7 @@ describe('PlaybackEngine', () => {
 
         expect(playbackEngine.cyclingTimer).toBeDefined()
 
-        vi.advanceTimersByTime(30000) // VIDEO_MAX_DURATION
+        vi.advanceTimersByTime(30000) // DURATION_MAX_LIMIT * 1000
         expect(transitionSpy).toHaveBeenCalled()
 
         vi.useRealTimers()
@@ -1067,13 +1084,18 @@ describe('PlaybackEngine', () => {
         expect(transitionSpy).toHaveBeenCalled()
       })
 
-      it('should schedule max duration transition when video metadata loads during cycling', () => {
-        const scheduleVideoMaxDurationSpy = vi.spyOn(
-          playbackEngine,
-          'scheduleVideoMaxDurationTransition'
-        )
+      it('should schedule segment transition when video metadata loads during cycling', () => {
+        const scheduleVideoSegmentSpy = vi.spyOn(playbackEngine, 'scheduleVideoSegmentTransition')
 
-        const videoElement = playbackEngine.createVideoElement(mockVideoItem)
+        const videoElement = playbackEngine.createVideoElement(mockVideoItem, {
+          minDuration: 5,
+          maxDuration: 5,
+          skipStart: 0,
+          skipEnd: 0,
+        })
+
+        // Mock video duration for segment calculation
+        videoElement.duration = 30
 
         // Simulate video loadedmetadata event
         const metadataHandler = videoElement.addEventListener.mock.calls.find(
@@ -1081,7 +1103,7 @@ describe('PlaybackEngine', () => {
         )[1]
         metadataHandler()
 
-        expect(scheduleVideoMaxDurationSpy).toHaveBeenCalled()
+        expect(scheduleVideoSegmentSpy).toHaveBeenCalled()
       })
 
       it('should ensure video loop is disabled for cycling', () => {

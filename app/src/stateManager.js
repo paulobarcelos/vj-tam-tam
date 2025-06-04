@@ -25,6 +25,13 @@ class StateManager {
   constructor() {
     this.state = {
       mediaPool: [],
+      // Segment settings configuration
+      segmentSettings: {
+        minDuration: 2, // seconds (default 2s)
+        maxDuration: 5, // seconds (default 5s)
+        skipStart: 0, // seconds (default 0s)
+        skipEnd: 0, // seconds (default 0s)
+      },
     }
     // Add initialization logic here
   }
@@ -130,6 +137,15 @@ class StateManager {
       } else {
         console.log(STRINGS.SYSTEM_MESSAGES.stateManager.restorationEmpty)
       }
+
+      // Restore segment settings from localStorage with fallback to defaults
+      if (persistedState?.segmentSettings) {
+        this.state.segmentSettings = {
+          ...this.state.segmentSettings, // Start with defaults
+          ...persistedState.segmentSettings, // Override with persisted values
+        }
+        console.log(STRINGS.SYSTEM_MESSAGES.stateManager.segmentSettingsRestored)
+      }
     } catch (error) {
       console.error(STRINGS.SYSTEM_MESSAGES.stateManager.restorationError, error)
     }
@@ -151,6 +167,8 @@ class StateManager {
           // Safely convert addedAt to ISO string, handling both Date objects and strings
           addedAt: item.addedAt instanceof Date ? item.addedAt.toISOString() : item.addedAt,
         })),
+        // Persist segment settings
+        segmentSettings: this.state.segmentSettings,
         // Persist other relevant state properties if they exist (e.g., autoPlaybackEnabled)
         // autoPlaybackEnabled: this.state.autoPlaybackEnabled,
         // lastPlaybackState: this.state.lastPlaybackState,
@@ -386,6 +404,81 @@ class StateManager {
    */
   isMediaPoolEmpty() {
     return this.state.mediaPool.length === 0
+  }
+
+  /**
+   * Get the current segment settings
+   * @returns {Object} - Segment settings configuration
+   */
+  getSegmentSettings() {
+    return { ...this.state.segmentSettings } // Return a copy to prevent external mutation
+  }
+
+  /**
+   * Update segment settings
+   * @param {Object} newSettings - New segment settings (partial update supported)
+   */
+  updateSegmentSettings(newSettings) {
+    if (typeof newSettings !== 'object' || newSettings === null) {
+      console.warn(STRINGS.SYSTEM_MESSAGES.stateManager.invalidSegmentSettings)
+      return
+    }
+
+    // Validate settings before applying
+    const validatedSettings = this.validateSegmentSettings(newSettings)
+
+    this.state.segmentSettings = {
+      ...this.state.segmentSettings,
+      ...validatedSettings,
+    }
+
+    // Save to localStorage
+    this.saveCurrentState()
+
+    // Emit event for settings change
+    eventBus.emit('state.segmentSettingsUpdated', {
+      segmentSettings: this.getSegmentSettings(),
+    })
+  }
+
+  /**
+   * Validate segment settings values
+   * @param {Object} settings - Settings to validate
+   * @returns {Object} - Validated settings
+   * @private
+   */
+  validateSegmentSettings(settings) {
+    const validated = {}
+
+    // Validate minDuration (1-30 seconds)
+    if (
+      typeof settings.minDuration === 'number' &&
+      settings.minDuration >= 1 &&
+      settings.minDuration <= 30
+    ) {
+      validated.minDuration = settings.minDuration
+    }
+
+    // Validate maxDuration (1-30 seconds)
+    if (
+      typeof settings.maxDuration === 'number' &&
+      settings.maxDuration >= 1 &&
+      settings.maxDuration <= 30
+    ) {
+      validated.maxDuration = settings.maxDuration
+    }
+
+    // Validate skipStart (0+ seconds)
+    if (typeof settings.skipStart === 'number' && settings.skipStart >= 0) {
+      validated.skipStart = settings.skipStart
+    }
+
+    // Validate skipEnd (0+ seconds)
+    if (typeof settings.skipEnd === 'number' && settings.skipEnd >= 0) {
+      validated.skipEnd = settings.skipEnd
+    }
+
+    return validated
   }
 }
 
