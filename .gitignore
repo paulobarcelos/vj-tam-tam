@@ -3,6 +3,3 @@ node_modules
 
 # Generated coverage reports
 coverage/
-
-# Exclude bmad-agent memory
-.ai/
