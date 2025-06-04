@@ -89,6 +89,7 @@ export const STRINGS = {
         accessRestored: 'File access restored',
         bulkRestoreComplete: 'All files restored successfully',
         filesRestored: 'Restored access to {{count}} file{{plural}}',
+        mediaCleared: 'Media pool cleared successfully',
       },
       error: {
         fileNotSupported: 'File type not supported. Supported types: {{supportedTypes}}',
@@ -121,6 +122,7 @@ export const STRINGS = {
       fileSystemTip:
         'Use 📄 Files or 📁 Folders buttons for persistent files that will be available next time you visit',
       permissionBanner: 'Click to restore access to your files',
+      clearMediaConfirm: 'Clear all media from the pool? This action cannot be undone.',
     },
   },
 
