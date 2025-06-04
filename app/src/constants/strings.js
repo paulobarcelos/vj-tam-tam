@@ -102,6 +102,9 @@ export const STRINGS = {
         fileRestoreFailed: 'Failed to restore file access',
         fileRestoreError: 'Error occurred while restoring files',
         mediaDisplayFailed: 'Failed to display media file',
+        mediaDisplayFailedWithName: 'Failed to display {{fileName}}',
+        imageLoadFailed: 'Failed to load image: {{fileName}}',
+        videoLoadFailed: 'Failed to load video: {{fileName}}',
       },
       info: {
         filePickerFallback: 'FileSystemAccessAPI permission denied. Using fallback file picker.',
@@ -233,12 +236,14 @@ export const STRINGS = {
       bulkRestoreFailed: 'Failed to restore file: {{fileName}}',
       bulkRestoreError: 'Error restoring individual file {{fileName}}:',
       metadataUpgrade: 'Upgraded {{count}} metadata-only files to full access',
+      bulkFileRestoreError: 'Error during bulk file restore:',
     },
 
     // Playback Engine messages
     playbackEngine: {
       initialized: 'PlaybackEngine initialized successfully',
       initError: 'Error initializing PlaybackEngine:',
+      stageElementNotFound: 'Stage element not found',
       autoPlaybackStarted: 'Automatic playback started',
       autoPlaybackStopped: 'Automatic playback stopped',
       cleanupCompleted: 'PlaybackEngine cleanup completed',
@@ -268,6 +273,8 @@ export const STRINGS = {
       randomMediaSelectionError: 'Error selecting random media item:',
       cyclingStartError: 'Error starting media cycling:',
       cyclingTransitionError: 'Error transitioning to next media:',
+      metadataOnlyPoolMessage:
+        'Media pool contains items but no valid URLs available (restored from metadata only)',
     },
 
     // Event Bus messages
@@ -299,6 +306,8 @@ export const STRINGS = {
     fileDisplayWithStatus: '{{type}} • {{size}} • {{status}}',
     accessCount: '{{validCount}} of {{totalCount}}',
     upgradeNotification: 'Restored access to {{count}} file{{plural}}: {{fileName}}',
+    upgradeNotificationSingle: 'Restored access to 1 file: {{fileName}}',
+    upgradeNotificationMultiple: 'Restored access to {{count}} files',
   },
 }
 

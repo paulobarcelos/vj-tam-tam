@@ -46,7 +46,7 @@ class PlaybackEngine {
     try {
       this.stageElement = document.getElementById('stage')
       if (!this.stageElement) {
-        throw new Error('Stage element not found')
+        throw new Error(STRINGS.SYSTEM_MESSAGES.playbackEngine.stageElementNotFound)
       }
 
       // Set up event listeners
@@ -152,7 +152,11 @@ class PlaybackEngine {
       }
     } catch (error) {
       console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.mediaDisplayError, error)
-      toastManager.error(`Failed to display ${mediaItem.name}`)
+      toastManager.error(
+        t.get('USER_MESSAGES.notifications.error.mediaDisplayFailedWithName', {
+          fileName: mediaItem.name,
+        })
+      )
     }
   }
 
@@ -180,7 +184,9 @@ class PlaybackEngine {
         console.error(
           t.get('SYSTEM_MESSAGES.playbackEngine.imageLoadError', { fileName: mediaItem.name })
         )
-        toastManager.error(`Failed to load image: ${mediaItem.name}`)
+        toastManager.error(
+          t.get('USER_MESSAGES.notifications.error.imageLoadFailed', { fileName: mediaItem.name })
+        )
 
         // If cycling is active and image fails to load, transition to next media
         if (this.isCyclingActive) {
@@ -234,7 +240,9 @@ class PlaybackEngine {
         console.error(
           t.get('SYSTEM_MESSAGES.playbackEngine.videoLoadError', { fileName: mediaItem.name })
         )
-        toastManager.error(`Failed to load video: ${mediaItem.name}`)
+        toastManager.error(
+          t.get('USER_MESSAGES.notifications.error.videoLoadFailed', { fileName: mediaItem.name })
+        )
 
         // If cycling is active and video fails to load, transition to next media
         if (this.isCyclingActive) {
@@ -508,9 +516,7 @@ class PlaybackEngine {
         this.startCycling() // Start cycling instead of displaying single item
         console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.autoPlaybackStarted)
       } else {
-        console.log(
-          'Media pool contains items but no valid URLs available (restored from metadata only)'
-        )
+        console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.metadataOnlyPoolMessage)
         // Don't start playback, but could show a message to user about re-adding files
       }
     }

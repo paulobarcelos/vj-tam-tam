@@ -295,8 +295,8 @@ class UIManager {
       const upgradeCount = data.upgradedItems.length
       const message =
         upgradeCount === 1
-          ? `Restored access to 1 file: ${data.upgradedItems[0].name}`
-          : `Restored access to ${upgradeCount} files`
+          ? t.get('TEMPLATES.upgradeNotificationSingle', { fileName: data.upgradedItems[0].name })
+          : t.get('TEMPLATES.upgradeNotificationMultiple', { count: upgradeCount })
 
       console.log(t.get('SYSTEM_MESSAGES.uiManager.metadataUpgrade', { count: upgradeCount }))
       // Show a success toast for the upgrade
@@ -557,7 +557,7 @@ class UIManager {
         toastManager.error(STRINGS.USER_MESSAGES.notifications.error.fileRestoreFailed)
       }
     } catch (error) {
-      console.error('Error during bulk file restore:', error)
+      console.error(STRINGS.SYSTEM_MESSAGES.uiManager.bulkFileRestoreError, error)
       toastManager.error(STRINGS.USER_MESSAGES.notifications.error.fileRestoreError)
     }
   }
