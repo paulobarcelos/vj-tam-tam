@@ -158,3 +158,156 @@ export const hasValidMediaExtension = (filename) => {
   const extension = getFileExtension(filename)
   return extension !== '' && isSupportedExtension(extension)
 }
+
+// ============================================================================
+// SEGMENT CALCULATION UTILITIES
+// ============================================================================
+
+/**
+ * Calculate a random segment duration between min and max values
+ * @param {number} minDuration - Minimum duration in seconds
+ * @param {number} maxDuration - Maximum duration in seconds
+ * @returns {number} - Random duration in seconds (inclusive of min and max)
+ */
+export const calculateRandomSegmentDuration = (minDuration, maxDuration) => {
+  if (typeof minDuration !== 'number' || typeof maxDuration !== 'number') {
+    throw new Error('Duration values must be numbers')
+  }
+
+  if (minDuration < 0 || maxDuration < 0) {
+    throw new Error('Duration values must be non-negative')
+  }
+
+  if (minDuration > maxDuration) {
+    throw new Error('Minimum duration cannot be greater than maximum duration')
+  }
+
+  // If min and max are equal, return that value
+  if (minDuration === maxDuration) {
+    return minDuration
+  }
+
+  // Calculate random duration between min and max (inclusive)
+  return Math.random() * (maxDuration - minDuration) + minDuration
+}
+
+/**
+ * Calculate valid range for video segment start points
+ * @param {number} videoDuration - Total video duration in seconds
+ * @param {number} segmentDuration - Desired segment duration in seconds
+ * @param {number} skipStart - Skip start offset in seconds
+ * @param {number} skipEnd - Skip end offset in seconds
+ * @returns {Object} - Object with validStartMin, validStartMax, and fallbackUsed properties
+ */
+export const calculateValidVideoRange = (videoDuration, segmentDuration, skipStart, skipEnd) => {
+  if (
+    typeof videoDuration !== 'number' ||
+    typeof segmentDuration !== 'number' ||
+    typeof skipStart !== 'number' ||
+    typeof skipEnd !== 'number'
+  ) {
+    throw new Error('All parameters must be numbers')
+  }
+
+  if (videoDuration <= 0 || segmentDuration <= 0) {
+    throw new Error('Video duration and segment duration must be positive')
+  }
+
+  if (skipStart < 0 || skipEnd < 0) {
+    throw new Error('Skip values must be non-negative')
+  }
+
+  if (segmentDuration > videoDuration) {
+    throw new Error('Segment duration cannot be longer than video duration')
+  }
+
+  // Initial range calculation: start >= skipStart, end <= videoDuration - skipEnd
+  let validStartMin = skipStart
+  let validStartMax = videoDuration - skipEnd - segmentDuration
+  let fallbackUsed = null
+
+  // Fallback 1: Ignore skipEnd if no valid range
+  if (validStartMin > validStartMax) {
+    validStartMax = videoDuration - segmentDuration
+    fallbackUsed = 'skipEnd'
+  }
+
+  // Fallback 2: Ignore both offsets if still no valid range
+  if (validStartMin > validStartMax) {
+    validStartMin = 0
+    validStartMax = videoDuration - segmentDuration
+    fallbackUsed = 'both'
+  }
+
+  // Final validation - this should not happen with proper input validation
+  if (validStartMin > validStartMax) {
+    throw new Error('Cannot create valid segment range - segment duration too long for video')
+  }
+
+  return {
+    validStartMin,
+    validStartMax,
+    fallbackUsed,
+  }
+}
+
+/**
+ * Calculate a random start point within a valid range
+ * @param {number} validStartMin - Minimum valid start point in seconds
+ * @param {number} validStartMax - Maximum valid start point in seconds
+ * @returns {number} - Random start point in seconds
+ */
+export const calculateRandomStartPoint = (validStartMin, validStartMax) => {
+  if (typeof validStartMin !== 'number' || typeof validStartMax !== 'number') {
+    throw new Error('Range values must be numbers')
+  }
+
+  if (validStartMin < 0 || validStartMax < 0) {
+    throw new Error('Range values must be non-negative')
+  }
+
+  if (validStartMin > validStartMax) {
+    throw new Error('Minimum start point cannot be greater than maximum start point')
+  }
+
+  // If min and max are equal, return that value
+  if (validStartMin === validStartMax) {
+    return validStartMin
+  }
+
+  // Calculate random start point within range (inclusive)
+  return Math.random() * (validStartMax - validStartMin) + validStartMin
+}
+
+/**
+ * Get complete video segment parameters with fallback logic
+ * @param {number} videoDuration - Total video duration in seconds
+ * @param {Object} segmentSettings - Segment settings object
+ * @param {number} segmentSettings.minDuration - Minimum segment duration in seconds
+ * @param {number} segmentSettings.maxDuration - Maximum segment duration in seconds
+ * @param {number} segmentSettings.skipStart - Skip start offset in seconds
+ * @param {number} segmentSettings.skipEnd - Skip end offset in seconds
+ * @returns {Object} - Object with segmentDuration, startPoint, and fallbackUsed properties
+ */
+export const getVideoSegmentParameters = (videoDuration, segmentSettings) => {
+  if (!segmentSettings || typeof segmentSettings !== 'object') {
+    throw new Error('Segment settings must be a valid object')
+  }
+
+  const { minDuration, maxDuration, skipStart, skipEnd } = segmentSettings
+
+  // Calculate random segment duration
+  const segmentDuration = calculateRandomSegmentDuration(minDuration, maxDuration)
+
+  // Calculate valid range with fallback logic
+  const rangeResult = calculateValidVideoRange(videoDuration, segmentDuration, skipStart, skipEnd)
+
+  // Calculate random start point within valid range
+  const startPoint = calculateRandomStartPoint(rangeResult.validStartMin, rangeResult.validStartMax)
+
+  return {
+    segmentDuration,
+    startPoint,
+    fallbackUsed: rangeResult.fallbackUsed,
+  }
+}

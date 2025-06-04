@@ -7,12 +7,6 @@
  * Playback timing configuration
  */
 export const PLAYBACK_CONFIG = {
-  // Image display duration in milliseconds (4 seconds)
-  IMAGE_DISPLAY_DURATION: 4000,
-
-  // Maximum video playback duration in milliseconds (30 seconds)
-  VIDEO_MAX_DURATION: 30000,
-
   // Transition type for media changes
   TRANSITION_TYPE: 'hard-cut', // Future: 'fade', 'slide', etc.
 
@@ -21,6 +15,21 @@ export const PLAYBACK_CONFIG = {
 
   // Minimum delay between cycling transitions (milliseconds)
   MIN_TRANSITION_DELAY: 100,
+
+  // Segment settings defaults and ranges
+  SEGMENT_SETTINGS: {
+    // Default values (in seconds)
+    DEFAULT_MIN_DURATION: 2,
+    DEFAULT_MAX_DURATION: 5,
+    DEFAULT_SKIP_START: 0,
+    DEFAULT_SKIP_END: 0,
+
+    // Valid ranges for settings (in seconds)
+    DURATION_MIN_LIMIT: 1,
+    DURATION_MAX_LIMIT: 30,
+    SKIP_MIN_LIMIT: 0,
+    SKIP_MAX_LIMIT: 300, // 5 minutes max skip
+  },
 }
 
 /**
