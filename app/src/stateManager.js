@@ -27,10 +27,14 @@ class StateManager {
       mediaPool: [],
       // Segment settings configuration
       segmentSettings: {
-        minDuration: 2, // seconds (default 2s)
-        maxDuration: 5, // seconds (default 5s)
+        minDuration: 5, // seconds (default 5s as per Story 2.3 requirements)
+        maxDuration: 5, // seconds (default 5s as per Story 2.3 requirements)
         skipStart: 0, // seconds (default 0s)
         skipEnd: 0, // seconds (default 0s)
+      },
+      // UI settings configuration
+      uiSettings: {
+        advancedControlsVisible: false, // default collapsed
       },
     }
     // Add initialization logic here
@@ -61,6 +65,10 @@ class StateManager {
    */
   async restoreFromPersistence() {
     try {
+      // Load persisted state first, always
+      const persistedState = storageFacade.loadState()
+      console.log('RESTORE DEBUG: persistedState loaded:', persistedState)
+
       // First, try to restore files from FileSystemAccessAPI if supported
       if (fileSystemAccessFacade.isSupported) {
         console.log(STRINGS.SYSTEM_MESSAGES.stateManager.restorationAttempt)
@@ -91,63 +99,113 @@ class StateManager {
             source: needsPermission ? 'FileSystemAccessAPI-NeedsPermission' : 'FileSystemAccessAPI',
             needsPermission,
           })
-          return // Exit early since we successfully restored from FileSystemAccessAPI
-        }
-      }
 
-      // Fallback to localStorage metadata restoration
-      const persistedState = storageFacade.loadState()
-      if (persistedState?.mediaPool?.length > 0) {
-        // Filter out drag & drop files since they cannot be truly restored
-        // Only keep files that were originally from FileSystemAccessAPI
-        const restorableItems = filterRestorableMedia(persistedState.mediaPool)
-        const removedDragDropCount = persistedState.mediaPool.length - restorableItems.length
-
-        if (removedDragDropCount > 0) {
-          console.log(
-            t.get('SYSTEM_MESSAGES.stateManager.cleanedUp', { count: removedDragDropCount })
-          )
-        }
-
-        if (restorableItems.length > 0) {
-          // Create placeholder MediaItems without File objects for FileSystemAccessAPI files only
-          const restoredItems = restorableItems.map((item) => ({
-            ...item,
-            addedAt: new Date(item.addedAt), // Always convert to Date object
-            file: null, // Cannot restore File objects from localStorage
-            url: null, // Will need to be recreated or show placeholder
-          }))
-
-          this.state.mediaPool = restoredItems
-
-          // Emit an event indicating state was restored from persistence
-          // Use a different event name to avoid triggering auto-save immediately
-          eventBus.emit('state.mediaPoolRestored', {
-            mediaPool: this.getMediaPool(),
-            totalCount: restoredItems.length,
-            source: 'localStorage-metadata',
-          })
-
-          console.log(
-            t.get('SYSTEM_MESSAGES.stateManager.restored', { count: restoredItems.length })
-          )
+          // Continue to restore segment settings even if FileSystemAccessAPI was used
         } else {
-          console.log(STRINGS.SYSTEM_MESSAGES.stateManager.restorationNone)
+          // No FileSystemAccessAPI files, try localStorage fallback for media
+          this.restoreMediaFromLocalStorage(persistedState)
         }
       } else {
-        console.log(STRINGS.SYSTEM_MESSAGES.stateManager.restorationEmpty)
+        // FileSystemAccessAPI not supported, try localStorage fallback for media
+        this.restoreMediaFromLocalStorage(persistedState)
       }
 
-      // Restore segment settings from localStorage with fallback to defaults
+      // Always restore segment settings from localStorage with fallback to defaults
+      console.log(
+        'RESTORE DEBUG: About to restore segment settings, persistedState?.segmentSettings:',
+        persistedState?.segmentSettings
+      )
       if (persistedState?.segmentSettings) {
+        console.log(
+          'RESTORE DEBUG: Current state before segment settings restoration:',
+          this.state.segmentSettings
+        )
         this.state.segmentSettings = {
           ...this.state.segmentSettings, // Start with defaults
           ...persistedState.segmentSettings, // Override with persisted values
         }
+        console.log(
+          'RESTORE DEBUG: State after segment settings restoration:',
+          this.state.segmentSettings
+        )
         console.log(STRINGS.SYSTEM_MESSAGES.stateManager.segmentSettingsRestored)
+      } else {
+        console.log(
+          'RESTORE DEBUG: No segment settings in persistedState, keeping defaults:',
+          this.state.segmentSettings
+        )
+      }
+
+      // Always restore UI settings from localStorage with fallback to defaults
+      console.log(
+        'RESTORE DEBUG: About to restore UI settings, persistedState?.uiSettings:',
+        persistedState?.uiSettings
+      )
+      if (persistedState?.uiSettings) {
+        console.log(
+          'RESTORE DEBUG: Current state before UI settings restoration:',
+          this.state.uiSettings
+        )
+        this.state.uiSettings = {
+          ...this.state.uiSettings, // Start with defaults
+          ...persistedState.uiSettings, // Override with persisted values
+        }
+        console.log('RESTORE DEBUG: State after UI settings restoration:', this.state.uiSettings)
+        console.log(STRINGS.SYSTEM_MESSAGES.stateManager.uiSettingsRestored)
+      } else {
+        console.log(
+          'RESTORE DEBUG: No UI settings in persistedState, keeping defaults:',
+          this.state.uiSettings
+        )
       }
     } catch (error) {
       console.error(STRINGS.SYSTEM_MESSAGES.stateManager.restorationError, error)
+    }
+  }
+
+  /**
+   * Restore media from localStorage metadata
+   * @param {Object} persistedState - The persisted state from localStorage
+   * @private
+   */
+  restoreMediaFromLocalStorage(persistedState) {
+    if (persistedState?.mediaPool?.length > 0) {
+      // Filter out drag & drop files since they cannot be truly restored
+      // Only keep files that were originally from FileSystemAccessAPI
+      const restorableItems = filterRestorableMedia(persistedState.mediaPool)
+      const removedDragDropCount = persistedState.mediaPool.length - restorableItems.length
+
+      if (removedDragDropCount > 0) {
+        console.log(
+          t.get('SYSTEM_MESSAGES.stateManager.cleanedUp', { count: removedDragDropCount })
+        )
+      }
+
+      if (restorableItems.length > 0) {
+        // Create placeholder MediaItems without File objects for FileSystemAccessAPI files only
+        const restoredItems = restorableItems.map((item) => ({
+          ...item,
+          addedAt: new Date(item.addedAt), // Always convert to Date object
+          file: null, // Cannot restore File objects from localStorage
+          url: null, // Will need to be recreated or show placeholder
+        }))
+
+        this.state.mediaPool = restoredItems
+
+        // Emit an event indicating state was restored from persistence
+        // Use a different event name to avoid triggering auto-save immediately
+        eventBus.emit('state.mediaPoolRestored', {
+          mediaPool: this.getMediaPool(),
+          totalCount: restoredItems.length,
+          source: 'localStorage-metadata',
+        })
+
+        console.log(t.get('SYSTEM_MESSAGES.stateManager.restored', { count: restoredItems.length }))
+      } else {
+        console.log(STRINGS.SYSTEM_MESSAGES.stateManager.restorationNone)
+      }
+    } else {
+      console.log(STRINGS.SYSTEM_MESSAGES.stateManager.restorationEmpty)
     }
   }
 
@@ -169,6 +227,8 @@ class StateManager {
         })),
         // Persist segment settings
         segmentSettings: this.state.segmentSettings,
+        // Persist UI settings
+        uiSettings: this.state.uiSettings,
         // Persist other relevant state properties if they exist (e.g., autoPlaybackEnabled)
         // autoPlaybackEnabled: this.state.autoPlaybackEnabled,
         // lastPlaybackState: this.state.lastPlaybackState,
@@ -479,6 +539,38 @@ class StateManager {
     }
 
     return validated
+  }
+
+  /**
+   * Get the current UI settings
+   * @returns {Object} - UI settings configuration
+   */
+  getUISettings() {
+    return { ...this.state.uiSettings } // Return a copy to prevent external mutation
+  }
+
+  /**
+   * Update UI settings
+   * @param {Object} newSettings - New UI settings (partial update supported)
+   */
+  updateUISettings(newSettings) {
+    if (typeof newSettings !== 'object' || newSettings === null) {
+      console.warn(STRINGS.SYSTEM_MESSAGES.stateManager.invalidUISettings)
+      return
+    }
+
+    this.state.uiSettings = {
+      ...this.state.uiSettings,
+      ...newSettings,
+    }
+
+    // Save to localStorage
+    this.saveCurrentState()
+
+    // Emit event for UI settings change
+    eventBus.emit('state.uiSettingsUpdated', {
+      uiSettings: this.getUISettings(),
+    })
   }
 }
 

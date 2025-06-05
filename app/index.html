@@ -27,6 +27,33 @@
       <div id="media-pool" class="media-pool">
         <!-- Media items will be displayed here -->
       </div>
+      
+      <!-- Advanced Controls Section -->
+      <div class="drawer-section">
+        <div class="advanced-controls-header">
+          <button id="advanced-controls-toggle" class="section-toggle-btn">
+            Advanced Settings <span class="toggle-indicator">[Show]</span>
+          </button>
+        </div>
+        <div id="advanced-controls-section" class="advanced-controls-section hidden">
+          <div class="control-group">
+            <label for="min-duration-control">Minimum Segment Duration</label>
+            <div class="control-pair">
+              <input type="range" id="min-duration-slider" min="1" max="30" value="5" step="0.1" class="duration-slider">
+              <input type="number" id="min-duration-input" min="1" max="30" value="5" step="0.1" class="duration-input">
+              <span class="duration-unit">sec</span>
+            </div>
+          </div>
+          <div class="control-group">
+            <label for="max-duration-control">Maximum Segment Duration</label>
+            <div class="control-pair">
+              <input type="range" id="max-duration-slider" min="1" max="30" value="5" step="0.1" class="duration-slider">
+              <input type="number" id="max-duration-input" min="1" max="30" value="5" step="0.1" class="duration-input">
+              <span class="duration-unit">sec</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Main stage area where media is displayed -->
