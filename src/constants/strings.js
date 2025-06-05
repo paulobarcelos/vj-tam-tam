@@ -222,6 +222,10 @@ export const STRINGS = {
       // Segment settings messages
       segmentSettingsRestored: 'Segment settings restored from localStorage',
       invalidSegmentSettings: 'Invalid segment settings provided - must be a valid object',
+
+      // UI settings messages
+      uiSettingsRestored: 'UI settings restored from localStorage',
+      invalidUISettings: 'Invalid UI settings provided - must be a valid object',
     },
 
     // Media Processor messages

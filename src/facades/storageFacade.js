@@ -29,8 +29,14 @@ export const storageFacade = {
    */
   loadState() {
     try {
+      console.log('STORAGE DEBUG: Loading from localStorage...')
       const stored = localStorage.getItem(STORAGE_KEY)
-      return stored ? JSON.parse(stored) : null
+      console.log('STORAGE DEBUG: Raw localStorage value:', stored)
+
+      const parsed = stored ? JSON.parse(stored) : null
+      console.log('STORAGE DEBUG: Parsed state:', parsed)
+
+      return parsed
     } catch (error) {
       console.error(STRINGS.SYSTEM_MESSAGES.storageFacade.localStorageLoadError, error)
       return null

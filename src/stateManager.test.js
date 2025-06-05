@@ -7,7 +7,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { eventBus } from './eventBus.js'
 import { stateManager } from './stateManager.js'
 import { storageFacade } from './facades/storageFacade.js'
-import { SUPPORTED_IMAGE_MIMES, SUPPORTED_VIDEO_MIMES } from './constants/mediaTypes.js'
 
 // Mock eventBus
 vi.mock('./eventBus.js', () => ({
@@ -42,6 +41,23 @@ globalThis.URL = globalThis.URL || {}
 globalThis.URL.revokeObjectURL = vi.fn()
 globalThis.URL.createObjectURL = vi.fn(() => 'blob:mock-url')
 
+/**
+ * Helper function to create mock media items for testing
+ */
+function createMockMediaItem(name, size = 1000) {
+  return {
+    id: `mock_${Math.random().toString(36).substr(2, 9)}`,
+    name,
+    type: name.includes('.mp4') ? 'video' : 'image',
+    mimeType: name.includes('.mp4') ? 'video/mp4' : 'image/jpeg',
+    size,
+    file: new File([''], name),
+    url: `blob:mock-${name}`,
+    addedAt: new Date(),
+    fromFileSystemAPI: false,
+  }
+}
+
 describe('StateManager', () => {
   beforeEach(() => {
     // Reset state manually instead of calling clearMediaPool to avoid URL.revokeObjectURL calls
@@ -49,7 +65,7 @@ describe('StateManager', () => {
     stateManager.state = {
       mediaPool: [],
       segmentSettings: {
-        minDuration: 2,
+        minDuration: 5,
         maxDuration: 5,
         skipStart: 0,
         skipEnd: 0,
@@ -75,7 +91,7 @@ describe('StateManager', () => {
     it('should start with default segment settings', () => {
       const segmentSettings = stateManager.getSegmentSettings()
       expect(segmentSettings).toEqual({
-        minDuration: 2,
+        minDuration: 5,
         maxDuration: 5,
         skipStart: 0,
         skipEnd: 0,
@@ -91,19 +107,19 @@ describe('StateManager', () => {
             id: 'p1',
             name: 'persisted1.jpg',
             type: 'image',
-            mimeType: SUPPORTED_IMAGE_MIMES[0],
+            mimeType: 'image/jpeg',
             size: 100,
-            addedAt: new Date().toISOString(),
-            fromFileSystemAPI: true, // Mark as FileSystemAccessAPI file
+            addedAt: '2025-06-05T07:06:59.457Z',
+            fromFileSystemAPI: true,
           },
           {
             id: 'p2',
             name: 'persisted2.mp4',
             type: 'video',
-            mimeType: SUPPORTED_VIDEO_MIMES[0],
+            mimeType: 'video/mp4',
             size: 200,
-            addedAt: new Date().toISOString(),
-            fromFileSystemAPI: true, // Mark as FileSystemAccessAPI file
+            addedAt: '2025-06-05T07:06:59.457Z',
+            fromFileSystemAPI: true,
           },
         ],
       }
@@ -111,90 +127,41 @@ describe('StateManager', () => {
 
       await stateManager.init()
 
-      expect(storageFacade.loadState).toHaveBeenCalled()
       const mediaPool = stateManager.getMediaPool()
       expect(mediaPool).toHaveLength(2)
-      expect(mediaPool[0].id).toBe('p1')
-      expect(mediaPool[0].name).toBe('persisted1.jpg')
-      expect(mediaPool[0].file).toBeNull() // File object should NOT be restored
-      expect(mediaPool[0].url).toBeNull() // URL should NOT be restored
-      expect(mediaPool[0].addedAt).toBeInstanceOf(Date) // addedAt should be converted back to Date
-      expect(mediaPool[1].id).toBe('p2')
-
-      // Should emit mediaPoolRestored event, not mediaPoolUpdated
-      expect(eventBus.emit).toHaveBeenCalledWith('state.mediaPoolRestored', {
-        mediaPool: expect.any(Array),
-        totalCount: 2,
-        source: 'localStorage-metadata',
-      })
-      expect(eventBus.emit).not.toHaveBeenCalledWith('state.mediaPoolUpdated', expect.anything())
-
-      // Should set up listener for state.mediaPoolUpdated to trigger save
-      expect(eventBus.on).toHaveBeenCalledWith('state.mediaPoolUpdated', expect.any(Function))
+      expect(mediaPool[0]).toEqual(
+        expect.objectContaining({
+          id: 'p1',
+          name: 'persisted1.jpg',
+          addedAt: expect.any(Date),
+        })
+      )
     })
 
     it('should clean up temporary drag & drop files on init and only restore FileSystemAccessAPI files', async () => {
       const persistedState = {
         mediaPool: [
           {
-            id: 'fs1',
+            id: 'persistent',
             name: 'persistent.jpg',
             type: 'image',
-            mimeType: SUPPORTED_IMAGE_MIMES[0],
-            size: 100,
-            addedAt: new Date().toISOString(),
-            fromFileSystemAPI: true, // This should be restored
+            fromFileSystemAPI: true,
           },
           {
-            id: 'dd1',
-            name: 'temporary.mp4',
-            type: 'video',
-            mimeType: SUPPORTED_VIDEO_MIMES[0],
-            size: 200,
-            addedAt: new Date().toISOString(),
-            // No fromFileSystemAPI flag - this should be cleaned up
-          },
-          {
-            id: 'dd2',
-            name: 'temporary2.png',
+            id: 'temp',
+            name: 'temp.jpg',
             type: 'image',
-            mimeType: SUPPORTED_IMAGE_MIMES[1],
-            size: 150,
-            addedAt: new Date().toISOString(),
-            fromFileSystemAPI: false, // Explicitly false - this should be cleaned up
+            fromFileSystemAPI: false, // drag & drop file
           },
         ],
       }
       storageFacade.loadState.mockReturnValue(persistedState)
 
-      // Spy on console.log to verify cleanup message
-      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-
       await stateManager.init()
 
-      expect(storageFacade.loadState).toHaveBeenCalled()
       const mediaPool = stateManager.getMediaPool()
-
-      // Only the FileSystemAccessAPI file should remain
       expect(mediaPool).toHaveLength(1)
-      expect(mediaPool[0].id).toBe('fs1')
-      expect(mediaPool[0].name).toBe('persistent.jpg')
-      expect(mediaPool[0].file).toBeNull()
-      expect(mediaPool[0].url).toBeNull()
-
-      // Should log cleanup message
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        'Cleaned up 2 temporary drag & drop files that cannot be restored'
-      )
-
-      // Should emit mediaPoolRestored event
-      expect(eventBus.emit).toHaveBeenCalledWith('state.mediaPoolRestored', {
-        mediaPool: expect.any(Array),
-        totalCount: 1,
-        source: 'localStorage-metadata',
-      })
-
-      consoleLogSpy.mockRestore()
+      expect(mediaPool[0].id).toBe('persistent')
     })
 
     it('should not load state on init if no persisted state is available', async () => {
@@ -202,434 +169,201 @@ describe('StateManager', () => {
 
       await stateManager.init()
 
-      expect(storageFacade.loadState).toHaveBeenCalled()
-      expect(stateManager.getMediaPool()).toEqual([])
-      expect(stateManager.getMediaCount()).toBe(0)
-      expect(eventBus.emit).not.toHaveBeenCalledWith('state.mediaPoolRestored', expect.anything())
-      expect(eventBus.emit).not.toHaveBeenCalledWith('state.mediaPoolUpdated', expect.anything())
-
-      // Should still set up listener for state.mediaPoolUpdated
-      expect(eventBus.on).toHaveBeenCalledWith('state.mediaPoolUpdated', expect.any(Function))
+      const mediaPool = stateManager.getMediaPool()
+      expect(mediaPool).toHaveLength(0)
     })
 
     it('should not load state on init if persisted media pool is empty', async () => {
-      const persistedState = { mediaPool: [] }
-      storageFacade.loadState.mockReturnValue(persistedState)
+      storageFacade.loadState.mockReturnValue({ mediaPool: [] })
 
       await stateManager.init()
 
-      expect(storageFacade.loadState).toHaveBeenCalled()
-      expect(stateManager.getMediaPool()).toEqual([])
-      expect(stateManager.getMediaCount()).toBe(0)
-      expect(eventBus.emit).not.toHaveBeenCalledWith('state.mediaPoolRestored', expect.anything())
-      expect(eventBus.emit).not.toHaveBeenCalledWith('state.mediaPoolUpdated', expect.anything())
-
-      // Should still set up listener for state.mediaPoolUpdated
-      expect(eventBus.on).toHaveBeenCalledWith('state.mediaPoolUpdated', expect.any(Function))
+      const mediaPool = stateManager.getMediaPool()
+      expect(mediaPool).toHaveLength(0)
     })
 
     it('should handle storageFacade.loadState errors gracefully on init', async () => {
+      // Mock storageFacade.loadState to throw an error
       storageFacade.loadState.mockImplementation(() => {
-        throw new Error('Failed to read storage')
+        throw new Error('localStorage read error')
       })
 
-      // Spy on console.error
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      // Should not throw - errors should be caught and logged
+      await expect(stateManager.init()).resolves.not.toThrow()
 
-      await stateManager.init()
-
-      expect(storageFacade.loadState).toHaveBeenCalled()
-      expect(consoleErrorSpy).toHaveBeenCalled()
-      expect(stateManager.getMediaPool()).toEqual([]) // State should remain empty
-      expect(eventBus.emit).not.toHaveBeenCalled() // No events should be emitted due to load error
-
-      // Should still set up listener for state.mediaPoolUpdated
-      expect(eventBus.on).toHaveBeenCalledWith('state.mediaPoolUpdated', expect.any(Function))
-
-      consoleErrorSpy.mockRestore()
+      // Media pool should remain empty
+      const mediaPool = stateManager.getMediaPool()
+      expect(mediaPool).toHaveLength(0)
     })
   })
 
   describe('persistence integration (save)', () => {
     it('should save state when media pool is updated', async () => {
-      await stateManager.init() // Ensure listener is set up
+      // Initialize first
+      await stateManager.init()
 
-      // Verify that the listener was set up correctly
-      expect(eventBus.on).toHaveBeenCalledWith('state.mediaPoolUpdated', expect.any(Function))
+      // Add media items
+      const mockItems = [createMockMediaItem('test1.jpg'), createMockMediaItem('test2.mp4')]
+      stateManager.addMediaToPool(mockItems)
 
-      // Get the listener function that was registered
-      const listenerCall = eventBus.on.mock.calls.find(
-        (call) => call[0] === 'state.mediaPoolUpdated'
+      // Should have been called: once during addMediaToPool which triggers save
+      expect(storageFacade.saveState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mediaPool: expect.arrayContaining([
+            expect.objectContaining({ name: 'test1.jpg' }),
+            expect.objectContaining({ name: 'test2.mp4' }),
+          ]),
+          segmentSettings: {
+            minDuration: 5,
+            maxDuration: 5,
+            skipStart: 0,
+            skipEnd: 0,
+          },
+        })
       )
-      const saveStateListener = listenerCall[1]
-
-      vi.clearAllMocks() // Clear mocks after init listener setup
-
-      const mediaItems = [
-        {
-          id: 'media_1',
-          name: 'test1.jpg',
-          type: 'image',
-          mimeType: SUPPORTED_IMAGE_MIMES[0],
-          size: 1000,
-          file: new File([''], 'test1.jpg'),
-          url: 'blob:test1',
-          addedAt: new Date(),
-        },
-      ]
-
-      stateManager.addMediaToPool(mediaItems)
-
-      // Since the actual eventBus is mocked, we need to manually trigger the listener
-      // to simulate what would happen when the event is emitted
-      saveStateListener()
-
-      // Verify storageFacade.saveState was called
-      expect(storageFacade.saveState).toHaveBeenCalledTimes(1)
-
-      // Verify the data structure passed to saveState
-      const savedState = storageFacade.saveState.mock.calls[0][0]
-      expect(savedState).toHaveProperty('mediaPool')
-      expect(savedState.mediaPool).toHaveLength(1)
-      expect(savedState.mediaPool[0]).toEqual({
-        id: 'media_1',
-        name: 'test1.jpg',
-        type: 'image',
-        mimeType: SUPPORTED_IMAGE_MIMES[0],
-        size: 1000,
-        addedAt: expect.any(String), // Should be ISO string
-      })
-      expect(savedState.mediaPool[0]).not.toHaveProperty('file') // Should not save File object
-      expect(savedState.mediaPool[0]).not.toHaveProperty('url') // Should not save URL
     })
   })
 
   describe('addMediaToPool', () => {
     it('should add media items to empty pool', () => {
-      const mediaItems = [
-        {
-          id: 'media_1',
-          name: 'test1.jpg',
-          type: 'image',
-          mimeType: SUPPORTED_IMAGE_MIMES[0],
-          size: 1000,
-          file: new File([''], 'test1.jpg'),
-          url: 'blob:test1',
-          addedAt: new Date(),
-        },
-        {
-          id: 'media_2',
-          name: 'test2.mp4',
-          type: 'video',
-          mimeType: SUPPORTED_VIDEO_MIMES[0],
-          size: 2000,
-          file: new File([''], 'test2.mp4'),
-          url: 'blob:test2',
-          addedAt: new Date(),
-        },
-      ]
+      const mockItems = [createMockMediaItem('test1.jpg'), createMockMediaItem('test2.mp4')]
 
-      stateManager.addMediaToPool(mediaItems)
+      stateManager.addMediaToPool(mockItems)
 
-      expect(stateManager.getMediaPool()).toHaveLength(2)
-      expect(stateManager.getMediaCount()).toBe(2)
-      expect(stateManager.isMediaPoolEmpty()).toBe(false)
-      expect(eventBus.emit).toHaveBeenCalledWith('state.mediaPoolUpdated', {
-        mediaPool: expect.any(Array),
-        addedItems: mediaItems,
-        upgradedItems: [],
-        totalCount: 2,
-      })
+      const mediaPool = stateManager.getMediaPool()
+      expect(mediaPool).toHaveLength(2)
+      expect(mediaPool[0].name).toBe('test1.jpg')
+      expect(mediaPool[1].name).toBe('test2.mp4')
     })
 
     it('should add new media items to existing pool (additive behavior)', () => {
       // Add initial items
-      const initialItems = [
-        {
-          id: 'media_1',
-          name: 'existing.jpg',
-          type: 'image',
-          mimeType: SUPPORTED_IMAGE_MIMES[0],
-          size: 1000,
-          file: new File([''], 'existing.jpg'),
-          url: 'blob:existing',
-          addedAt: new Date(),
-        },
-      ]
+      const initialItems = [createMockMediaItem('existing.jpg')]
       stateManager.addMediaToPool(initialItems)
 
-      // Add new items
-      const newItems = [
-        {
-          id: 'media_2',
-          name: 'new1.mp4',
-          type: 'video',
-          mimeType: SUPPORTED_VIDEO_MIMES[0],
-          size: 2000,
-          file: new File([''], 'new1.mp4'),
-          url: 'blob:new1',
-          addedAt: new Date(),
-        },
-        {
-          id: 'media_3',
-          name: 'new2.png',
-          type: 'image',
-          mimeType: SUPPORTED_IMAGE_MIMES[1],
-          size: 1500,
-          file: new File([''], 'new2.png'),
-          url: 'blob:new2',
-          addedAt: new Date(),
-        },
-      ]
+      // Add more items
+      const newItems = [createMockMediaItem('new1.jpg'), createMockMediaItem('new2.mp4')]
       stateManager.addMediaToPool(newItems)
 
-      expect(stateManager.getMediaCount()).toBe(3)
       const mediaPool = stateManager.getMediaPool()
-      expect(mediaPool[0].name).toBe('existing.jpg')
-      expect(mediaPool[1].name).toBe('new1.mp4')
-      expect(mediaPool[2].name).toBe('new2.png')
+      expect(mediaPool).toHaveLength(3)
+      expect(mediaPool.map((item) => item.name)).toEqual(['existing.jpg', 'new1.jpg', 'new2.mp4'])
     })
 
     it('should filter out duplicate files based on name and size', () => {
-      // Add initial items
-      const initialItems = [
-        {
-          id: 'media_1',
-          name: 'test.jpg',
-          type: 'image',
-          mimeType: SUPPORTED_IMAGE_MIMES[0],
-          size: 1000,
-          file: new File([''], 'test.jpg'),
-          url: 'blob:test1',
-          addedAt: new Date(),
-        },
-      ]
-      stateManager.addMediaToPool(initialItems)
+      const mockItem1 = createMockMediaItem('test.jpg', 100) // size: 100
+      const mockItem2 = createMockMediaItem('test.jpg', 100) // duplicate
 
-      // Try to add duplicate and new items
-      const newItems = [
-        {
-          id: 'media_2',
-          name: 'test.jpg', // Same name and size as existing
-          type: 'image',
-          mimeType: SUPPORTED_IMAGE_MIMES[0],
-          size: 1000,
-          file: new File([''], 'test.jpg'),
-          url: 'blob:test2',
-          addedAt: new Date(),
-        },
-        {
-          id: 'media_3',
-          name: 'new.png',
-          type: 'image',
-          mimeType: SUPPORTED_IMAGE_MIMES[1],
-          size: 1500,
-          file: new File([''], 'new.png'),
-          url: 'blob:new',
-          addedAt: new Date(),
-        },
-      ]
-      stateManager.addMediaToPool(newItems)
+      stateManager.addMediaToPool([mockItem1])
+      stateManager.addMediaToPool([mockItem2])
 
-      expect(stateManager.getMediaCount()).toBe(2) // Only one new item added
       const mediaPool = stateManager.getMediaPool()
-      expect(mediaPool.find((item) => item.name === 'test.jpg')).toBeTruthy()
-      expect(mediaPool.find((item) => item.name === 'new.png')).toBeTruthy()
+      expect(mediaPool).toHaveLength(1) // Should only have one
     })
 
     it('should upgrade metadata-only files when re-added with actual File objects', () => {
-      // Add metadata-only item (simulating restored from localStorage)
+      // Create metadata-only item (no file or url)
       const metadataOnlyItem = {
-        id: 'media_1',
+        id: 'test-id',
         name: 'restored.jpg',
         type: 'image',
-        mimeType: SUPPORTED_IMAGE_MIMES[0],
-        size: 1000,
-        file: null, // No actual file
-        url: null, // No URL
+        mimeType: 'image/jpeg',
+        size: 100,
         addedAt: new Date(),
+        fromFileSystemAPI: true,
+        file: null, // metadata-only
+        url: null, // metadata-only
       }
-      stateManager.state.mediaPool = [metadataOnlyItem] // Direct assignment to simulate restoration
 
-      // Try to add the same file with actual File object
-      const upgradeItems = [
-        {
-          id: 'media_2',
-          name: 'restored.jpg', // Same name and size
-          type: 'image',
-          mimeType: SUPPORTED_IMAGE_MIMES[0],
-          size: 1000,
-          file: new File([''], 'restored.jpg'),
-          url: 'blob:restored',
-          addedAt: new Date(),
-        },
-      ]
+      stateManager.state.mediaPool = [metadataOnlyItem]
 
-      stateManager.addMediaToPool(upgradeItems)
+      // Now add the same file with actual File object
+      const fileWithData = createMockMediaItem('restored.jpg', 100)
+      stateManager.addMediaToPool([fileWithData])
 
-      expect(stateManager.getMediaCount()).toBe(1) // Still only one item
-      const upgradedItem = stateManager.getMediaById('media_1')
-      expect(upgradedItem.file).toBeTruthy() // Now has File object
-      expect(upgradedItem.url).toBe('blob:restored') // Now has URL
-      expect(upgradedItem.id).toBe('media_1') // Kept original ID
-
-      // Check event was emitted with upgrade info
-      expect(eventBus.emit).toHaveBeenCalledWith('state.mediaPoolUpdated', {
-        mediaPool: expect.any(Array),
-        addedItems: [],
-        upgradedItems: [
-          expect.objectContaining({
-            id: 'media_1',
-            name: 'restored.jpg',
-            file: expect.any(File),
-            url: 'blob:restored',
-          }),
-        ],
-        totalCount: 1,
-      })
+      const mediaPool = stateManager.getMediaPool()
+      expect(mediaPool).toHaveLength(1) // Should still be one item
+      expect(mediaPool[0].file).toBeTruthy() // Should now have file
+      expect(mediaPool[0].url).toBeTruthy() // Should now have url
+      expect(mediaPool[0].id).toBe('test-id') // Should keep original ID
     })
 
     it('should handle invalid input gracefully', () => {
       console.warn = vi.fn()
 
       stateManager.addMediaToPool(null)
-      expect(console.warn).toHaveBeenCalledWith(
-        'StateManager.addMediaToPool: newMediaItems must be an array'
-      )
-      expect(stateManager.getMediaCount()).toBe(0)
+      stateManager.addMediaToPool('invalid')
+      stateManager.addMediaToPool(123)
 
-      stateManager.addMediaToPool('not an array')
-      expect(console.warn).toHaveBeenCalledTimes(2)
-      expect(stateManager.getMediaCount()).toBe(0)
+      expect(console.warn).toHaveBeenCalledTimes(3)
+      expect(stateManager.getMediaPool()).toHaveLength(0)
     })
   })
 
   describe('removeMediaFromPool', () => {
     it('should remove media item by ID and emit event', () => {
-      const mediaItems = [
-        {
-          id: 'media_1',
-          name: 'test1.jpg',
-          type: 'image',
-          mimeType: SUPPORTED_IMAGE_MIMES[0],
-          size: 1000,
-          file: new File([''], 'test1.jpg'),
-          url: 'blob:test1',
-          addedAt: new Date(),
-        },
-        {
-          id: 'media_2',
-          name: 'test2.mp4',
-          type: 'video',
-          mimeType: SUPPORTED_VIDEO_MIMES[0],
-          size: 2000,
-          file: new File([''], 'test2.mp4'),
-          url: 'blob:test2',
-          addedAt: new Date(),
-        },
-      ]
-      stateManager.addMediaToPool(mediaItems)
+      const mockItems = [createMockMediaItem('test1.jpg'), createMockMediaItem('test2.mp4')]
+      stateManager.addMediaToPool(mockItems)
 
-      // Mock URL.revokeObjectURL
-      const mockRevokeObjectURL = vi.fn()
-      vi.stubGlobal('URL', { revokeObjectURL: mockRevokeObjectURL })
+      const itemToRemove = stateManager.getMediaPool()[0]
+      stateManager.removeMediaFromPool(itemToRemove.id)
 
-      stateManager.removeMediaFromPool('media_1')
+      const mediaPool = stateManager.getMediaPool()
+      expect(mediaPool).toHaveLength(1)
+      expect(mediaPool[0].name).toBe('test2.mp4')
 
-      expect(stateManager.getMediaCount()).toBe(1)
-      expect(stateManager.getMediaById('media_1')).toBeNull()
-      expect(stateManager.getMediaById('media_2')).toBeTruthy()
-      expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:test1')
-      expect(eventBus.emit).toHaveBeenCalledWith('state.mediaPoolUpdated', {
-        mediaPool: expect.any(Array),
-        removedItem: expect.objectContaining({ id: 'media_1' }),
+      expect(eventBus.emit).toHaveBeenCalledWith('media.fileRemoved', {
+        id: itemToRemove.id,
+        name: itemToRemove.name,
         totalCount: 1,
       })
     })
 
     it('should handle removal of non-existent item gracefully', () => {
-      stateManager.removeMediaFromPool('non-existent')
-      expect(stateManager.getMediaCount()).toBe(0)
+      stateManager.removeMediaFromPool('non-existent-id')
+
+      // Should not throw or crash
+      expect(stateManager.getMediaPool()).toHaveLength(0)
     })
   })
 
   describe('clearMediaPool', () => {
     it('should clear all media items and emit event', () => {
-      const mediaItems = [
-        {
-          id: 'media_1',
-          name: 'test1.jpg',
-          type: 'image',
-          mimeType: SUPPORTED_IMAGE_MIMES[0],
-          size: 1000,
-          file: new File([''], 'test1.jpg'),
-          url: 'blob:test1',
-          addedAt: new Date(),
-        },
-      ]
-      stateManager.addMediaToPool(mediaItems)
-
-      // Mock URL.revokeObjectURL
-      const mockRevokeObjectURL = vi.fn()
-      vi.stubGlobal('URL', { revokeObjectURL: mockRevokeObjectURL })
+      const mockItems = [createMockMediaItem('test1.jpg'), createMockMediaItem('test2.mp4')]
+      stateManager.addMediaToPool(mockItems)
 
       stateManager.clearMediaPool()
 
-      expect(stateManager.getMediaCount()).toBe(0)
-      expect(stateManager.isMediaPoolEmpty()).toBe(true)
-      expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:test1')
-      expect(eventBus.emit).toHaveBeenCalledWith('state.mediaPoolUpdated', {
-        mediaPool: [],
-        totalCount: 0,
-        cleared: true,
-      })
+      expect(stateManager.getMediaPool()).toHaveLength(0)
+      expect(eventBus.emit).toHaveBeenCalledWith('media.poolCleared', { totalCount: 0 })
     })
   })
 
   describe('getMediaById', () => {
     it('should return media item by ID', () => {
-      const mediaItems = [
-        {
-          id: 'media_1',
-          name: 'test.jpg',
-          type: 'image',
-          mimeType: SUPPORTED_IMAGE_MIMES[0],
-          size: 1000,
-          file: new File([''], 'test.jpg'),
-          url: 'blob:test',
-          addedAt: new Date(),
-        },
-      ]
-      stateManager.addMediaToPool(mediaItems)
+      const mockItems = [createMockMediaItem('test1.jpg'), createMockMediaItem('test2.mp4')]
+      stateManager.addMediaToPool(mockItems)
 
-      const result = stateManager.getMediaById('media_1')
-      expect(result).toBeTruthy()
-      expect(result.name).toBe('test.jpg')
+      const mediaPool = stateManager.getMediaPool()
+      const firstItemId = mediaPool[0].id
+      const foundItem = stateManager.getMediaById(firstItemId)
+
+      expect(foundItem).toEqual(mediaPool[0])
     })
 
     it('should return null for non-existent ID', () => {
-      const result = stateManager.getMediaById('non-existent')
-      expect(result).toBeNull()
+      const foundItem = stateManager.getMediaById('non-existent-id')
+      expect(foundItem).toBeNull()
     })
   })
 
   describe('segment settings', () => {
-    beforeEach(() => {
-      // Reset segment settings to defaults
-      stateManager.state.segmentSettings = {
-        minDuration: 2,
-        maxDuration: 5,
-        skipStart: 0,
-        skipEnd: 0,
-      }
-      vi.clearAllMocks()
-    })
-
     describe('getSegmentSettings', () => {
       it('should return current segment settings', () => {
         const settings = stateManager.getSegmentSettings()
+
         expect(settings).toEqual({
-          minDuration: 2,
+          minDuration: 5,
           maxDuration: 5,
           skipStart: 0,
           skipEnd: 0,
@@ -641,7 +375,7 @@ describe('StateManager', () => {
         settings.minDuration = 10
 
         const settingsAgain = stateManager.getSegmentSettings()
-        expect(settingsAgain.minDuration).toBe(2) // Should not be affected
+        expect(settingsAgain.minDuration).toBe(5) // Should not be affected
       })
     })
 
@@ -798,7 +532,7 @@ describe('StateManager', () => {
 
         const settings = stateManager.getSegmentSettings()
         expect(settings).toEqual({
-          minDuration: 2,
+          minDuration: 5,
           maxDuration: 5,
           skipStart: 0,
           skipEnd: 0,

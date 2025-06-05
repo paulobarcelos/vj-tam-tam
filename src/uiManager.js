@@ -29,6 +29,13 @@ class UIManager {
     this.clearMediaBtn = null
     this.dragCounter = 0 // Track drag enter/leave events
     this.isFilePickerActive = false // Lock to prevent concurrent file picker calls
+    this.advancedControlsToggle = null
+    this.advancedControlsSection = null
+    this.minDurationSlider = null
+    this.minDurationInput = null
+    this.maxDurationSlider = null
+    this.maxDurationInput = null
+    this.advancedControlsInitialized = false // Flag to prevent double initialization
   }
 
   /**
@@ -44,6 +51,14 @@ class UIManager {
     this.browseFoldersBtn = document.getElementById('browse-folders-btn')
     this.clearMediaBtn = document.getElementById('clear-media-btn')
 
+    // Advanced Controls elements
+    this.advancedControlsToggle = document.getElementById('advanced-controls-toggle')
+    this.advancedControlsSection = document.getElementById('advanced-controls-section')
+    this.minDurationSlider = document.getElementById('min-duration-slider')
+    this.minDurationInput = document.getElementById('min-duration-input')
+    this.maxDurationSlider = document.getElementById('max-duration-slider')
+    this.maxDurationInput = document.getElementById('max-duration-input')
+
     if (
       !this.stage ||
       !this.leftDrawer ||
@@ -52,7 +67,13 @@ class UIManager {
       !this.welcomeMessage ||
       !this.browseFilesBtn ||
       !this.browseFoldersBtn ||
-      !this.clearMediaBtn
+      !this.clearMediaBtn ||
+      !this.advancedControlsToggle ||
+      !this.advancedControlsSection ||
+      !this.minDurationSlider ||
+      !this.minDurationInput ||
+      !this.maxDurationSlider ||
+      !this.maxDurationInput
     ) {
       console.error(STRINGS.SYSTEM_MESSAGES.uiManager.requiredElementsNotFound)
       return
@@ -61,6 +82,7 @@ class UIManager {
     this.setupDragAndDropListeners()
     this.setupEventBusListeners()
     this.setupFilePickerListeners()
+    this.setupAdvancedControlsListeners()
   }
 
   /**
@@ -94,6 +116,12 @@ class UIManager {
     // New StateManager events
     eventBus.on('state.mediaPoolUpdated', this.handleMediaPoolStateUpdate.bind(this))
     eventBus.on('state.mediaPoolRestored', this.handleMediaPoolRestored.bind(this))
+
+    // Listen for segment settings updates
+    eventBus.on('state.segmentSettingsUpdated', this.handleSegmentSettingsUpdate.bind(this))
+
+    // Listen for UI settings updates
+    eventBus.on('state.uiSettingsUpdated', this.handleUISettingsUpdate.bind(this))
   }
 
   /**
@@ -317,6 +345,9 @@ class UIManager {
     this.updateMediaPoolDisplay()
     this.updateWelcomeMessageVisibility()
     // Banner approach handles permission restoration, no overlay needed
+
+    // DO NOT initialize Advanced Controls here - it's too early in the restoration process
+    // Advanced Controls will be initialized from main.js after stateManager.init() is complete
   }
 
   /**
@@ -638,6 +669,209 @@ class UIManager {
     if (dropMessageEl) {
       dropMessageEl.textContent = STRINGS.USER_INTERFACE.dropZone.message
     }
+  }
+
+  /**
+   * Set up advanced controls event listeners
+   */
+  setupAdvancedControlsListeners() {
+    // Don't initialize controls here - wait for state restoration
+    // initializeAdvancedControls() will be called from handleMediaPoolRestored()
+
+    // Toggle button functionality
+    this.advancedControlsToggle.addEventListener(
+      'click',
+      this.handleAdvancedControlsToggle.bind(this)
+    )
+
+    // Segment duration controls
+    this.setupSegmentDurationControls()
+  }
+
+  /**
+   * Handle Advanced Controls toggle button click
+   */
+  handleAdvancedControlsToggle() {
+    const isHidden = this.advancedControlsSection.classList.contains('hidden')
+    const indicator = this.advancedControlsToggle.querySelector('.toggle-indicator')
+
+    this.advancedControlsSection.classList.toggle('hidden')
+    indicator.textContent = isHidden ? '[Hide]' : '[Show]'
+
+    // Update state manager instead of localStorage directly
+    const isVisible = !this.advancedControlsSection.classList.contains('hidden')
+    stateManager.updateUISettings({ advancedControlsVisible: isVisible })
+  }
+
+  /**
+   * Set up segment duration controls with synchronization and validation
+   */
+  setupSegmentDurationControls() {
+    // Sync slider and input values for minimum duration
+    this.syncControls(this.minDurationSlider, this.minDurationInput)
+
+    // Sync slider and input values for maximum duration
+    this.syncControls(this.maxDurationSlider, this.maxDurationInput)
+  }
+
+  /**
+   * Synchronize slider and input controls
+   * @param {HTMLInputElement} slider - Range input element
+   * @param {HTMLInputElement} input - Number input element
+   */
+  syncControls(slider, input) {
+    slider.addEventListener('input', () => {
+      input.value = slider.value
+      this.updateSegmentSettings()
+    })
+
+    input.addEventListener('input', () => {
+      const value = Math.max(1, Math.min(30, parseFloat(input.value) || 1))
+      input.value = value
+      slider.value = value
+      this.updateSegmentSettings()
+    })
+  }
+
+  /**
+   * Centralized method to update segment duration controls from settings
+   * @param {Object} settings - Segment settings object
+   * @private
+   */
+  updateSegmentControlsDOM(settings) {
+    console.log('UI DEBUG: updateSegmentControlsDOM called with settings:', settings)
+
+    // Set min duration controls (both property and attribute for proper DOM updates)
+    console.log('UI DEBUG: Setting min duration controls to:', settings.minDuration)
+    this.minDurationSlider.value = settings.minDuration
+    this.minDurationSlider.setAttribute('value', settings.minDuration)
+    this.minDurationInput.value = settings.minDuration
+    this.minDurationInput.setAttribute('value', settings.minDuration)
+
+    // Set max duration controls (both property and attribute for proper DOM updates)
+    console.log('UI DEBUG: Setting max duration controls to:', settings.maxDuration)
+    this.maxDurationSlider.value = settings.maxDuration
+    this.maxDurationSlider.setAttribute('value', settings.maxDuration)
+    this.maxDurationInput.value = settings.maxDuration
+    this.maxDurationInput.setAttribute('value', settings.maxDuration)
+
+    console.log(
+      'UI DEBUG: Final DOM values - minSlider:',
+      this.minDurationSlider.value,
+      'minInput:',
+      this.minDurationInput.value,
+      'maxSlider:',
+      this.maxDurationSlider.value,
+      'maxInput:',
+      this.maxDurationInput.value
+    )
+  }
+
+  /**
+   * Update segment settings with min/max relationship enforcement
+   */
+  updateSegmentSettings() {
+    const minDuration = parseFloat(this.minDurationInput.value)
+    const maxDuration = parseFloat(this.maxDurationInput.value)
+
+    // Enforce min/max relationship (AC 3.5)
+    let adjustedMin = minDuration
+    let adjustedMax = maxDuration
+
+    if (minDuration > maxDuration) {
+      adjustedMax = minDuration
+      // Update DOM immediately for visual feedback
+      this.maxDurationSlider.value = adjustedMax
+      this.maxDurationInput.value = adjustedMax
+    } else if (maxDuration < minDuration) {
+      adjustedMin = maxDuration
+      // Update DOM immediately for visual feedback
+      this.minDurationSlider.value = adjustedMin
+      this.minDurationInput.value = adjustedMin
+    }
+
+    // Update state
+    stateManager.updateSegmentSettings({
+      minDuration: adjustedMin,
+      maxDuration: adjustedMax,
+    })
+  }
+
+  /**
+   * Handle segment settings updates from state manager
+   * @param {Object} data - Event data containing updated settings
+   */
+  handleSegmentSettingsUpdate(data) {
+    const settings = data.segmentSettings
+
+    // Only update DOM if values actually changed to avoid infinite loops
+    // Use proper float comparison with small tolerance for precision
+    const currentMin = parseFloat(this.minDurationSlider.value)
+    const currentMax = parseFloat(this.maxDurationSlider.value)
+    const tolerance = 0.01
+
+    if (
+      Math.abs(currentMin - settings.minDuration) > tolerance ||
+      Math.abs(currentMax - settings.maxDuration) > tolerance
+    ) {
+      this.updateSegmentControlsDOM(settings)
+    }
+  }
+
+  /**
+   * Handle UI settings updates
+   * @param {Object} data - Event data containing updated UI settings
+   */
+  handleUISettingsUpdate(data) {
+    const uiSettings = data.uiSettings
+    const indicator = this.advancedControlsToggle.querySelector('.toggle-indicator')
+
+    // Update advanced controls visibility
+    if (uiSettings.advancedControlsVisible) {
+      this.advancedControlsSection.classList.remove('hidden')
+      indicator.textContent = '[Hide]'
+    } else {
+      this.advancedControlsSection.classList.add('hidden')
+      indicator.textContent = '[Show]'
+    }
+  }
+
+  /**
+   * Initialize Advanced Controls from restored state
+   */
+  initializeAdvancedControlsFromRestoredState() {
+    // Prevent double initialization
+    if (this.advancedControlsInitialized) {
+      console.log('UI DEBUG: Advanced Controls already initialized, skipping')
+      return
+    }
+
+    console.log('UI DEBUG: Starting Advanced Controls initialization')
+
+    // Load current settings using centralized DOM update method
+    const settings = stateManager.getSegmentSettings()
+    console.log('UI DEBUG: Got segment settings from stateManager:', settings)
+    this.updateSegmentControlsDOM(settings)
+    console.log('UI DEBUG: Updated DOM with segment settings')
+
+    // Restore UI settings from state manager
+    const uiSettings = stateManager.getUISettings()
+    console.log('UI DEBUG: Got UI settings from stateManager:', uiSettings)
+    const indicator = this.advancedControlsToggle.querySelector('.toggle-indicator')
+
+    if (uiSettings.advancedControlsVisible) {
+      console.log('UI DEBUG: Setting advanced controls to visible')
+      this.advancedControlsSection.classList.remove('hidden')
+      indicator.textContent = '[Hide]'
+    } else {
+      console.log('UI DEBUG: Setting advanced controls to hidden')
+      this.advancedControlsSection.classList.add('hidden')
+      indicator.textContent = '[Show]'
+    }
+
+    // Set the flag to true to prevent double initialization
+    this.advancedControlsInitialized = true
+    console.log('UI DEBUG: Advanced Controls initialization complete')
   }
 }
 

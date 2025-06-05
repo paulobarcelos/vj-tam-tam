@@ -14,18 +14,34 @@ import { STRINGS, t } from './constants/strings.js'
  */
 async function init() {
   try {
+    console.log('=== APP INIT START ===')
+
     // Update DOM strings from centralized constants
     uiManager.updateDOMStrings()
 
     // Initialize UI Manager first so it can listen to events
+    console.log('1. Initializing UI Manager...')
     uiManager.init()
 
     // Initialize PlaybackEngine before StateManager so it can listen to restoration events
+    console.log('2. Initializing PlaybackEngine...')
     playbackEngine.init()
 
     // Initialize StateManager last to load persisted state and emit events
+    console.log('3. Initializing StateManager...')
     await stateManager.init()
 
+    console.log(
+      '4. StateManager init complete, current segment settings:',
+      stateManager.getSegmentSettings()
+    )
+    console.log('5. StateManager init complete, current UI settings:', stateManager.getUISettings())
+
+    // Initialize Advanced Controls after state is fully restored
+    console.log('6. Initializing Advanced Controls...')
+    uiManager.initializeAdvancedControlsFromRestoredState()
+
+    console.log('=== APP INIT COMPLETE ===')
     console.log(
       t.get('SYSTEM_MESSAGES.application.initializationSuccess', {
         count: stateManager.getMediaCount(),
