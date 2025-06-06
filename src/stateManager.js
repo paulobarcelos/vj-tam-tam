@@ -224,6 +224,8 @@ class StateManager {
           size: item.size,
           // Safely convert addedAt to ISO string, handling both Date objects and strings
           addedAt: item.addedAt instanceof Date ? item.addedAt.toISOString() : item.addedAt,
+          // Persist video duration if available
+          ...(item.duration && { duration: item.duration }),
         })),
         // Persist segment settings
         segmentSettings: this.state.segmentSettings,
@@ -346,6 +348,8 @@ class StateManager {
             size: item.size,
             // Safely convert addedAt to ISO string, handling both Date objects and strings
             addedAt: item.addedAt instanceof Date ? item.addedAt.toISOString() : item.addedAt,
+            // Persist video duration if available
+            ...(item.duration && { duration: item.duration }),
           }
 
           await fileSystemAccessFacade.storeFileHandle(item.id, item.file.handle, metadata)

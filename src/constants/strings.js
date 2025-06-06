@@ -56,6 +56,18 @@ export const STRINGS = {
       persistentFiles: 'Persistent Files',
     },
 
+    // Form controls
+    controls: {
+      skipStart: {
+        label: 'Video Skip Start',
+        unit: 'sec',
+      },
+      skipEnd: {
+        label: 'Video Skip End',
+        unit: 'sec',
+      },
+    },
+
     // File status indicators
     fileStatus: {
       needsPermission: 'needs permission',
@@ -265,7 +277,13 @@ export const STRINGS = {
       segmentControlsUpdateCalled: 'updateSegmentControlsDOM called with settings',
       settingMinDuration: 'Setting min duration controls to',
       settingMaxDuration: 'Setting max duration controls to',
+      settingSkipStart: 'Setting skip start controls to',
+      settingSkipEnd: 'Setting skip end controls to',
       finalDOMValues: 'Final DOM values - minSlider',
+      skipStartControlUpdate: 'Updating skip start control to {{value}} seconds',
+      skipStartValidation: 'Skip start value validated: {{value}} seconds',
+      skipEndControlUpdate: 'Updating skip end control to {{value}} seconds',
+      skipEndValidation: 'Skip end value validated: {{value}} seconds',
 
       // Debug messages for advanced controls initialization
       advancedControlsAlreadyInit: 'Advanced Controls already initialized, skipping',
@@ -310,6 +328,9 @@ export const STRINGS = {
       seekingError: 'Error seeking video to start point:',
       failSafeTransitionAttempt: 'Attempting fail-safe media transition',
       failSafeTransitionFailed: 'Fail-safe transition also failed:',
+      videoSegmentDebug:
+        'Video segment: {{fileName}} | Duration: {{videoDuration}}s | Segment: {{segmentDuration}}s ({{startPoint}}s-{{endPoint}}s) | Coverage: {{coverage}}% | Fallback: {{fallback}}',
+      imageSegmentDebug: 'Image display: {{fileName}} | Display duration: {{displayDuration}}s',
 
       // Cycling-specific messages
       cyclingStarted: 'Media cycling started',

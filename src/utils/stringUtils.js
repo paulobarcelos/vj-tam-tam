@@ -284,6 +284,34 @@ export const wordCount = (str) => {
 }
 
 /**
+ * Format duration in seconds to human readable format
+ * @param {number} seconds - Duration in seconds
+ * @param {boolean} showMilliseconds - Whether to show milliseconds for short durations
+ * @returns {string} - Formatted duration string
+ */
+export const formatDuration = (seconds, showMilliseconds = false) => {
+  if (typeof seconds !== 'number' || isNaN(seconds) || seconds < 0) {
+    return '0:00'
+  }
+
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const secs = Math.floor(seconds % 60)
+  const milliseconds = Math.floor((seconds % 1) * 1000)
+
+  if (hours > 0) {
+    // Format as H:MM:SS
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  } else if (showMilliseconds && seconds < 10) {
+    // Format as M:SS.mmm for short durations
+    return `${minutes}:${secs.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`
+  } else {
+    // Format as M:SS
+    return `${minutes}:${secs.toString().padStart(2, '0')}`
+  }
+}
+
+/**
  * Helper function to handle pluralization
  * @param {number} count - Count to determine plurality
  * @param {string} suffix - Suffix for plural form (default: 's')

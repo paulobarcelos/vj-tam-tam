@@ -119,6 +119,30 @@ class MediaProcessor {
   }
 
   /**
+   * Get video duration from file
+   * @param {File} file - Video file object
+   * @returns {Promise<number|null>} - Promise resolving to duration in seconds or null if error
+   */
+  async getVideoDuration(file) {
+    return new Promise((resolve) => {
+      const video = document.createElement('video')
+      const url = URL.createObjectURL(file)
+
+      video.addEventListener('loadedmetadata', () => {
+        URL.revokeObjectURL(url)
+        resolve(video.duration)
+      })
+
+      video.addEventListener('error', () => {
+        URL.revokeObjectURL(url)
+        resolve(null)
+      })
+
+      video.src = url
+    })
+  }
+
+  /**
    * Create a media item object from a file
    * @param {File} file - File object
    * @returns {Promise<MediaItem>} - Promise resolving to media item
@@ -126,10 +150,12 @@ class MediaProcessor {
   async createMediaItem(file) {
     // Preserve file handle if it exists (from FileSystemAccessAPI)
     // For drag-and-drop files, file.handle will be undefined
+    const mediaType = getMediaType(file)
+
     const mediaItem = {
       id: `media_${this.nextId++}`,
       name: file.name,
-      type: getMediaType(file),
+      type: mediaType,
       mimeType: file.type,
       size: file.size,
       file: file, // This may include file.handle if available
@@ -137,6 +163,19 @@ class MediaProcessor {
       addedAt: new Date(),
       // Mark files with handles as coming from FileSystemAccessAPI for proper persistence handling
       fromFileSystemAPI: !!file.handle,
+    }
+
+    // For video files, try to get duration
+    if (mediaType === 'video') {
+      try {
+        const duration = await this.getVideoDuration(file)
+        if (duration && duration > 0) {
+          mediaItem.duration = duration
+        }
+      } catch (error) {
+        // Duration detection failed, continue without duration
+        console.warn(`Failed to detect duration for ${file.name}:`, error)
+      }
     }
 
     // Log handle availability for debugging
