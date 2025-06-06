@@ -146,11 +146,33 @@ body {
   z-index: 100;
   display: flex;
   flex-direction: column;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, opacity 0.3s ease;
 }
 
 .left-drawer.drag-over {
   background-color: rgba(0, 122, 204, 0.8);
+}
+
+/* Idle state styles */
+.ui-idle {
+  cursor: none;
+}
+
+.ui-idle .left-drawer {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Ensure stage remains interactive during idle state */
+.ui-idle .stage {
+  pointer-events: auto;
+}
+
+/* Future support for other UI elements that should be hidden during idle */
+.ui-idle .hidden-on-idle {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
 }
 
 .drawer-header {

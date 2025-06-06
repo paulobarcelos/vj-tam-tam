@@ -40,6 +40,13 @@ class UIManager {
     this.skipEndSlider = null
     this.skipEndInput = null
     this.advancedControlsInitialized = false // Flag to prevent double initialization
+
+    // Idle/Active state management properties
+    this.isUIIdle = false
+    this.idleTimer = null
+    this.IDLE_TIMEOUT_MS = 4000 // 4 seconds default
+    this.activityListeners = []
+    this.lastActivityTime = Date.now()
   }
 
   /**
@@ -95,6 +102,7 @@ class UIManager {
     this.setupEventBusListeners()
     this.setupFilePickerListeners()
     this.setupAdvancedControlsListeners()
+    this.setupActivityDetection()
   }
 
   /**
@@ -168,6 +176,9 @@ class UIManager {
     e.preventDefault()
     this.dragCounter++
 
+    // Trigger activity for idle state management
+    this.handleActivity(e)
+
     // Only show visual feedback on first drag enter
     if (this.dragCounter === 1) {
       this.showDropFeedback()
@@ -196,6 +207,9 @@ class UIManager {
     e.preventDefault()
     this.dragCounter = 0
     this.hideDropFeedback()
+
+    // Trigger activity for idle state management
+    this.handleActivity(e)
 
     const items = Array.from(e.dataTransfer.items)
     const files = []
@@ -943,6 +957,89 @@ class UIManager {
     // Set the flag to true to prevent double initialization
     this.advancedControlsInitialized = true
     console.log(STRINGS.SYSTEM_MESSAGES.uiManager.advancedControlsInitComplete)
+  }
+
+  /**
+   * Enter idle state - hide UI elements
+   */
+  enterIdleState() {
+    this.isUIIdle = true
+    document.body.classList.add('ui-idle')
+    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.idleStateEntered)
+  }
+
+  /**
+   * Exit idle state - show UI elements and reset timer
+   */
+  exitIdleState() {
+    if (this.isUIIdle) {
+      this.isUIIdle = false
+      document.body.classList.remove('ui-idle')
+      console.log(STRINGS.SYSTEM_MESSAGES.uiManager.idleStateExited)
+    }
+    this.resetIdleTimer()
+  }
+
+  /**
+   * Reset the idle timer
+   */
+  resetIdleTimer() {
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer)
+    }
+    this.idleTimer = setTimeout(() => {
+      this.enterIdleState()
+    }, this.IDLE_TIMEOUT_MS)
+  }
+
+  /**
+   * Handle user activity for idle state management
+   * @param {Event} event - User activity event
+   */
+  handleActivity(event) {
+    // Special handling for ESC in fullscreen - don't treat as activity
+    if (event.type === 'keydown' && event.key === 'Escape' && document.fullscreenElement) {
+      return
+    }
+
+    if (this.isUIIdle) {
+      this.exitIdleState()
+    } else {
+      this.resetIdleTimer()
+    }
+
+    this.lastActivityTime = Date.now()
+  }
+
+  /**
+   * Set up activity detection for idle state management
+   */
+  setupActivityDetection() {
+    const events = ['mousemove', 'mousedown', 'keydown', 'click']
+    events.forEach((eventName) => {
+      const listener = (event) => this.handleActivity(event)
+      document.addEventListener(eventName, listener, { passive: true })
+      this.activityListeners.push({ eventName, listener })
+    })
+
+    // Start with active state
+    this.resetIdleTimer()
+    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.activityDetectionInitialized)
+  }
+
+  /**
+   * Clean up activity detection listeners
+   */
+  cleanupActivityDetection() {
+    this.activityListeners.forEach(({ eventName, listener }) => {
+      document.removeEventListener(eventName, listener)
+    })
+    this.activityListeners = []
+
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer)
+      this.idleTimer = null
+    }
   }
 }
 
