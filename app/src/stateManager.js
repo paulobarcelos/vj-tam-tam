@@ -67,7 +67,7 @@ class StateManager {
     try {
       // Load persisted state first, always
       const persistedState = storageFacade.loadState()
-      console.log('RESTORE DEBUG: persistedState loaded:', persistedState)
+      console.log(STRINGS.SYSTEM_MESSAGES.stateManager.persistedStateLoaded, persistedState)
 
       // First, try to restore files from FileSystemAccessAPI if supported
       if (fileSystemAccessFacade.isSupported) {
@@ -112,12 +112,12 @@ class StateManager {
 
       // Always restore segment settings from localStorage with fallback to defaults
       console.log(
-        'RESTORE DEBUG: About to restore segment settings, persistedState?.segmentSettings:',
+        STRINGS.SYSTEM_MESSAGES.stateManager.aboutToRestoreSegmentSettings,
         persistedState?.segmentSettings
       )
       if (persistedState?.segmentSettings) {
         console.log(
-          'RESTORE DEBUG: Current state before segment settings restoration:',
+          STRINGS.SYSTEM_MESSAGES.stateManager.segmentSettingsPreRestore,
           this.state.segmentSettings
         )
         this.state.segmentSettings = {
@@ -125,38 +125,38 @@ class StateManager {
           ...persistedState.segmentSettings, // Override with persisted values
         }
         console.log(
-          'RESTORE DEBUG: State after segment settings restoration:',
+          STRINGS.SYSTEM_MESSAGES.stateManager.segmentSettingsPostRestore,
           this.state.segmentSettings
         )
         console.log(STRINGS.SYSTEM_MESSAGES.stateManager.segmentSettingsRestored)
       } else {
         console.log(
-          'RESTORE DEBUG: No segment settings in persistedState, keeping defaults:',
+          STRINGS.SYSTEM_MESSAGES.stateManager.noSegmentSettings,
           this.state.segmentSettings
         )
       }
 
       // Always restore UI settings from localStorage with fallback to defaults
       console.log(
-        'RESTORE DEBUG: About to restore UI settings, persistedState?.uiSettings:',
+        STRINGS.SYSTEM_MESSAGES.stateManager.aboutToRestoreUISettings,
         persistedState?.uiSettings
       )
       if (persistedState?.uiSettings) {
         console.log(
-          'RESTORE DEBUG: Current state before UI settings restoration:',
+          STRINGS.SYSTEM_MESSAGES.stateManager.uiSettingsPreRestore,
           this.state.uiSettings
         )
         this.state.uiSettings = {
           ...this.state.uiSettings, // Start with defaults
           ...persistedState.uiSettings, // Override with persisted values
         }
-        console.log('RESTORE DEBUG: State after UI settings restoration:', this.state.uiSettings)
-        console.log(STRINGS.SYSTEM_MESSAGES.stateManager.uiSettingsRestored)
-      } else {
         console.log(
-          'RESTORE DEBUG: No UI settings in persistedState, keeping defaults:',
+          STRINGS.SYSTEM_MESSAGES.stateManager.uiSettingsPostRestore,
           this.state.uiSettings
         )
+        console.log(STRINGS.SYSTEM_MESSAGES.stateManager.uiSettingsRestored)
+      } else {
+        console.log(STRINGS.SYSTEM_MESSAGES.stateManager.noUISettings, this.state.uiSettings)
       }
     } catch (error) {
       console.error(STRINGS.SYSTEM_MESSAGES.stateManager.restorationError, error)

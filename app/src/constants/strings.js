@@ -226,6 +226,17 @@ export const STRINGS = {
       // UI settings messages
       uiSettingsRestored: 'UI settings restored from localStorage',
       invalidUISettings: 'Invalid UI settings provided - must be a valid object',
+
+      // Debug messages
+      persistedStateLoaded: 'Persisted state loaded from storage',
+      segmentSettingsPreRestore: 'Current state before segment settings restoration',
+      segmentSettingsPostRestore: 'State after segment settings restoration',
+      uiSettingsPreRestore: 'Current UI settings before restoration',
+      uiSettingsPostRestore: 'State after UI settings restoration',
+      noSegmentSettings: 'No segment settings in persistedState, keeping defaults',
+      noUISettings: 'No UI settings in persistedState, keeping defaults',
+      aboutToRestoreSegmentSettings: 'About to restore segment settings',
+      aboutToRestoreUISettings: 'About to restore UI settings',
     },
 
     // Media Processor messages
@@ -249,6 +260,22 @@ export const STRINGS = {
       bulkRestoreError: 'Error restoring individual file {{fileName}}:',
       metadataUpgrade: 'Upgraded {{count}} metadata-only files to full access',
       bulkFileRestoreError: 'Error during bulk file restore:',
+
+      // Debug messages for segment controls
+      segmentControlsUpdateCalled: 'updateSegmentControlsDOM called with settings',
+      settingMinDuration: 'Setting min duration controls to',
+      settingMaxDuration: 'Setting max duration controls to',
+      finalDOMValues: 'Final DOM values - minSlider',
+
+      // Debug messages for advanced controls initialization
+      advancedControlsAlreadyInit: 'Advanced Controls already initialized, skipping',
+      advancedControlsInitStart: 'Starting Advanced Controls initialization',
+      segmentSettingsFromState: 'Got segment settings from stateManager',
+      domUpdatedWithSegmentSettings: 'Updated DOM with segment settings',
+      uiSettingsFromState: 'Got UI settings from stateManager',
+      advancedControlsVisible: 'Setting advanced controls to visible',
+      advancedControlsHidden: 'Setting advanced controls to hidden',
+      advancedControlsInitComplete: 'Advanced Controls initialization complete',
     },
 
     // Playback Engine messages
@@ -278,6 +305,12 @@ export const STRINGS = {
       videoLoadError: 'Error loading video: {{fileName}}',
       videoMetadataLoaded: 'Video metadata loaded for: {{fileName}}',
 
+      // Video segment and timing
+      segmentCalculationError: 'Error calculating video segment parameters:',
+      seekingError: 'Error seeking video to start point:',
+      failSafeTransitionAttempt: 'Attempting fail-safe media transition',
+      failSafeTransitionFailed: 'Fail-safe transition also failed:',
+
       // Cycling-specific messages
       cyclingStarted: 'Media cycling started',
       cyclingStopped: 'Media cycling stopped',
@@ -298,6 +331,11 @@ export const STRINGS = {
     storageFacade: {
       localStorageLoadError: 'Error loading state from localStorage:',
       localStorageSaveError: 'Error saving state to localStorage:',
+
+      // Debug messages
+      loadingFromLocalStorage: 'Loading from localStorage',
+      rawLocalStorageValue: 'Raw localStorage value',
+      parsedState: 'Parsed state',
     },
 
     // Application initialization messages
@@ -305,6 +343,17 @@ export const STRINGS = {
       initialized: 'VJ Tam Tam application ready',
       initializationSuccess: 'Application initialized successfully. Media count: {{count}}',
       initializationError: 'Error during application initialization:',
+
+      // Detailed initialization step messages
+      initializationStart: 'Application initialization started',
+      initializationComplete: 'Application initialization completed successfully',
+      uiManagerInitializing: 'Initializing UI Manager',
+      playbackEngineInitializing: 'Initializing PlaybackEngine',
+      stateManagerInitializing: 'Initializing StateManager',
+      stateManagerComplete: 'StateManager initialization complete',
+      segmentSettingsStatus: 'Current segment settings loaded',
+      uiSettingsStatus: 'Current UI settings loaded',
+      advancedControlsInitializing: 'Initializing Advanced Controls from restored state',
     },
   },
 

@@ -739,24 +739,24 @@ class UIManager {
    * @private
    */
   updateSegmentControlsDOM(settings) {
-    console.log('UI DEBUG: updateSegmentControlsDOM called with settings:', settings)
+    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.segmentControlsUpdateCalled, settings)
 
     // Set min duration controls (both property and attribute for proper DOM updates)
-    console.log('UI DEBUG: Setting min duration controls to:', settings.minDuration)
+    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.settingMinDuration, settings.minDuration)
     this.minDurationSlider.value = settings.minDuration
     this.minDurationSlider.setAttribute('value', settings.minDuration)
     this.minDurationInput.value = settings.minDuration
     this.minDurationInput.setAttribute('value', settings.minDuration)
 
     // Set max duration controls (both property and attribute for proper DOM updates)
-    console.log('UI DEBUG: Setting max duration controls to:', settings.maxDuration)
+    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.settingMaxDuration, settings.maxDuration)
     this.maxDurationSlider.value = settings.maxDuration
     this.maxDurationSlider.setAttribute('value', settings.maxDuration)
     this.maxDurationInput.value = settings.maxDuration
     this.maxDurationInput.setAttribute('value', settings.maxDuration)
 
     console.log(
-      'UI DEBUG: Final DOM values - minSlider:',
+      STRINGS.SYSTEM_MESSAGES.uiManager.finalDOMValues,
       this.minDurationSlider.value,
       'minInput:',
       this.minDurationInput.value,
@@ -842,36 +842,36 @@ class UIManager {
   initializeAdvancedControlsFromRestoredState() {
     // Prevent double initialization
     if (this.advancedControlsInitialized) {
-      console.log('UI DEBUG: Advanced Controls already initialized, skipping')
+      console.log(STRINGS.SYSTEM_MESSAGES.uiManager.advancedControlsAlreadyInit)
       return
     }
 
-    console.log('UI DEBUG: Starting Advanced Controls initialization')
+    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.advancedControlsInitStart)
 
     // Load current settings using centralized DOM update method
     const settings = stateManager.getSegmentSettings()
-    console.log('UI DEBUG: Got segment settings from stateManager:', settings)
+    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.segmentSettingsFromState, settings)
     this.updateSegmentControlsDOM(settings)
-    console.log('UI DEBUG: Updated DOM with segment settings')
+    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.domUpdatedWithSegmentSettings)
 
     // Restore UI settings from state manager
     const uiSettings = stateManager.getUISettings()
-    console.log('UI DEBUG: Got UI settings from stateManager:', uiSettings)
+    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.uiSettingsFromState, uiSettings)
     const indicator = this.advancedControlsToggle.querySelector('.toggle-indicator')
 
     if (uiSettings.advancedControlsVisible) {
-      console.log('UI DEBUG: Setting advanced controls to visible')
+      console.log(STRINGS.SYSTEM_MESSAGES.uiManager.advancedControlsVisible)
       this.advancedControlsSection.classList.remove('hidden')
       indicator.textContent = '[Hide]'
     } else {
-      console.log('UI DEBUG: Setting advanced controls to hidden')
+      console.log(STRINGS.SYSTEM_MESSAGES.uiManager.advancedControlsHidden)
       this.advancedControlsSection.classList.add('hidden')
       indicator.textContent = '[Show]'
     }
 
     // Set the flag to true to prevent double initialization
     this.advancedControlsInitialized = true
-    console.log('UI DEBUG: Advanced Controls initialization complete')
+    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.advancedControlsInitComplete)
   }
 }
 
