@@ -8,11 +8,23 @@ import { eventBus } from './eventBus.js'
 import { stateManager } from './stateManager.js'
 import { storageFacade } from './facades/storageFacade.js'
 
-// Mock eventBus
+// Mock eventBus with functional implementation
+const mockEventListeners = new Map()
 vi.mock('./eventBus.js', () => ({
   eventBus: {
-    emit: vi.fn(),
-    on: vi.fn(), // Add mock for on method
+    emit: vi.fn((event, data) => {
+      // Actually call registered listeners
+      if (mockEventListeners.has(event)) {
+        mockEventListeners.get(event).forEach((callback) => callback(data))
+      }
+    }),
+    on: vi.fn((event, callback) => {
+      // Actually register listeners
+      if (!mockEventListeners.has(event)) {
+        mockEventListeners.set(event, [])
+      }
+      mockEventListeners.get(event).push(callback)
+    }),
   },
 }))
 
@@ -77,8 +89,8 @@ describe('StateManager', () => {
     storageFacade.loadState.mockReset()
     storageFacade.saveState.mockReset()
 
-    // Reset eventBus.on mock as listeners are set up in init
-    eventBus.on.mockReset()
+    // Clear mock event listeners but don't reset the mock functions
+    mockEventListeners.clear()
   })
 
   describe('initial state', () => {
@@ -206,6 +218,9 @@ describe('StateManager', () => {
       const mockItems = [createMockMediaItem('test1.jpg'), createMockMediaItem('test2.mp4')]
       stateManager.addMediaToPool(mockItems)
 
+      // Wait for event to be processed asynchronously
+      await new Promise((resolve) => setTimeout(resolve, 10))
+
       // Should have been called: once during addMediaToPool which triggers save
       expect(storageFacade.saveState).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -312,9 +327,12 @@ describe('StateManager', () => {
       expect(mediaPool).toHaveLength(1)
       expect(mediaPool[0].name).toBe('test2.mp4')
 
-      expect(eventBus.emit).toHaveBeenCalledWith('media.fileRemoved', {
-        id: itemToRemove.id,
-        name: itemToRemove.name,
+      expect(eventBus.emit).toHaveBeenCalledWith('state.mediaPoolUpdated', {
+        mediaPool: expect.any(Array),
+        removedItem: expect.objectContaining({
+          id: itemToRemove.id,
+          name: itemToRemove.name,
+        }),
         totalCount: 1,
       })
     })
@@ -335,7 +353,11 @@ describe('StateManager', () => {
       stateManager.clearMediaPool()
 
       expect(stateManager.getMediaPool()).toHaveLength(0)
-      expect(eventBus.emit).toHaveBeenCalledWith('media.poolCleared', { totalCount: 0 })
+      expect(eventBus.emit).toHaveBeenCalledWith('state.mediaPoolUpdated', {
+        mediaPool: expect.any(Array),
+        totalCount: 0,
+        cleared: true,
+      })
     })
   })
 
