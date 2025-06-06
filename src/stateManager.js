@@ -262,11 +262,7 @@ class StateManager {
         })),
         // Persist text pool
         textPool: this.state.textPool || [],
-        textPoolMetadata: {
-          size: (this.state.textPool || []).length,
-          maxSize: this.textPoolMaxSize,
-          lastModified: Date.now(),
-        },
+
         // Persist segment settings
         segmentSettings: this.state.segmentSettings,
         // Persist UI settings
@@ -701,6 +697,118 @@ class StateManager {
     if (this.state.textPool.length === 0) return null
     const randomIndex = Math.floor(Math.random() * this.state.textPool.length)
     return this.state.textPool[randomIndex]
+  }
+
+  /**
+   * Remove text from the text pool
+   * @param {string} text - Text to remove from the pool
+   * @returns {boolean} - True if text was removed, false if not found
+   */
+  removeText(text) {
+    const trimmedText = text.trim()
+    const index = this.state.textPool.indexOf(trimmedText)
+
+    if (index === -1) {
+      console.warn('Text not found in pool:', trimmedText)
+      return false
+    }
+
+    // Remove from array
+    this.state.textPool.splice(index, 1)
+
+    // Remove from index set
+    if (this.textPoolIndex) {
+      this.textPoolIndex.delete(trimmedText)
+    }
+
+    // Update statistics
+    this.textPoolStats.totalRemovals = (this.textPoolStats.totalRemovals || 0) + 1
+    this.updateAverageTextLength()
+
+    // Save state
+    this.saveCurrentState()
+
+    // Emit events
+    eventBus.emit('textPool.updated', {
+      action: 'removed',
+      text: trimmedText,
+      textPool: [...this.state.textPool],
+      poolSize: this.state.textPool.length,
+      timestamp: Date.now(),
+    })
+
+    eventBus.emit('textPool.sizeChanged', {
+      newSize: this.state.textPool.length,
+      previousSize: this.state.textPool.length + 1,
+      isAtLimit: false,
+    })
+
+    return true
+  }
+
+  /**
+   * Clear all text from the text pool
+   * @returns {boolean} - True if text pool was cleared, false if already empty
+   */
+  clearTextPool() {
+    if (this.state.textPool.length === 0) {
+      console.warn('Text pool is already empty')
+      return false
+    }
+
+    const previousSize = this.state.textPool.length
+    const clearedTexts = [...this.state.textPool] // Keep copy for potential undo
+
+    // Clear text pool array
+    this.state.textPool = []
+
+    // Clear text pool index
+    if (this.textPoolIndex) {
+      this.textPoolIndex.clear()
+    }
+
+    // Update statistics
+    this.textPoolStats.totalClears = (this.textPoolStats.totalClears || 0) + 1
+    this.textPoolStats.lastClearSize = previousSize
+    this.textPoolStats.lastClearTimestamp = Date.now()
+    this.updateAverageTextLength()
+
+    // Save state
+    this.saveCurrentState()
+
+    // Emit events
+    eventBus.emit('textPool.updated', {
+      action: 'cleared',
+      textPool: [],
+      poolSize: 0,
+      previousSize: previousSize,
+      clearedTexts: clearedTexts,
+      timestamp: Date.now(),
+    })
+
+    eventBus.emit('textPool.sizeChanged', {
+      newSize: 0,
+      previousSize: previousSize,
+      isAtLimit: false,
+    })
+
+    return true
+  }
+
+  /**
+   * Get enhanced text pool statistics including removal and clear operations
+   * @returns {Object} - Complete text pool statistics
+   */
+  getTextPoolStats() {
+    return {
+      ...this.textPoolStats,
+      totalEntries: this.state.textPool.length,
+      totalAdditions: this.textPoolStats.totalAdditions || 0,
+      totalRemovals: this.textPoolStats.totalRemovals || 0,
+      totalClears: this.textPoolStats.totalClears || 0,
+      lastClearSize: this.textPoolStats.lastClearSize || 0,
+      lastClearTimestamp: this.textPoolStats.lastClearTimestamp || null,
+    }
   }
 
   /**

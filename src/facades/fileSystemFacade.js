@@ -79,14 +79,6 @@ class FileSystemFacade {
   }
 
   /**
-   * Legacy method - defaults to file browsing for backward compatibility
-   * @returns {Promise<File[]>} - Promise resolving to array of File objects
-   */
-  async browse() {
-    return this.browseFiles()
-  }
-
-  /**
    * Browse files using FileSystemAccessAPI
    * @returns {Promise<File[]>} - Promise resolving to array of File objects
    */
