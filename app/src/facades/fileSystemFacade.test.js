@@ -55,7 +55,7 @@ describe('FileSystemFacade', () => {
     })
   })
 
-  describe('browse', () => {
+  describe('browseFiles', () => {
     it('should use FileSystemAccessAPI when available', async () => {
       const mockFiles = [new File(['content'], 'test.jpg', { type: SUPPORTED_IMAGE_MIMES[0] })]
 
@@ -68,7 +68,7 @@ describe('FileSystemFacade', () => {
 
       const facade = new FileSystemFacade()
 
-      const result = await facade.browse()
+      const result = await facade.browseFiles()
 
       expect(window.showOpenFilePicker).toHaveBeenCalledWith({
         multiple: true,
@@ -94,7 +94,7 @@ describe('FileSystemFacade', () => {
 
       const facade = new FileSystemFacade()
 
-      const result = await facade.browse()
+      const result = await facade.browseFiles()
 
       expect(result).toEqual([])
       expect(console.error).not.toHaveBeenCalled()
@@ -117,7 +117,7 @@ describe('FileSystemFacade', () => {
       const mockFiles = [new File(['content'], 'test.jpg', { type: SUPPORTED_IMAGE_MIMES[0] })]
       vi.spyOn(facade, 'browseWithInput').mockResolvedValue(mockFiles)
 
-      const result = await facade.browse()
+      const result = await facade.browseFiles()
 
       expect(result).toEqual(mockFiles)
       expect(toastManager.show).toHaveBeenCalledWith(
@@ -136,7 +136,7 @@ describe('FileSystemFacade', () => {
       const mockFiles = [new File(['content'], 'test.jpg', { type: SUPPORTED_IMAGE_MIMES[0] })]
       vi.spyOn(facade, 'browseWithInput').mockResolvedValue(mockFiles)
 
-      const result = await facade.browse()
+      const result = await facade.browseFiles()
 
       expect(facade.browseWithInput).toHaveBeenCalled()
       expect(result).toEqual(mockFiles)

@@ -46,6 +46,8 @@ class UIManager {
     this.addTextBtn = null
     this.textPoolDisplay = null
     this.textPoolEmpty = null
+    this.clearTextBtn = null
+    this.textPoolFooter = null
     this.textPillElements = new Map() // Track text pill DOM elements
 
     // Idle/Active state management properties
@@ -86,6 +88,8 @@ class UIManager {
     this.addTextBtn = document.getElementById('add-text-btn')
     this.textPoolDisplay = document.getElementById('text-pool-display')
     this.textPoolEmpty = document.getElementById('text-pool-empty')
+    this.clearTextBtn = document.getElementById('clear-text-btn')
+    this.textPoolFooter = document.querySelector('.text-pool-footer')
 
     if (
       !this.stage ||
@@ -109,7 +113,9 @@ class UIManager {
       !this.textInput ||
       !this.addTextBtn ||
       !this.textPoolDisplay ||
-      !this.textPoolEmpty
+      !this.textPoolEmpty ||
+      !this.clearTextBtn ||
+      !this.textPoolFooter
     ) {
       console.error(STRINGS.SYSTEM_MESSAGES.uiManager.requiredElementsNotFound)
       return
@@ -121,6 +127,7 @@ class UIManager {
     this.setupAdvancedControlsListeners()
     this.setupTextPoolListeners()
     this.setupActivityDetection()
+    this.updateDOMStrings()
   }
 
   /**
@@ -146,11 +153,6 @@ class UIManager {
    * Set up event bus listeners for inter-module communication
    */
   setupEventBusListeners() {
-    // Legacy events for backward compatibility
-    eventBus.on('media.filesAdded', this.handleMediaFilesAdded.bind(this))
-    eventBus.on('media.fileRemoved', this.handleMediaFileRemoved.bind(this))
-    eventBus.on('media.poolCleared', this.handleMediaPoolCleared.bind(this))
-
     // New StateManager events
     eventBus.on('state.mediaPoolUpdated', this.handleMediaPoolStateUpdate.bind(this))
     eventBus.on('state.mediaPoolRestored', this.handleMediaPoolRestored.bind(this))
@@ -339,30 +341,6 @@ class UIManager {
     this.stage.classList.remove('drag-over')
     this.leftDrawer.classList.remove('drag-over')
     this.dropIndicator.classList.add('hidden')
-  }
-
-  /**
-   * Handle media files being added
-   */
-  handleMediaFilesAdded() {
-    this.updateMediaPoolDisplay()
-    this.updateWelcomeMessageVisibility()
-  }
-
-  /**
-   * Handle media file being removed
-   */
-  handleMediaFileRemoved() {
-    this.updateMediaPoolDisplay()
-    this.updateWelcomeMessageVisibility()
-  }
-
-  /**
-   * Handle media pool being cleared
-   */
-  handleMediaPoolCleared() {
-    this.updateMediaPoolDisplay()
-    this.updateWelcomeMessageVisibility()
   }
 
   /**
@@ -735,6 +713,11 @@ class UIManager {
     if (dropMessageEl) {
       dropMessageEl.textContent = STRINGS.USER_INTERFACE.dropZone.message
     }
+
+    // Update text pool button texts
+    if (this.clearTextBtn) {
+      this.clearTextBtn.textContent = STRINGS.USER_INTERFACE.textPool.clearAllButton
+    }
   }
 
   /**
@@ -961,6 +944,9 @@ class UIManager {
       }
     })
 
+    // Clear all button click
+    this.clearTextBtn.addEventListener('click', () => this.handleClearAll())
+
     // Initialize text pool display with existing data
     this.initializeTextPoolDisplay()
   }
@@ -1001,10 +987,22 @@ class UIManager {
    * @param {Object} event - Text pool update event data
    */
   handleTextPoolUpdate(event) {
-    const { textPool } = event
+    const { action, text, textPool } = event
 
-    // Always do a full re-render to ensure consistency, especially with duplicates
-    this.renderTextPoolDisplay(textPool)
+    switch (action) {
+      case 'added':
+        this.addTextPill(text)
+        break
+      case 'removed':
+        this.removeTextPill(text)
+        break
+      case 'cleared':
+        this.clearTextPoolDisplay()
+        break
+      default:
+        // Fall back to full re-render for unknown actions
+        this.renderTextPoolDisplay(textPool)
+    }
   }
 
   /**
@@ -1013,6 +1011,8 @@ class UIManager {
    */
   handleTextPoolSizeChange(event) {
     const { newSize } = event
+
+    this.updateClearAllVisibility(newSize)
 
     if (newSize === 0) {
       this.showEmptyState()
@@ -1029,6 +1029,8 @@ class UIManager {
     // Clear existing display
     this.textPoolDisplay.innerHTML = ''
     this.textPillElements.clear()
+
+    this.updateClearAllVisibility(textPool.length)
 
     if (textPool.length === 0) {
       this.showEmptyState()
@@ -1065,10 +1067,35 @@ class UIManager {
     content.className = 'text-pill-content'
     content.textContent = text
 
+    // Create delete button
+    const deleteBtn = document.createElement('button')
+    deleteBtn.className = 'delete-text-btn'
+    deleteBtn.innerHTML = '×'
+    deleteBtn.title = STRINGS.USER_INTERFACE.textPool.deleteButtonTitle
+    deleteBtn.setAttribute(
+      'aria-label',
+      t.get('USER_INTERFACE.textPool.deleteButtonAriaLabel', { text })
+    )
+
+    // Add delete button click handler
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation() // Prevent pill click event
+      this.handleRemoveText(text)
+    })
+
+    // Add keyboard support for delete button
+    deleteBtn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        deleteBtn.click()
+      }
+    })
+
     pill.appendChild(content)
+    pill.appendChild(deleteBtn)
 
     // Add click handler for text expansion (if needed)
-    pill.addEventListener('click', () => {
+    content.addEventListener('click', () => {
       content.classList.toggle('expanded')
     })
 
@@ -1087,9 +1114,16 @@ class UIManager {
   addTextPill(text) {
     this.hideEmptyState()
 
+    // Get current text pool to determine the correct index
+    const textPool = stateManager.getTextPool()
+    const index = textPool.length - 1 // New text is at the end
+
     // Create pill for new text (duplicates are allowed)
-    const pill = this.createTextPill(text)
+    const pill = this.createTextPill(text, index)
     this.textPoolDisplay.appendChild(pill)
+
+    // Add to tracking Map with correct index
+    this.textPillElements.set(index, pill)
 
     // Scroll to bottom to show new pill
     this.textPoolDisplay.parentElement.scrollTop = this.textPoolDisplay.parentElement.scrollHeight
@@ -1100,22 +1134,56 @@ class UIManager {
    * @param {string} text - Text to remove
    */
   removeTextPill(text) {
-    const pill = this.textPillElements.get(text)
-    if (!pill) return
+    // Find the first pill with matching text in tracked elements
+    let pillToRemove = null
+    let indexToRemove = null
 
-    // Add leaving animation
-    pill.classList.add('leaving')
+    for (const [index, pill] of this.textPillElements.entries()) {
+      if (pill.dataset.text === text) {
+        pillToRemove = pill
+        indexToRemove = index
+        break
+      }
+    }
+
+    // Fallback: search in DOM if not found in tracked elements
+    if (!pillToRemove) {
+      const domPills = this.textPoolDisplay.querySelectorAll('.text-pill')
+      for (const pill of domPills) {
+        if (pill.dataset.text === text) {
+          pillToRemove = pill
+          break
+        }
+      }
+    }
+
+    if (!pillToRemove) return
+
+    // Add delete button animation if it exists
+    const deleteBtn = pillToRemove.querySelector('.delete-text-btn')
+    if (deleteBtn) {
+      deleteBtn.classList.add('deleting')
+    }
+
+    // Add leaving animation to pill
+    pillToRemove.classList.add('leaving')
 
     // Remove from DOM after animation
     setTimeout(() => {
-      if (pill.parentElement) {
-        pill.parentElement.removeChild(pill)
+      if (pillToRemove.parentElement) {
+        pillToRemove.parentElement.removeChild(pillToRemove)
       }
-      this.textPillElements.delete(text)
 
-      // Check if we should show empty state
-      if (this.textPillElements.size === 0) {
+      // Remove from tracking Map if it was tracked
+      if (indexToRemove !== null) {
+        this.textPillElements.delete(indexToRemove)
+      }
+
+      // Check if we should show empty state by counting remaining pills
+      const remainingPills = this.textPoolDisplay.querySelectorAll('.text-pill').length
+      if (remainingPills === 0) {
         this.showEmptyState()
+        this.updateClearAllVisibility(0)
       }
     }, 200)
   }
@@ -1124,17 +1192,93 @@ class UIManager {
    * Clear all text pills from the display
    */
   clearTextPoolDisplay() {
-    // Add leaving animation to all pills
-    this.textPillElements.forEach((pill) => {
-      pill.classList.add('leaving')
+    const pills = Array.from(this.textPillElements.values())
+
+    if (pills.length === 0) {
+      this.showEmptyState()
+      this.updateClearAllVisibility(0)
+      return
+    }
+
+    // Add staggered leaving animations
+    pills.forEach((pill, index) => {
+      setTimeout(() => {
+        pill.classList.add('leaving')
+      }, index * 50) // 50ms stagger between pills
     })
 
-    // Clear after animation
+    // Clear DOM after all animations complete
+    const totalAnimationTime = pills.length * 50 + 200 // Animation duration
     setTimeout(() => {
       this.textPoolDisplay.innerHTML = ''
       this.textPillElements.clear()
       this.showEmptyState()
-    }, 200)
+      this.updateClearAllVisibility(0)
+    }, totalAnimationTime)
+  }
+
+  /**
+   * Handle individual text removal
+   * @param {string} text - Text to remove
+   */
+  handleRemoveText(text) {
+    if (stateManager.removeText(text)) {
+      // Success - state manager will emit events that trigger UI updates
+      const truncatedText = text.substring(0, 30) + (text.length > 30 ? '...' : '')
+      toastManager.show(
+        t.get('USER_MESSAGES.notifications.textPool.textRemoved', { text: truncatedText }),
+        { type: 'info' }
+      )
+    } else {
+      // Error handling
+      toastManager.error(STRINGS.USER_MESSAGES.notifications.textPool.textRemovalFailed)
+    }
+  }
+
+  /**
+   * Handle clear all text pool operation
+   */
+  handleClearAll() {
+    const textPoolSize = stateManager.getTextPoolSize()
+
+    if (textPoolSize === 0) {
+      toastManager.show(STRINGS.USER_MESSAGES.notifications.textPool.poolAlreadyEmpty, {
+        type: 'info',
+      })
+      return
+    }
+
+    // Show confirmation dialog for larger pools
+    if (textPoolSize > 5) {
+      const confirmed = window.confirm(
+        t.get('USER_MESSAGES.notifications.textPool.confirmClearAll', { count: textPoolSize })
+      )
+      if (!confirmed) {
+        return
+      }
+    }
+
+    if (stateManager.clearTextPool()) {
+      toastManager.success(
+        t.get('USER_MESSAGES.notifications.textPool.poolCleared', { count: textPoolSize })
+      )
+    } else {
+      toastManager.error(STRINGS.USER_MESSAGES.notifications.textPool.poolClearFailed)
+    }
+  }
+
+  /**
+   * Update clear all button visibility based on pool size
+   * @param {number} poolSize - Current text pool size
+   */
+  updateClearAllVisibility(poolSize) {
+    if (poolSize > 0) {
+      this.clearTextBtn.style.display = 'block'
+      this.textPoolFooter.classList.remove('hidden')
+    } else {
+      this.clearTextBtn.style.display = 'none'
+      this.textPoolFooter.classList.add('hidden')
+    }
   }
 
   /**

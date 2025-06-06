@@ -213,4 +213,174 @@ describe('StateManager - Text Pool', () => {
       expect(stateManager.getTextPoolSize()).toBe(5)
     })
   })
+
+  describe('removeText', () => {
+    it('should remove existing text from the pool', () => {
+      stateManager.addText('Test message 1')
+      stateManager.addText('Test message 2')
+
+      const result = stateManager.removeText('Test message 1')
+
+      expect(result).toBe(true)
+      expect(stateManager.getTextPool()).toEqual(['Test message 2'])
+      expect(stateManager.getTextPoolSize()).toBe(1)
+    })
+
+    it('should return false for non-existing text', () => {
+      stateManager.addText('Test message')
+
+      const result = stateManager.removeText('Non-existing message')
+
+      expect(result).toBe(false)
+      expect(stateManager.getTextPool()).toEqual(['Test message'])
+    })
+
+    it('should emit textPool.updated event with removed action', () => {
+      const eventSpy = vi.fn()
+      eventBus.on('textPool.updated', eventSpy)
+
+      stateManager.addText('Test message')
+      eventSpy.mockClear() // Clear the add event
+
+      stateManager.removeText('Test message')
+
+      expect(eventSpy).toHaveBeenCalledWith({
+        action: 'removed',
+        text: 'Test message',
+        textPool: [],
+        poolSize: 0,
+        timestamp: expect.any(Number),
+      })
+    })
+
+    it('should emit textPool.sizeChanged event', () => {
+      const eventSpy = vi.fn()
+      eventBus.on('textPool.sizeChanged', eventSpy)
+
+      stateManager.addText('Test message')
+      eventSpy.mockClear() // Clear the add event
+
+      stateManager.removeText('Test message')
+
+      expect(eventSpy).toHaveBeenCalledWith({
+        newSize: 0,
+        previousSize: 1,
+        isAtLimit: false,
+      })
+    })
+
+    it('should handle whitespace when removing text', () => {
+      stateManager.addText('Test message')
+
+      const result = stateManager.removeText('  Test message  ')
+
+      expect(result).toBe(true)
+      expect(stateManager.getTextPoolSize()).toBe(0)
+    })
+
+    it('should remove only the first occurrence of duplicate text', () => {
+      stateManager.addText('Duplicate')
+      stateManager.addText('Duplicate')
+      stateManager.addText('Unique')
+
+      const result = stateManager.removeText('Duplicate')
+
+      expect(result).toBe(true)
+      expect(stateManager.getTextPool()).toEqual(['Duplicate', 'Unique'])
+      expect(stateManager.getTextPoolSize()).toBe(2)
+    })
+  })
+
+  describe('clearTextPool', () => {
+    it('should clear all text from the pool', () => {
+      stateManager.addText('Message 1')
+      stateManager.addText('Message 2')
+      stateManager.addText('Message 3')
+
+      const result = stateManager.clearTextPool()
+
+      expect(result).toBe(true)
+      expect(stateManager.getTextPool()).toEqual([])
+      expect(stateManager.getTextPoolSize()).toBe(0)
+    })
+
+    it('should return false if pool is already empty', () => {
+      const result = stateManager.clearTextPool()
+
+      expect(result).toBe(false)
+    })
+
+    it('should emit textPool.updated event with cleared action', () => {
+      const eventSpy = vi.fn()
+      eventBus.on('textPool.updated', eventSpy)
+
+      stateManager.addText('Message 1')
+      stateManager.addText('Message 2')
+      eventSpy.mockClear() // Clear the add events
+
+      stateManager.clearTextPool()
+
+      expect(eventSpy).toHaveBeenCalledWith({
+        action: 'cleared',
+        textPool: [],
+        poolSize: 0,
+        previousSize: 2,
+        clearedTexts: ['Message 1', 'Message 2'],
+        timestamp: expect.any(Number),
+      })
+    })
+
+    it('should emit textPool.sizeChanged event', () => {
+      const eventSpy = vi.fn()
+      eventBus.on('textPool.sizeChanged', eventSpy)
+
+      stateManager.addText('Message 1')
+      stateManager.addText('Message 2')
+      eventSpy.mockClear() // Clear the add events
+
+      stateManager.clearTextPool()
+
+      expect(eventSpy).toHaveBeenCalledWith({
+        newSize: 0,
+        previousSize: 2,
+        isAtLimit: false,
+      })
+    })
+
+    it('should update statistics for clear operations', () => {
+      stateManager.addText('Message 1')
+      stateManager.addText('Message 2')
+
+      const statsBefore = stateManager.getTextPoolStats()
+      stateManager.clearTextPool()
+      const statsAfter = stateManager.getTextPoolStats()
+
+      expect(statsAfter.totalClears).toBe((statsBefore.totalClears || 0) + 1)
+      expect(statsAfter.lastClearSize).toBe(2)
+      expect(statsAfter.lastClearTimestamp).toBeGreaterThan(0)
+    })
+  })
+
+  describe('getTextPoolStats', () => {
+    it('should include removal and clear statistics', () => {
+      stateManager.addText('Message 1')
+      stateManager.addText('Message 2')
+      stateManager.removeText('Message 1')
+      stateManager.clearTextPool()
+
+      const stats = stateManager.getTextPoolStats()
+
+      expect(stats).toMatchObject({
+        totalEntries: 0,
+        totalAdditions: expect.any(Number),
+        totalRemovals: expect.any(Number),
+        totalClears: expect.any(Number),
+        lastClearSize: 1,
+        lastClearTimestamp: expect.any(Number),
+      })
+
+      expect(stats.totalRemovals).toBeGreaterThan(0)
+      expect(stats.totalClears).toBeGreaterThan(0)
+    })
+  })
 })

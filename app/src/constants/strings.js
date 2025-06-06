@@ -95,6 +95,9 @@ export const STRINGS = {
       inputPlaceholder: 'Add a message...',
       addButtonTitle: 'Add text',
       emptyMessage: 'No messages added yet',
+      clearAllButton: 'Clear all',
+      deleteButtonTitle: 'Remove this text',
+      deleteButtonAriaLabel: 'Remove text: {{text}}',
     },
   },
 
@@ -141,6 +144,12 @@ export const STRINGS = {
         textAdded: 'Text message added to pool',
         emptyInputWarning: 'Please enter a message',
         tooLongWarning: 'Message too long (max 200 characters)',
+        textRemoved: 'Removed: "{{text}}"',
+        textRemovalFailed: 'Failed to remove text',
+        poolAlreadyEmpty: 'Text pool is already empty',
+        poolCleared: 'Cleared {{count}} text message{{plural}}',
+        poolClearFailed: 'Failed to clear text pool',
+        confirmClearAll: 'Are you sure you want to clear all {{count}} text message{{plural}}?',
       },
     },
 

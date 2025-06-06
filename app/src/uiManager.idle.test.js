@@ -44,6 +44,11 @@ vi.mock('./stateManager.js', () => ({
       advancedControlsVisible: false,
     })),
     updateSegmentSettings: vi.fn(),
+    getTextPool: vi.fn(() => []),
+    getTextPoolSize: vi.fn(() => 0),
+    addText: vi.fn(),
+    removeText: vi.fn(),
+    clearTextPool: vi.fn(),
   },
 }))
 
@@ -129,6 +134,11 @@ vi.mock('./constants/strings.js', () => ({
       dropZone: {
         message: 'Drop files here',
       },
+      textPool: {
+        clearAllButton: 'Clear all',
+        deleteButtonTitle: 'Remove this text',
+        deleteButtonAriaLabel: 'Remove text: {{text}}',
+      },
     },
   },
   t: {
@@ -169,6 +179,17 @@ describe('UIManager - Idle State Management', () => {
             <input id="skip-start-input" type="number" min="0" max="30" value="0">
             <input id="skip-end-slider" type="range" min="0" max="30" value="0">
             <input id="skip-end-input" type="number" min="0" max="30" value="0">
+          </div>
+          <div class="text-pool-section">
+            <div class="text-pool-input">
+              <input id="text-input" type="text" placeholder="Add a message...">
+              <button id="add-text-btn">Add</button>
+            </div>
+            <div id="text-pool-display"></div>
+            <div id="text-pool-empty" class="hidden">No messages added yet</div>
+            <div class="text-pool-footer">
+              <button id="clear-text-btn" class="clear-all-btn" style="display: none;">Clear all</button>
+            </div>
           </div>
         </div>
         <div id="drop-indicator" class="hidden">

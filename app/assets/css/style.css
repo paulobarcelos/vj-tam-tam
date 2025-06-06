@@ -637,6 +637,7 @@ body {
   max-width: 100%;
   word-break: break-word;
   position: relative;
+  margin: 0.2rem 0.3rem 0.2rem 0; /* Extra margin for delete button */
 }
 
 .text-pill:hover {
@@ -660,11 +661,112 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 180px; /* Prevent pills from becoming too wide */
+  padding-right: 0.5rem; /* Space for delete button */
 }
 
 .text-pill-content.expanded {
   white-space: normal;
   word-wrap: break-word;
+}
+
+/* Delete Button Styling */
+.delete-text-btn {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  background-color: #ff4444;
+  border: 2px solid #000;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: bold;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  line-height: 1;
+}
+
+.delete-text-btn:hover {
+  background-color: #cc0000;
+  transform: scale(1.1);
+}
+
+.delete-text-btn:focus {
+  outline: 2px solid #007acc;
+  outline-offset: 2px;
+  opacity: 1;
+}
+
+/* Show delete button on pill hover */
+.text-pill:hover .delete-text-btn {
+  opacity: 1;
+}
+
+/* Accessibility improvements */
+.text-pill:focus-within .delete-text-btn {
+  opacity: 1;
+}
+
+/* Delete button animations */
+.delete-text-btn.deleting {
+  animation: delete-btn-press 0.1s ease-in-out;
+}
+
+@keyframes delete-btn-press {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+/* Text Pool Footer */
+.text-pool-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.5rem 0 0 0;
+  border-top: 1px solid #333;
+  margin-top: 0.5rem;
+}
+
+.clear-all-btn {
+  background: none;
+  border: none;
+  color: #999;
+  font-family: Arial, sans-serif;
+  font-size: 0.75rem;
+  font-weight: normal;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+}
+
+.clear-all-btn:hover {
+  color: #fff;
+  text-decoration: none;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.clear-all-btn:focus {
+  outline: 2px solid #007acc;
+  outline-offset: 2px;
+  color: #fff;
+}
+
+.clear-all-btn:active {
+  background-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(1px);
+}
+
+/* Hide footer when text pool is empty */
+.text-pool-footer.hidden {
+  display: none;
 }
 
 /* Empty State Styling */
@@ -731,5 +833,26 @@ body {
   
   .text-pill-content {
     max-width: 120px;
+    padding-right: 1rem;
+  }
+  
+  .delete-text-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 0.9rem;
+    top: -8px;
+    right: -8px;
+  }
+  
+  .clear-all-btn {
+    font-size: 0.8rem;
+    padding: 0.5rem;
+  }
+}
+
+/* Touch device support */
+@media (hover: none) {
+  .delete-text-btn {
+    opacity: 0.7; /* Always visible on touch devices */
   }
 }

@@ -279,7 +279,7 @@ class PlaybackEngine {
           video._segmentState.seekTarget = segmentParams.startPoint
           video._segmentState.seekAttempts = 0
 
-          // Store segment parameters on video element (for backward compatibility)
+          // Store segment parameters on video element
           video._segmentParams = segmentParams
 
           // Log video segment information for debugging
