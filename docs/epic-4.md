@@ -26,7 +26,7 @@ _Goal: Implement the text input, pool management, and random display logic, allo
     - **AC 5.3:** Clearing all text strings updates the displayed list to be empty (as per AC 3.4).
 6.  **Story:** As the Application, I want to randomly select a text string from the pool and display it on the screen periodically during playback so that custom messages appear over the visuals.
     - **AC 6.1:** Given playback is active and the text pool is not empty, the application periodically selects a random text string from the pool for display.
-    - **AC 6.2:** The selection and display of text strings occur independently of the media segment transitions.
+    - **AC 6.2:** The selection and display of text strings are synchronized with media segment transitions. Text overlays can only appear, disappear, or change at the moment of media segment transitions, never mid-segment. However, text can persist across multiple consecutive segments.
     - **AC 6.3:** When a text string is selected, it is displayed on the screen for a specific duration (e.g., 3-5 seconds).
     - **AC 6.4:** After the display duration, the text string fades out or is immediately hidden.
     - **AC 6.5:** The frequency with which new text strings are selected and displayed is controllable (see Story 7).
