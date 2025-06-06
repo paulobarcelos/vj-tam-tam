@@ -42,6 +42,9 @@ async function init() {
     console.log(STRINGS.SYSTEM_MESSAGES.application.advancedControlsInitializing)
     uiManager.initializeAdvancedControlsFromRestoredState()
 
+    // Initialize Text Pool display after state is fully restored
+    uiManager.initializeTextPoolDisplay()
+
     console.log(STRINGS.SYSTEM_MESSAGES.application.initializationComplete)
     console.log(
       t.get('SYSTEM_MESSAGES.application.initializationSuccess', {

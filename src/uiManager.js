@@ -41,6 +41,13 @@ class UIManager {
     this.skipEndInput = null
     this.advancedControlsInitialized = false // Flag to prevent double initialization
 
+    // Text pool elements
+    this.textInput = null
+    this.addTextBtn = null
+    this.textPoolDisplay = null
+    this.textPoolEmpty = null
+    this.textPillElements = new Map() // Track text pill DOM elements
+
     // Idle/Active state management properties
     this.isUIIdle = false
     this.idleTimer = null
@@ -74,6 +81,12 @@ class UIManager {
     this.skipEndSlider = document.getElementById('skip-end-slider')
     this.skipEndInput = document.getElementById('skip-end-input')
 
+    // Text pool elements
+    this.textInput = document.getElementById('text-input')
+    this.addTextBtn = document.getElementById('add-text-btn')
+    this.textPoolDisplay = document.getElementById('text-pool-display')
+    this.textPoolEmpty = document.getElementById('text-pool-empty')
+
     if (
       !this.stage ||
       !this.leftDrawer ||
@@ -92,7 +105,11 @@ class UIManager {
       !this.skipStartSlider ||
       !this.skipStartInput ||
       !this.skipEndSlider ||
-      !this.skipEndInput
+      !this.skipEndInput ||
+      !this.textInput ||
+      !this.addTextBtn ||
+      !this.textPoolDisplay ||
+      !this.textPoolEmpty
     ) {
       console.error(STRINGS.SYSTEM_MESSAGES.uiManager.requiredElementsNotFound)
       return
@@ -102,6 +119,7 @@ class UIManager {
     this.setupEventBusListeners()
     this.setupFilePickerListeners()
     this.setupAdvancedControlsListeners()
+    this.setupTextPoolListeners()
     this.setupActivityDetection()
   }
 
@@ -142,6 +160,10 @@ class UIManager {
 
     // Listen for UI settings updates
     eventBus.on('state.uiSettingsUpdated', this.handleUISettingsUpdate.bind(this))
+
+    // Listen for text pool updates
+    eventBus.on('textPool.updated', this.handleTextPoolUpdate.bind(this))
+    eventBus.on('textPool.sizeChanged', this.handleTextPoolSizeChange.bind(this))
   }
 
   /**
@@ -920,6 +942,220 @@ class UIManager {
       indicator.textContent = '[Show]'
     }
   }
+
+  // ============================================================================
+  // TEXT POOL MANAGEMENT METHODS
+  // ============================================================================
+
+  /**
+   * Set up text pool event listeners
+   */
+  setupTextPoolListeners() {
+    // Add button click
+    this.addTextBtn.addEventListener('click', () => this.handleAddText())
+
+    // Enter key submission
+    this.textInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        this.handleAddText()
+      }
+    })
+
+    // Initialize text pool display with existing data
+    this.initializeTextPoolDisplay()
+  }
+
+  /**
+   * Initialize text pool display with existing data from state
+   */
+  initializeTextPoolDisplay() {
+    const textPool = stateManager.getTextPool()
+    this.renderTextPoolDisplay(textPool)
+  }
+
+  /**
+   * Handle adding text to the pool
+   */
+  handleAddText() {
+    const text = this.textInput.value.trim()
+
+    if (!text) {
+      toastManager.error(STRINGS.USER_MESSAGES.notifications.textPool.emptyInputWarning)
+      return
+    }
+
+    if (text.length > 200) {
+      toastManager.error(STRINGS.USER_MESSAGES.notifications.textPool.tooLongWarning)
+      return
+    }
+
+    if (stateManager.addText(text)) {
+      this.textInput.value = ''
+      this.textInput.focus() // Keep focus for continuous entry
+      toastManager.success(STRINGS.USER_MESSAGES.notifications.textPool.textAdded)
+    }
+  }
+
+  /**
+   * Handle text pool update events
+   * @param {Object} event - Text pool update event data
+   */
+  handleTextPoolUpdate(event) {
+    const { textPool } = event
+
+    // Always do a full re-render to ensure consistency, especially with duplicates
+    this.renderTextPoolDisplay(textPool)
+  }
+
+  /**
+   * Handle text pool size change events
+   * @param {Object} event - Size change event data
+   */
+  handleTextPoolSizeChange(event) {
+    const { newSize } = event
+
+    if (newSize === 0) {
+      this.showEmptyState()
+    } else {
+      this.hideEmptyState()
+    }
+  }
+
+  /**
+   * Render the complete text pool display
+   * @param {string[]} textPool - Array of text strings
+   */
+  renderTextPoolDisplay(textPool) {
+    // Clear existing display
+    this.textPoolDisplay.innerHTML = ''
+    this.textPillElements.clear()
+
+    if (textPool.length === 0) {
+      this.showEmptyState()
+      return
+    }
+
+    this.hideEmptyState()
+
+    // Render text pills - each entry gets its own pill (including duplicates)
+    textPool.forEach((text, index) => {
+      const pill = this.createTextPill(text, index)
+      this.textPoolDisplay.appendChild(pill)
+      // Use index as key to allow duplicates
+      this.textPillElements.set(index, pill)
+    })
+  }
+
+  /**
+   * Create a text pill element
+   * @param {string} text - Text content
+   * @param {number} index - Index in the text pool (optional, for unique identification)
+   * @returns {HTMLElement} - Text pill element
+   */
+  createTextPill(text, index = null) {
+    const pill = document.createElement('div')
+    pill.className = 'text-pill entering'
+    pill.dataset.text = text
+    pill.title = text // Full text on hover for truncated content
+    if (index !== null) {
+      pill.dataset.index = index
+    }
+
+    const content = document.createElement('span')
+    content.className = 'text-pill-content'
+    content.textContent = text
+
+    pill.appendChild(content)
+
+    // Add click handler for text expansion (if needed)
+    pill.addEventListener('click', () => {
+      content.classList.toggle('expanded')
+    })
+
+    // Remove entering animation class after animation completes
+    setTimeout(() => {
+      pill.classList.remove('entering')
+    }, 300)
+
+    return pill
+  }
+
+  /**
+   * Add a new text pill to the display
+   * @param {string} text - Text to add
+   */
+  addTextPill(text) {
+    this.hideEmptyState()
+
+    // Create pill for new text (duplicates are allowed)
+    const pill = this.createTextPill(text)
+    this.textPoolDisplay.appendChild(pill)
+
+    // Scroll to bottom to show new pill
+    this.textPoolDisplay.parentElement.scrollTop = this.textPoolDisplay.parentElement.scrollHeight
+  }
+
+  /**
+   * Remove a text pill from the display
+   * @param {string} text - Text to remove
+   */
+  removeTextPill(text) {
+    const pill = this.textPillElements.get(text)
+    if (!pill) return
+
+    // Add leaving animation
+    pill.classList.add('leaving')
+
+    // Remove from DOM after animation
+    setTimeout(() => {
+      if (pill.parentElement) {
+        pill.parentElement.removeChild(pill)
+      }
+      this.textPillElements.delete(text)
+
+      // Check if we should show empty state
+      if (this.textPillElements.size === 0) {
+        this.showEmptyState()
+      }
+    }, 200)
+  }
+
+  /**
+   * Clear all text pills from the display
+   */
+  clearTextPoolDisplay() {
+    // Add leaving animation to all pills
+    this.textPillElements.forEach((pill) => {
+      pill.classList.add('leaving')
+    })
+
+    // Clear after animation
+    setTimeout(() => {
+      this.textPoolDisplay.innerHTML = ''
+      this.textPillElements.clear()
+      this.showEmptyState()
+    }, 200)
+  }
+
+  /**
+   * Show the empty state message
+   */
+  showEmptyState() {
+    this.textPoolEmpty.style.display = 'block'
+    this.textPoolDisplay.style.display = 'none'
+  }
+
+  /**
+   * Hide the empty state message
+   */
+  hideEmptyState() {
+    this.textPoolEmpty.style.display = 'none'
+    this.textPoolDisplay.style.display = 'flex'
+  }
+
+  // ============================================================================
+  // ADVANCED CONTROLS MANAGEMENT METHODS
+  // ============================================================================
 
   /**
    * Initialize Advanced Controls from restored state
