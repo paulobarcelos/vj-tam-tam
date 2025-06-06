@@ -184,6 +184,14 @@ class PlaybackEngine {
 
       // Handle image load success - schedule cycling transition if cycling is active
       img.addEventListener('load', () => {
+        // Log image display information for debugging
+        console.log(
+          t.get('SYSTEM_MESSAGES.playbackEngine.imageSegmentDebug', {
+            fileName: mediaItem.name,
+            displayDuration: segmentDuration ? segmentDuration.toFixed(2) : '0.00',
+          })
+        )
+
         if (this.isCyclingActive) {
           this.scheduleImageTransition(segmentDuration)
         }
@@ -273,6 +281,19 @@ class PlaybackEngine {
 
           // Store segment parameters on video element (for backward compatibility)
           video._segmentParams = segmentParams
+
+          // Log video segment information for debugging
+          console.log(
+            t.get('SYSTEM_MESSAGES.playbackEngine.videoSegmentDebug', {
+              fileName: mediaItem.name,
+              videoDuration: video.duration.toFixed(2),
+              segmentDuration: segmentParams.segmentDuration.toFixed(2),
+              startPoint: segmentParams.startPoint.toFixed(2),
+              endPoint: (segmentParams.startPoint + segmentParams.segmentDuration).toFixed(2),
+              coverage: ((segmentParams.segmentDuration / video.duration) * 100).toFixed(1),
+              fallback: segmentParams.fallbackUsed || 'none',
+            })
+          )
 
           // Seek to start point with retry mechanism
           this.seekToStartPoint(video, segmentParams.startPoint)

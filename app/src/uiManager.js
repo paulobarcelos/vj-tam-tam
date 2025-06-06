@@ -15,7 +15,7 @@ import {
   filterTemporaryMedia,
   filterUsableMedia,
 } from './utils/mediaUtils.js'
-import { formatFileSize } from './utils/stringUtils.js'
+import { formatFileSize, formatDuration } from './utils/stringUtils.js'
 
 class UIManager {
   constructor() {
@@ -35,6 +35,10 @@ class UIManager {
     this.minDurationInput = null
     this.maxDurationSlider = null
     this.maxDurationInput = null
+    this.skipStartSlider = null
+    this.skipStartInput = null
+    this.skipEndSlider = null
+    this.skipEndInput = null
     this.advancedControlsInitialized = false // Flag to prevent double initialization
   }
 
@@ -58,6 +62,10 @@ class UIManager {
     this.minDurationInput = document.getElementById('min-duration-input')
     this.maxDurationSlider = document.getElementById('max-duration-slider')
     this.maxDurationInput = document.getElementById('max-duration-input')
+    this.skipStartSlider = document.getElementById('skip-start-slider')
+    this.skipStartInput = document.getElementById('skip-start-input')
+    this.skipEndSlider = document.getElementById('skip-end-slider')
+    this.skipEndInput = document.getElementById('skip-end-input')
 
     if (
       !this.stage ||
@@ -73,7 +81,11 @@ class UIManager {
       !this.minDurationSlider ||
       !this.minDurationInput ||
       !this.maxDurationSlider ||
-      !this.maxDurationInput
+      !this.maxDurationInput ||
+      !this.skipStartSlider ||
+      !this.skipStartInput ||
+      !this.skipEndSlider ||
+      !this.skipEndInput
     ) {
       console.error(STRINGS.SYSTEM_MESSAGES.uiManager.requiredElementsNotFound)
       return
@@ -423,25 +435,43 @@ class UIManager {
       const nameElement = document.createElement('div')
       nameElement.className = 'media-name'
       nameElement.textContent = item.name
+      nameElement.title = item.name // Show full name on hover
 
       const typeElement = document.createElement('div')
       typeElement.className = 'media-type'
+
+      // Helper function to format type info with optional duration
+      const formatTypeInfo = (type, size, status = null) => {
+        let info = `${type} • ${formatFileSize(size)}`
+
+        // Add duration for video files
+        if (item.type === 'video' && item.duration) {
+          info += ` • ${formatDuration(item.duration)}`
+        }
+
+        // Add status if provided
+        if (status) {
+          info += ` • ${status}`
+        }
+
+        return info
+      }
 
       // Differentiate between different types of metadata-only files
       if (!item.file || !item.url) {
         if (item.fromFileSystemAPI) {
           // File from FileSystemAccessAPI that can be restored
-          typeElement.textContent = t.fileType(
+          typeElement.textContent = formatTypeInfo(
             item.type,
-            formatFileSize(item.size),
+            item.size,
             STRINGS.USER_INTERFACE.fileStatus.needsPermission
           )
           mediaElement.classList.add('needs-permission')
         } else {
           // File from drag & drop - truly metadata-only
-          typeElement.textContent = t.fileType(
+          typeElement.textContent = formatTypeInfo(
             item.type,
-            formatFileSize(item.size),
+            item.size,
             STRINGS.USER_INTERFACE.fileStatus.metadataOnly
           )
           mediaElement.classList.add('metadata-only')
@@ -450,12 +480,12 @@ class UIManager {
         // File with full access - check if it's temporary or persistent
         if (item.fromFileSystemAPI) {
           // Persistent file from FileSystemAccessAPI
-          typeElement.textContent = t.fileType(item.type, formatFileSize(item.size))
+          typeElement.textContent = formatTypeInfo(item.type, item.size)
         } else {
           // Temporary file from drag & drop
-          typeElement.textContent = t.fileType(
+          typeElement.textContent = formatTypeInfo(
             item.type,
-            formatFileSize(item.size),
+            item.size,
             STRINGS.USER_INTERFACE.fileStatus.temporary
           )
           mediaElement.classList.add('temporary-file')
@@ -712,6 +742,12 @@ class UIManager {
 
     // Sync slider and input values for maximum duration
     this.syncControls(this.maxDurationSlider, this.maxDurationInput)
+
+    // Sync slider and input values for skip start
+    this.syncControls(this.skipStartSlider, this.skipStartInput)
+
+    // Sync slider and input values for skip end
+    this.syncControls(this.skipEndSlider, this.skipEndInput)
   }
 
   /**
@@ -720,13 +756,18 @@ class UIManager {
    * @param {HTMLInputElement} input - Number input element
    */
   syncControls(slider, input) {
+    // Get validation range from the input element attributes
+    const min = parseFloat(input.getAttribute('min')) || 0
+    const max = parseFloat(input.getAttribute('max')) || 30
+    const defaultValue = min
+
     slider.addEventListener('input', () => {
       input.value = slider.value
       this.updateSegmentSettings()
     })
 
     input.addEventListener('input', () => {
-      const value = Math.max(1, Math.min(30, parseFloat(input.value) || 1))
+      const value = Math.max(min, Math.min(max, parseFloat(input.value) || defaultValue))
       input.value = value
       slider.value = value
       this.updateSegmentSettings()
@@ -755,6 +796,20 @@ class UIManager {
     this.maxDurationInput.value = settings.maxDuration
     this.maxDurationInput.setAttribute('value', settings.maxDuration)
 
+    // Set skip start controls (both property and attribute for proper DOM updates)
+    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.settingSkipStart, settings.skipStart)
+    this.skipStartSlider.value = settings.skipStart
+    this.skipStartSlider.setAttribute('value', settings.skipStart)
+    this.skipStartInput.value = settings.skipStart
+    this.skipStartInput.setAttribute('value', settings.skipStart)
+
+    // Set skip end controls (both property and attribute for proper DOM updates)
+    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.settingSkipEnd, settings.skipEnd)
+    this.skipEndSlider.value = settings.skipEnd
+    this.skipEndSlider.setAttribute('value', settings.skipEnd)
+    this.skipEndInput.value = settings.skipEnd
+    this.skipEndInput.setAttribute('value', settings.skipEnd)
+
     console.log(
       STRINGS.SYSTEM_MESSAGES.uiManager.finalDOMValues,
       this.minDurationSlider.value,
@@ -763,7 +818,15 @@ class UIManager {
       'maxSlider:',
       this.maxDurationSlider.value,
       'maxInput:',
-      this.maxDurationInput.value
+      this.maxDurationInput.value,
+      'skipStartSlider:',
+      this.skipStartSlider.value,
+      'skipStartInput:',
+      this.skipStartInput.value,
+      'skipEndSlider:',
+      this.skipEndSlider.value,
+      'skipEndInput:',
+      this.skipEndInput.value
     )
   }
 
@@ -773,6 +836,8 @@ class UIManager {
   updateSegmentSettings() {
     const minDuration = parseFloat(this.minDurationInput.value)
     const maxDuration = parseFloat(this.maxDurationInput.value)
+    const skipStart = parseFloat(this.skipStartInput.value)
+    const skipEnd = parseFloat(this.skipEndInput.value)
 
     // Enforce min/max relationship (AC 3.5)
     let adjustedMin = minDuration
@@ -790,10 +855,12 @@ class UIManager {
       this.minDurationInput.value = adjustedMin
     }
 
-    // Update state
+    // Update state with all segment settings
     stateManager.updateSegmentSettings({
       minDuration: adjustedMin,
       maxDuration: adjustedMax,
+      skipStart: Math.max(0, skipStart), // Ensure non-negative
+      skipEnd: Math.max(0, skipEnd), // Ensure non-negative
     })
   }
 
@@ -808,11 +875,15 @@ class UIManager {
     // Use proper float comparison with small tolerance for precision
     const currentMin = parseFloat(this.minDurationSlider.value)
     const currentMax = parseFloat(this.maxDurationSlider.value)
+    const currentSkipStart = parseFloat(this.skipStartSlider.value)
+    const currentSkipEnd = parseFloat(this.skipEndSlider.value)
     const tolerance = 0.01
 
     if (
       Math.abs(currentMin - settings.minDuration) > tolerance ||
-      Math.abs(currentMax - settings.maxDuration) > tolerance
+      Math.abs(currentMax - settings.maxDuration) > tolerance ||
+      Math.abs(currentSkipStart - settings.skipStart) > tolerance ||
+      Math.abs(currentSkipEnd - settings.skipEnd) > tolerance
     ) {
       this.updateSegmentControlsDOM(settings)
     }
