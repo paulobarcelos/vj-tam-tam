@@ -294,6 +294,11 @@ export const STRINGS = {
       advancedControlsVisible: 'Setting advanced controls to visible',
       advancedControlsHidden: 'Setting advanced controls to hidden',
       advancedControlsInitComplete: 'Advanced Controls initialization complete',
+
+      // Idle state management messages
+      idleStateEntered: 'UI entered idle state',
+      idleStateExited: 'UI exited idle state',
+      activityDetectionInitialized: 'Activity detection initialized',
     },
 
     // Playback Engine messages
