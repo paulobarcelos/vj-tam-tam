@@ -15,9 +15,20 @@ This index provides a central point of reference for all VJ Tam Tam project docu
 - [Epic 0: Developer Environment & Project Setup](epic-0.md) - Focuses on establishing the local development environment.
 - [Epic 1: Foundational Playback & Media Input](epic-1.md) - Covers basic media loading and playback functionality.
 - [Epic 2: Randomized Segment Playback](epic-2.md) - Details the implementation of random media segment playback.
-- [Epic 3: Text Overlay Experience](epic-3.md) - Describes the text overlay feature, including input, management, and display.
-- [Epic 4: Persistence & Basic Settings](epic-4.md) - Outlines how user settings and application state are persisted.
-- [Epic 5: Advanced Display & Projection Tools](epic-5.md) - Covers advanced features like projection mapping and color correction.
+- [Epic 3: Core UI/UX Implementation & Design System](epic-3.md) - Aligns UI implementation with design specifications and establishes design standards.
+- [Epic 4: Text Overlay Experience](epic-4.md) - Describes the text overlay feature, including input, management, and display.
+- [Epic 5: Persistence & Basic Settings](epic-5.md) - Outlines how user settings and application state are persisted.
+- [Epic 6: Advanced Display & Projection Tools](epic-6.md) - Covers advanced features like projection mapping and color correction.
+
+### UI/UX Design Specifications (from UI-UX-Spec)
+
+- [UI Design Principles](ui-design-principles.md) - Core design philosophy, visual aesthetic, and interaction principles.
+- [UI Layout Structure](ui-layout-structure.md) - Defines the stage and drawer panel positioning and behavior.
+- [UI Interaction States](ui-interaction-states.md) - Details idle, active, advanced, and projection modes.
+- [UI Component Specifications](ui-component-specifications.md) - Comprehensive component definitions including welcome state, drawer structure, and calibration interface.
+- [UI User Flows](ui-user-flows.md) - Documents key user interaction flows for first-time users, media management, text overlays, and advanced features.
+- [UI Responsive Behavior & Accessibility](ui-responsive-accessibility.md) - Covers responsive design and accessibility considerations.
+- [UI Technical Implementation](ui-technical-implementation.md) - Technical implementation notes for state management, performance, and integration points.
 
 ### Architecture Details (from Architecture Document)
 

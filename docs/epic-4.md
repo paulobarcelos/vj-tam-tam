@@ -1,40 +1,43 @@
-### Epic 4: Persistence & Basic Settings
+### Epic 4: Text Overlay Experience
 
-_Goal: Implement saving and loading of user configurations and media/text pools using `localStorage`, ensuring the application state persists across sessions._
+_Goal: Implement the text input, pool management, and random display logic, allowing users to add and see their custom messages over the visuals._
 
-1.  **Story:** As the Application, I want to automatically save user-configurable settings (like segment duration range, text frequency, video skip offsets) to `localStorage` whenever a setting is changed so that the user's preferences are remembered across sessions.
-    - **AC E4.S1.1:** Given a user setting that is intended to be persistent (e.g., min/max segment duration, text frequency, video skip start/end, advanced UI visible state, projection mode state) is changed via its UI control, then the new value of that setting is immediately saved to `localStorage` under a predictable key structure (e.g., `vjtamtam.settings.minDuration`).
-    - **AC E4.S1.2:** All persistent user settings are stored within a single, structured object or related keys in `localStorage` to keep the data organized.
-    - **AC E4.S1.3:** Saving to `localStorage` is done asynchronously if the operation could potentially block the main thread, or confirmation is provided that `localStorage` operations are non-blocking in modern browsers for typical data sizes.
-    - **AC E4.S1.4:** If saving to `localStorage` fails (e.g., storage quota exceeded), a toast notification appears informing the user that settings could not be saved.
-2.  **Story:** As the Application, I want to load saved user settings from `localStorage` when the application starts so that the user's last configuration is automatically applied without requiring manual setup.
-    - **AC E4.S2.1:** Given the application starts in a browser where VJ Tam Tam has been previously used and settings were saved to `localStorage`, then the application reads the saved settings on load.
-    - **AC E4.S2.2:** The application applies the loaded settings to the corresponding internal state variables and UI controls (if the UI is visible) before playback begins.
-    - **AC E4.S2.3:** If no settings are found in `localStorage` on startup, the application uses the default values for all settings.
-    - **AC E4.S2.4:** Loading from `localStorage` does not cause any visual delay or blocking of the initial application render.
-    - **AC E4.S2.5:** If loading from `localStorage` fails for any reason (e.g., corrupted data), the application uses default values and potentially logs an error to the console.
-3.  **Story:** As the Application, I want to attempt to save references to the user's selected media files using the `FileSystemAccessAPI` (if available) so that the media pool can potentially be reloaded automatically on startup.
-    - **AC E4.S3.1:** Given the browser supports the `FileSystemAccessAPI` and the user has added files/folders via the picker or drag-and-drop, then the application obtains the necessary `FileSystemFileHandle` or `FileSystemDirectoryHandle` for each selected item.
-    - **AC E4.S3.2:** The application serializes these file/directory handles into a format suitable for storage (as allowed by the API, typically just the handles themselves can be stored directly in `localStorage`).
-    - **AC E4.S3.3:** The serialized file/directory handles are saved to `localStorage` under a dedicated key (e.g., `vjtamtam.media.handles`) whenever the media pool is updated (files added or cleared).
-    - **AC E4.S3.4:** If the browser does _not_ support `FileSystemAccessAPI`, the application skips saving file handles and logs a note to the console indicating that media persistence is not available.
-4.  **Story:** As the Application, if loadable file references exist in `localStorage` and the browser supports `FileSystemAccessAPI`, I want to automatically load the associated media files into the pool when the application starts so that the user's media is ready without re-selection.
-    - **AC E4.S4.1:** Given the application starts, the browser supports `FileSystemAccessAPI`, and saved file/directory handles are found in `localStorage`, then the application attempts to retrieve the corresponding `File` or `Directory` objects from these handles.
-    - **AC E4.S4.2:** The application recursively reads supported media files from the re-obtained handles (similar logic to initial file input).
-    - **AC E4.S4.3:** Successfully loaded media files are added to the application's media pool on startup.
-    - **AC E4.S4.4:** The application handles potential user permissions requests from the browser if re-accessing handles requires it. If permission is granted, loading continues; if denied, proceed as per AC E4.S5.2.
-5.  **Story:** As the Application, if file references cannot be loaded or re-accessed (e.g., browser limitation, user moved/deleted files), I want to handle this gracefully by starting with an empty media pool but still loading saved settings, potentially indicating that previous media could not be loaded via a toast notification, so that the application doesn't appear broken.
-    - **AC E4.S5.1:** Given the application starts, but either the browser does not support `FileSystemAccessAPI` OR no saved file handles are found in `localStorage`, then the media pool starts empty. Saved settings are still loaded (as per E4.S2).
-    - **AC E4.S5.2:** Given the application starts, saved file handles _are_ found, and the browser _does_ support the API, but the application fails to re-obtain the files from the handles (e.g., files moved/deleted, user denied permission request), then the media pool starts empty. Saved settings are still loaded (as per E4.S2).
-    - **AC E4.S5.3:** In the scenario described in AC E4.S5.2 (failed attempt to load persisted media), a toast notification appears informing the user that previously selected media could not be reloaded and they need to select files again.
-6.  **Story:** As a User, I want a visible control (e.g., a button in the UI) to clear all currently loaded media from the pool so that I can easily remove all files and start fresh or add a completely new set.
-    - **AC E4.S6.1:** Given the UI is visible and the media pool is not empty, there is a clearly labeled control (e.g., a "Clear Media" or "Reset Files" button) to remove all media.
-    - **AC E4.S6.2:** When the user activates the "Clear Media" control, all media items are removed from the application's current media pool.
-    - **AC E4.S6.3:** Activating the "Clear Media" control immediately stops playback if it was active and the pool becomes empty.
-    - **AC E4.S6.4:** After clearing, the media pool remains empty until the user adds new media.
-7.  **Story:** As the Application, when the user clears the media pool, I want to remove all media references and settings related to the media pool from `localStorage` so that the pool is empty on the next load.
-    - **AC E4.S7.1:** Given the user activates the "Clear Media" control (AC E4.S6.2), then any saved file/directory handles for media in `localStorage` are removed or the corresponding `localStorage` key is cleared (`vjtamtam.media.handles`).
-    - **AC E4.S7.2:** After clearing media and its references from `localStorage`, if the application is reloaded, the media pool starts empty (unless new files are added).
-8.  **Story:** As the Application, when the user clears the text pool (using the control from Epic 3), I want to remove all text entries from `localStorage` so that the pool is empty on the next load.
-    - **AC E4.S8.1:** Given the user activates the "Clear All Text" control (from Epic 3), then all saved text entries in `localStorage` are removed or the corresponding `localStorage` key is cleared (e.g., `vjtamtam.text.entries`).
-    - **AC E4.S8.2:** After clearing text entries from `localStorage`, if the application is reloaded, the text pool starts empty.
+1.  **Story:** As a User, I want to be able to enter custom text strings one by one so that I can build a pool of messages to display.
+    - **AC 1.1:** Given the UI is visible, there is a clearly labeled input field where the user can type text.
+    - **AC 1.2:** Given the UI is visible, there is a button (e.g., "Add Text" or "+") next to the input field, or hitting the "Enter" key while focused on the input field, triggers the action to add the entered text.
+    - **AC 1.3:** When the user enters text into the input field and triggers the add action, the text string is processed by the application.
+    - **AC 1.4:** If the input field is empty when the add action is triggered, no text is added to the pool.
+2.  **Story:** As the Application, I want to add newly entered text strings to a pool of text entries, rather than replacing them, so that users can build their collection of messages incrementally.
+    - **AC 2.1:** Given the text pool is empty, when the user adds a valid text string, the text pool is populated with that string.
+    - **AC 2.2:** Given the text pool already contains entries, when the user adds a new valid text string, the new string is added to the existing text pool. The previously added entries remain in the pool.
+    - **AC 2.3:** Given the text pool has been updated by adding new strings, when text display is active, the new strings become eligible for random selection and display alongside the older ones.
+3.  **Story:** As a User, I want to see a list of the text strings I have added so that I can review my current pool of messages.
+    - **AC 3.1:** Given the UI is visible and the text pool is not empty, there is a visible list or display area showing all the current text strings in the pool.
+    - **AC 3.2:** When text strings are added to the pool (via input), the displayed list updates automatically to include the new entries.
+    - **AC 3.3:** When text strings are removed from the pool, the displayed list updates automatically to reflect the changes.
+    - **AC 3.4:** If the text pool is empty, the list/display area for text strings is empty or hidden.
+4.  **Story:** As a User, I want to be able to remove individual text strings from the list so that I can manage my pool of messages.
+    - **AC 4.1:** Given the list of text strings is displayed, each individual text string in the list has a clearly identifiable control (e.g., an "X" button) to trigger its removal.
+    - **AC 4.2:** When the user activates the removal control for a specific text string, that string is removed from the text pool.
+    - **AC 4.3:** Removing a text string updates the displayed list (as per AC 4.3.3).
+5.  **Story:** As a User, I want to be able to clear the entire list of text strings so that I can start my message pool over.
+    - **AC 5.1:** Given the UI is visible and the text pool is not empty, there is a clearly labeled control (e.g., a "Clear All" button) to remove all text entries.
+    - **AC 5.2:** When the user activates the "Clear All" control, the text pool becomes empty.
+    - **AC 5.3:** Clearing all text strings updates the displayed list to be empty (as per AC 3.4).
+6.  **Story:** As the Application, I want to randomly select a text string from the pool and display it on the screen periodically during playback so that custom messages appear over the visuals.
+    - **AC 6.1:** Given playback is active and the text pool is not empty, the application periodically selects a random text string from the pool for display.
+    - **AC 6.2:** The selection and display of text strings occur independently of the media segment transitions.
+    - **AC 6.3:** When a text string is selected, it is displayed on the screen for a specific duration (e.g., 3-5 seconds).
+    - **AC 6.4:** After the display duration, the text string fades out or is immediately hidden.
+    - **AC 6.5:** The frequency with which new text strings are selected and displayed is controllable (see Story 7).
+7.  **Story:** As a User, I want to be able to configure how frequently text strings appear on the screen so that I can control the balance between visuals and messages.
+    - **AC 7.1:** Given the UI is visible, there is a control (e.g., a slider or input field) labeled clearly for setting the frequency or probability of text display (e.g., a value from 0 to 1, or "Rare", "Occasional", "Frequent").
+    - **AC 7.2:** When the user adjusts the text frequency control, the application updates this setting.
+    - **AC 7.3:** The application uses the current text frequency setting to determine how often new text strings are selected and displayed (AC 6.5). A frequency of 0 should result in no text being displayed.
+8.  **Story:** As the Application, I want the displayed text strings to be styled with a bold Arial font, be centered on the screen, and scale dynamically to occupy a maximum of 80% of the screen's width or height so that they are prominent and readable.
+    - **AC 8.1:** Given a text string is selected for display, it is rendered using a bold weight of the Arial font family.
+    - **AC 8.2:** Given a text string is displayed, its HTML element is positioned using CSS so that it is visually centered horizontally within the display area.
+    - **AC 8.3:** Given a text string is displayed, its HTML element is positioned using CSS so that it is visually centered vertically within the display area.
+    - **AC 8.4:** Given a text string is displayed, its font size is dynamically calculated based on the current browser window dimensions and the text content, such that the text bounding box does not exceed 80% of either the screen width or the screen height.
+    - **AC 8.5:** Given a text string is displayed, its color is randomly chosen to be either pure black (`#000000`) or pure white (`#FFFFFF`). A different random color choice is made each time a text string is selected for display.
+    - **AC 8.6:** Given a text string is displayed, its HTML element has a CSS `z-index` value or stacking context that ensures it appears visually _on top of_ the media elements (`<img>` or `<video>`) displayed on the stage.
