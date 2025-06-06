@@ -88,6 +88,14 @@ export const STRINGS = {
       message: 'Drop your media files here',
       supportedFormats: 'Supported: {{supportedTypes}}',
     },
+
+    // Text pool section
+    textPool: {
+      sectionTitle: 'Text Pool',
+      inputPlaceholder: 'Add a message...',
+      addButtonTitle: 'Add text',
+      emptyMessage: 'No messages added yet',
+    },
   },
 
   // ========================================================================
@@ -126,6 +134,13 @@ export const STRINGS = {
         filePickerActive: 'File picker already active, ignoring click',
         videoOffsetFallback:
           'Video offsets were too large for this video and were temporarily ignored for playback',
+      },
+
+      // Text pool notifications
+      textPool: {
+        textAdded: 'Text message added to pool',
+        emptyInputWarning: 'Please enter a message',
+        tooLongWarning: 'Message too long (max 200 characters)',
       },
     },
 
@@ -238,6 +253,11 @@ export const STRINGS = {
       // UI settings messages
       uiSettingsRestored: 'UI settings restored from localStorage',
       invalidUISettings: 'Invalid UI settings provided - must be a valid object',
+
+      // Text pool messages
+      textPoolRestored: 'Text pool restored from localStorage with {{count}} entries',
+      noTextPool: 'No text pool in persistedState, keeping empty pool',
+      aboutToRestoreTextPool: 'About to restore text pool',
 
       // Debug messages
       persistedStateLoaded: 'Persisted state loaded from storage',

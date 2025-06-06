@@ -28,6 +28,39 @@
         <!-- Media items will be displayed here -->
       </div>
       
+      <!-- Text Pool Section -->
+      <div class="drawer-section" id="text-pool-section">
+        <div class="section-header">
+          <h3>Text Pool</h3>
+        </div>
+        
+        <div class="text-input-area">
+          <div class="input-controls">
+            <input 
+              type="text" 
+              id="text-input" 
+              class="text-input-field" 
+              placeholder="Add a message..." 
+              maxlength="200"
+              autocomplete="off"
+            >
+            <button id="add-text-btn" class="add-text-btn" title="Add text">+</button>
+          </div>
+        </div>
+
+        <!-- Text Pool Display Area -->
+        <div class="text-pool-display-container">
+          <div id="text-pool-display" class="text-pool-display">
+            <!-- Text pills will be dynamically rendered here -->
+          </div>
+          
+          <!-- Empty State (shown when text pool is empty) -->
+          <div id="text-pool-empty" class="text-pool-empty" style="display: none;">
+            <p class="empty-message">No messages added yet</p>
+          </div>
+        </div>
+      </div>
+      
       <!-- Advanced Controls Section -->
       <div class="drawer-section">
         <div class="advanced-controls-header">

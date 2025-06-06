@@ -25,6 +25,8 @@ class StateManager {
   constructor() {
     this.state = {
       mediaPool: [],
+      // Text pool for text overlay messages
+      textPool: [],
       // Segment settings configuration
       segmentSettings: {
         minDuration: 5, // seconds (default 5s as per Story 2.3 requirements)
@@ -36,6 +38,14 @@ class StateManager {
       uiSettings: {
         advancedControlsVisible: false, // default collapsed
       },
+    }
+    // Text pool configuration
+    this.textPoolMaxSize = 1000 // Configurable limit
+    this.textPoolIndex = new Set() // Fast duplicate lookup
+    this.textPoolStats = {
+      totalAdditions: 0,
+      duplicatesRejected: 0,
+      averageTextLength: 0,
     }
     // Add initialization logic here
   }
@@ -158,6 +168,29 @@ class StateManager {
       } else {
         console.log(STRINGS.SYSTEM_MESSAGES.stateManager.noUISettings, this.state.uiSettings)
       }
+
+      // Always restore text pool from localStorage with fallback to defaults
+      console.log(
+        STRINGS.SYSTEM_MESSAGES.stateManager.aboutToRestoreTextPool,
+        persistedState?.textPool
+      )
+      if (Array.isArray(persistedState?.textPool)) {
+        // Validate and clean text pool entries
+        this.state.textPool = persistedState.textPool
+          .filter((text) => typeof text === 'string' && text.trim().length > 0)
+          .map((text) => text.trim())
+          .slice(0, this.textPoolMaxSize) // Enforce size limit
+
+        // Rebuild index
+        this.rebuildTextPoolIndex()
+
+        console.log(
+          STRINGS.SYSTEM_MESSAGES.stateManager.textPoolRestored,
+          this.state.textPool.length
+        )
+      } else {
+        console.log(STRINGS.SYSTEM_MESSAGES.stateManager.noTextPool)
+      }
     } catch (error) {
       console.error(STRINGS.SYSTEM_MESSAGES.stateManager.restorationError, error)
     }
@@ -227,6 +260,13 @@ class StateManager {
           // Persist video duration if available
           ...(item.duration && { duration: item.duration }),
         })),
+        // Persist text pool
+        textPool: this.state.textPool || [],
+        textPoolMetadata: {
+          size: (this.state.textPool || []).length,
+          maxSize: this.textPoolMaxSize,
+          lastModified: Date.now(),
+        },
         // Persist segment settings
         segmentSettings: this.state.segmentSettings,
         // Persist UI settings
@@ -576,7 +616,116 @@ class StateManager {
       uiSettings: this.getUISettings(),
     })
   }
+
+  // ============================================================================
+  // TEXT POOL MANAGEMENT METHODS
+  // ============================================================================
+
+  /**
+   * Add text to the text pool with validation and duplicate prevention
+   * @param {string} text - Text to add to the pool
+   * @returns {boolean} - True if text was added, false if rejected
+   */
+  addText(text) {
+    const trimmedText = text.trim()
+
+    // Comprehensive validation
+    if (!trimmedText) return false
+    if (trimmedText.length > 200) return false
+    if (this.state.textPool.length >= this.textPoolMaxSize) return false
+
+    // Additive operation - preserve existing entries
+    this.state.textPool.push(trimmedText)
+
+    // Update statistics
+    this.textPoolStats.totalAdditions++
+    this.updateAverageTextLength()
+
+    // Performance monitoring
+    if (this.state.textPool.length > 500) {
+      eventBus.emit('textPool.performanceWarning', {
+        poolSize: this.state.textPool.length,
+        suggestion: 'Consider implementing text pool management features',
+      })
+    }
+
+    this.saveCurrentState()
+
+    // Comprehensive event emission
+    eventBus.emit('textPool.updated', {
+      action: 'added',
+      text: trimmedText,
+      textPool: [...this.state.textPool],
+      poolSize: this.state.textPool.length,
+      timestamp: Date.now(),
+    })
+
+    eventBus.emit('textPool.sizeChanged', {
+      newSize: this.state.textPool.length,
+      previousSize: this.state.textPool.length - 1,
+    })
+
+    return true
+  }
+
+  /**
+   * Get a copy of the text pool array
+   * @returns {string[]} - Copy of text pool array
+   */
+  getTextPool() {
+    return [...this.state.textPool] // Always return copy to prevent external mutation
+  }
+
+  /**
+   * Get the current size of the text pool
+   * @returns {number} - Number of text entries in the pool
+   */
+  getTextPoolSize() {
+    return this.state.textPool.length
+  }
+
+  /**
+   * Check if a text string already exists in the pool
+   * @param {string} text - Text to check for existence
+   * @returns {boolean} - True if text exists in pool
+   */
+  hasText(text) {
+    return this.state.textPool.includes(text.trim())
+  }
+
+  /**
+   * Get a random text from the pool
+   * @returns {string|null} - Random text from pool or null if empty
+   */
+  getRandomText() {
+    if (this.state.textPool.length === 0) return null
+    const randomIndex = Math.floor(Math.random() * this.state.textPool.length)
+    return this.state.textPool[randomIndex]
+  }
+
+  /**
+   * Rebuild the text pool index for fast duplicate lookup
+   * @private
+   */
+  rebuildTextPoolIndex() {
+    this.textPoolIndex = new Set(this.state.textPool)
+  }
+
+  /**
+   * Update average text length statistic
+   * @private
+   */
+  updateAverageTextLength() {
+    if (this.state.textPool.length === 0) {
+      this.textPoolStats.averageTextLength = 0
+      return
+    }
+
+    const totalLength = this.state.textPool.reduce((sum, text) => sum + text.length, 0)
+    this.textPoolStats.averageTextLength = Math.round(totalLength / this.state.textPool.length)
+  }
 }
 
-// Export singleton instance
+// Export both the class and singleton instance
+export { StateManager }
 export const stateManager = new StateManager()
