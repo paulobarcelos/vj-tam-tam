@@ -87,14 +87,14 @@ This section details the strategy for handling errors within the VJ Tam Tam clie
 
 - **Library/Method:** Primarily, the native browser `console` object (`console.error()`, `console.warn()`, `console.log()`) will be used for logging. This aligns with the technical preference for preserving console logs for debugging.
 - **Format:** Logs will be plain text. To aid debugging, logs should ideally include:
-  - A timestamp (can be manually prepended or using `console.timeStamp()`).
-  - The name of the module/function where the error occurred.
   - A descriptive error message.
   - Relevant contextual data (e.g., variable values), ensuring no excessively large objects are logged directly.
+  - There is no need to include the name of the module/function where the error occurred, since we can see what is exact line of code that called the console message.
+  - There is no need to include a timestamp, since we can see what time the message was logged in the browser's developer tools.
 - **Levels:**
   - `console.error()`: For actual errors that have been caught or that indicate a significant problem.
   - `console.warn()`: For potential issues, deprecated API usage, or minor recoverable errors.
-  - `console.log()` / `console.debug()`: For general debugging information during development (should be minimal in production-intended code, though with no build process, these might remain).
+  - `console.log()`: For general debugging information during development (it's not a problem to have a lot of these, and that they are not removed in production).
 - **Context:** Log messages should provide enough context to understand the state of the application or module when the error occurred. For example, if a `localStorage` parsing error occurs, log the key that failed.
 
 #### 14.3. Specific Handling Patterns
