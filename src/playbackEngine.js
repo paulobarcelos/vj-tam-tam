@@ -287,7 +287,7 @@ class PlaybackEngine {
             video._segmentState.isMonitoring = true
           }
         } catch (error) {
-          console.error('Error calculating video segment parameters:', error)
+          console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.segmentCalculationError, error)
           // Fallback to original behavior if segment calculation fails
           if (this.isCyclingActive) {
             this.scheduleVideoMaxDurationTransition()
@@ -393,7 +393,7 @@ class PlaybackEngine {
       video._segmentState.seekAttempts = 0
       video.currentTime = startPoint
     } catch (error) {
-      console.error('Error seeking video to start point:', error)
+      console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.seekingError, error)
       // Continue playback from current position if seeking fails
       video._segmentState.seekTarget = null
     }
@@ -627,7 +627,7 @@ class PlaybackEngine {
         const mediaPool = stateManager.getMediaPool()
         const usableMedia = filterUsableMedia(mediaPool)
         if (usableMedia.length > 0) {
-          console.log('Attempting fail-safe media transition...')
+          console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.failSafeTransitionAttempt)
           // Reset recent history to allow any media to be selected
           this.recentMediaHistory = []
           const fallbackMedia = this.getRandomMediaItem()
@@ -639,7 +639,10 @@ class PlaybackEngine {
           }
         }
       } catch (fallbackError) {
-        console.error('Fail-safe transition also failed:', fallbackError)
+        console.error(
+          STRINGS.SYSTEM_MESSAGES.playbackEngine.failSafeTransitionFailed,
+          fallbackError
+        )
       }
 
       // Ultimate fallback: stop cycling
