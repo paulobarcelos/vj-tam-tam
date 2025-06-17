@@ -53,13 +53,3 @@ export const PLAYBACK_STATES = {
   CYCLING: 'cycling',
   PAUSED: 'paused',
 }
-
-/**
- * Cycling events for EventBus
- */
-export const CYCLING_EVENTS = {
-  STARTED: 'cycling.started',
-  STOPPED: 'cycling.stopped',
-  MEDIA_CHANGED: 'cycling.mediaChanged',
-  ERROR: 'cycling.error',
-}

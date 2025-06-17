@@ -8,9 +8,10 @@ import { eventBus } from './eventBus.js'
 import { toastManager } from './toastManager.js'
 import { stateManager } from './stateManager.js'
 import { STRINGS, t } from './constants/strings.js'
-import { PLAYBACK_CONFIG, PLAYBACK_STATES, CYCLING_EVENTS } from './constants/playbackConfig.js'
+import { PLAYBACK_CONFIG, PLAYBACK_STATES } from './constants/playbackConfig.js'
 import { filterUsableMedia } from './utils/mediaUtils.js'
 import { calculateRandomSegmentDuration, getVideoSegmentParameters } from './utils/mediaUtils.js'
+import { STATE_EVENTS, CYCLING_EVENTS } from './constants/events.js'
 
 /**
  * @typedef {Object} MediaItem
@@ -51,8 +52,8 @@ class PlaybackEngine {
       }
 
       // Set up event listeners
-      eventBus.on('state.mediaPoolUpdated', this.handleMediaPoolUpdate.bind(this))
-      eventBus.on('state.mediaPoolRestored', this.handleMediaPoolRestored.bind(this))
+      eventBus.on(STATE_EVENTS.MEDIA_POOL_UPDATED, this.handleMediaPoolUpdate.bind(this))
+      eventBus.on(STATE_EVENTS.MEDIA_POOL_RESTORED, this.handleMediaPoolRestored.bind(this))
       window.addEventListener('resize', this.handleWindowResize.bind(this))
 
       console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.initialized)
@@ -67,8 +68,8 @@ class PlaybackEngine {
    */
   setupEventListeners() {
     // Listen for media pool updates and restoration
-    eventBus.on('state.mediaPoolUpdated', this.handleMediaPoolUpdate.bind(this))
-    eventBus.on('state.mediaPoolRestored', this.handleMediaPoolRestored.bind(this))
+    eventBus.on(STATE_EVENTS.MEDIA_POOL_UPDATED, this.handleMediaPoolUpdate.bind(this))
+    eventBus.on(STATE_EVENTS.MEDIA_POOL_RESTORED, this.handleMediaPoolRestored.bind(this))
 
     // Listen for window resize events
     window.addEventListener('resize', this.handleWindowResize)

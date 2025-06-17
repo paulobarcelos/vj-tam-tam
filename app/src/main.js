@@ -7,6 +7,7 @@ import { uiManager } from './uiManager.js'
 import { toastManager } from './toastManager.js'
 import { stateManager } from './stateManager.js'
 import { playbackEngine } from './playbackEngine.js'
+import { textDisplayManager } from './textDisplayManager.js'
 import { STRINGS, t } from './constants/strings.js'
 
 /**
@@ -27,6 +28,14 @@ async function init() {
     console.log(STRINGS.SYSTEM_MESSAGES.application.playbackEngineInitializing)
     playbackEngine.init()
 
+    // Initialize Text Display Manager
+    console.log(STRINGS.SYSTEM_MESSAGES.application.textDisplayManagerInitializing)
+    if (textDisplayManager.init()) {
+      console.log(STRINGS.SYSTEM_MESSAGES.textDisplayManager.initialized)
+    } else {
+      console.error(STRINGS.SYSTEM_MESSAGES.textDisplayManager.initializationFailed)
+    }
+
     // Initialize StateManager last to load persisted state and emit events
     console.log(STRINGS.SYSTEM_MESSAGES.application.stateManagerInitializing)
     await stateManager.init()
@@ -44,6 +53,9 @@ async function init() {
 
     // Initialize Text Pool display after state is fully restored
     uiManager.initializeTextPoolDisplay()
+
+    // Initialize Frequency Control after state is fully restored
+    uiManager.initializeFrequencyControl()
 
     console.log(STRINGS.SYSTEM_MESSAGES.application.initializationComplete)
     console.log(
