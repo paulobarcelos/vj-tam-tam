@@ -61,6 +61,11 @@ class UIManager {
     this.IDLE_TIMEOUT_MS = 4000 // 4 seconds default
     this.activityListeners = []
     this.lastActivityTime = Date.now()
+
+    // Educational notices tracking (per page load)
+    this.dismissedNotices = {
+      temporary: false,
+    }
   }
 
   /**
@@ -71,6 +76,7 @@ class UIManager {
     this.leftDrawer = document.getElementById('left-drawer')
     this.dropIndicator = document.getElementById('drop-indicator')
     this.mediaPool = document.getElementById('media-pool')
+    this.mediaPoolNotices = document.getElementById('media-pool-notices')
     this.welcomeMessage = document.getElementById('welcome-message')
     this.browseFilesBtn = document.getElementById('browse-files-btn')
     this.browseFoldersBtn = document.getElementById('browse-folders-btn')
@@ -105,6 +111,7 @@ class UIManager {
       !this.leftDrawer ||
       !this.dropIndicator ||
       !this.mediaPool ||
+      !this.mediaPoolNotices ||
       !this.welcomeMessage ||
       !this.browseFilesBtn ||
       !this.browseFoldersBtn ||
@@ -140,6 +147,9 @@ class UIManager {
     this.setupFrequencyControlListeners()
     this.setupActivityDetection()
     this.updateDOMStrings()
+
+    // Initialize media pool display (will show empty message if no media)
+    this.updateMediaPoolDisplay()
   }
 
   /**
@@ -392,17 +402,98 @@ class UIManager {
   }
 
   /**
+   * Create thumbnail element for media item
+   * @param {object} mediaItem - The media item object
+   * @returns {HTMLElement} The thumbnail element
+   */
+  createThumbnailElement(mediaItem) {
+    if (mediaItem.url && (mediaItem.file || mediaItem.fromFileSystemAPI)) {
+      // Create actual image/video thumbnail
+      if (mediaItem.type === 'video') {
+        const video = document.createElement('video')
+        video.className = 'media-thumbnail'
+        video.src = mediaItem.url
+        video.muted = true
+        video.preload = 'metadata'
+
+        // Set video to first frame for thumbnail
+        video.addEventListener('loadedmetadata', () => {
+          video.currentTime = 0.1 // Small offset to avoid black frame
+        })
+
+        return video
+      } else {
+        const img = document.createElement('img')
+        img.className = 'media-thumbnail'
+        img.src = mediaItem.url
+        img.alt = mediaItem.name
+
+        // Handle load error
+        img.addEventListener('error', () => {
+          img.style.display = 'none'
+          const placeholder = this.createPlaceholderThumbnail(mediaItem)
+          img.parentNode?.replaceChild(placeholder, img)
+        })
+
+        return img
+      }
+    } else {
+      // Create placeholder for files without access
+      return this.createPlaceholderThumbnail(mediaItem)
+    }
+  }
+
+  /**
+   * Create placeholder thumbnail for files without access
+   * @param {object} mediaItem - The media item object
+   * @returns {HTMLElement} The placeholder element
+   */
+  createPlaceholderThumbnail(mediaItem) {
+    const placeholder = document.createElement('div')
+    placeholder.className = 'media-thumbnail'
+    placeholder.style.cssText = `
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #333 0%, #555 100%);
+      color: #aaa;
+      font-family: Arial, sans-serif;
+      font-weight: bold;
+      font-size: 1.5rem;
+    `
+
+    // Set appropriate icon based on media type
+    const icon = mediaItem.type === 'video' ? '🎬' : '🖼️'
+    placeholder.textContent = icon
+
+    return placeholder
+  }
+
+  /**
+   * Handle removal of individual media item
+   * @param {string} mediaId - The ID of the media item to remove
+   */
+  handleRemoveMediaItem(mediaId) {
+    stateManager.removeMediaFromPool(mediaId)
+    toastManager.show(STRINGS.USER_MESSAGES.notifications.media.itemRemoved, {
+      type: 'info',
+    })
+  }
+
+  /**
    * Update the media pool display with current media items
    */
   updateMediaPoolDisplay() {
     const mediaItems = stateManager.getMediaPool()
 
-    // Clear current display
+    // Clear current displays
     this.mediaPool.innerHTML = ''
+    this.mediaPoolNotices.innerHTML = ''
 
     // Update clear button visibility (aligned with text pool pattern)
     this.updateClearMediaVisibility(mediaItems.length)
 
+    // Handle empty state
     if (mediaItems.length === 0) {
       const emptyMessage = document.createElement('div')
       emptyMessage.className = 'media-pool-empty'
@@ -413,50 +504,11 @@ class UIManager {
 
     // Check if any files need permission restoration
     const filesNeedingPermission = filterMediaNeedingPermission(mediaItems)
-
     // Check if any files are temporary (drag & drop)
     const temporaryFiles = filterTemporaryMedia(mediaItems)
 
-    // Add restoration notice if needed
-    if (filesNeedingPermission.length > 0) {
-      const restoreNotice = document.createElement('div')
-      restoreNotice.className = 'restore-notice'
-
-      const noticeText = document.createElement('span')
-      noticeText.className = 'restore-notice-text'
-      const fileCount = filesNeedingPermission.length
-      noticeText.textContent = t.permissionNotice(fileCount)
-
-      const restoreButton = document.createElement('button')
-      restoreButton.className = 'restore-all-btn'
-      restoreButton.textContent = STRINGS.USER_INTERFACE.buttons.restoreAccess
-      restoreButton.addEventListener('click', () => {
-        this.handleBulkFileRestore(filesNeedingPermission)
-      })
-
-      restoreNotice.appendChild(noticeText)
-      restoreNotice.appendChild(restoreButton)
-      this.mediaPool.appendChild(restoreNotice)
-    }
-
-    // Add temporary files notice if needed (only when FileSystemAccessAPI actually provides benefits)
-    if (temporaryFiles.length > 0 && fileSystemFacade.isFileSystemAccessActuallyWorking()) {
-      const tempNotice = document.createElement('div')
-      tempNotice.className = 'temporary-notice'
-
-      const noticeText = document.createElement('span')
-      noticeText.className = 'temporary-notice-text'
-      const fileCount = temporaryFiles.length
-      noticeText.textContent = t.temporaryNotice(fileCount)
-
-      const tipText = document.createElement('div')
-      tipText.className = 'temporary-tip'
-      tipText.textContent = STRINGS.USER_MESSAGES.status.fileSystemTip
-
-      tempNotice.appendChild(noticeText)
-      tempNotice.appendChild(tipText)
-      this.mediaPool.appendChild(tempNotice)
-    }
+    // Add notices to the notices container (not the grid)
+    this.updateNoticesDisplay(filesNeedingPermission, temporaryFiles)
 
     // Add each media item to the display
     mediaItems.forEach((item) => {
@@ -464,44 +516,47 @@ class UIManager {
       mediaElement.className = 'media-item'
       mediaElement.dataset.mediaId = item.id
 
-      const nameElement = document.createElement('div')
-      nameElement.className = 'media-name'
-      nameElement.textContent = item.name
-      nameElement.title = item.name // Show full name on hover
+      // Create thumbnail image/video element
+      const thumbnailElement = this.createThumbnailElement(item)
+      mediaElement.appendChild(thumbnailElement)
 
-      const typeElement = document.createElement('div')
-      typeElement.className = 'media-type'
+      // Add video indicator for video files
+      if (item.type === 'video') {
+        const videoIndicator = document.createElement('div')
+        videoIndicator.className = 'video-indicator'
+        mediaElement.appendChild(videoIndicator)
 
-      // Helper function to format type info with optional duration
-      const formatTypeInfo = (type, size, status = null) => {
-        let info = `${type} • ${formatFileSize(size)}`
-
-        // Add duration for video files
-        if (item.type === 'video' && item.duration) {
-          info += ` • ${formatDuration(item.duration)}`
+        // Add duration overlay if available
+        if (item.duration) {
+          const durationElement = document.createElement('div')
+          durationElement.className = 'video-duration'
+          durationElement.textContent = formatDuration(item.duration)
+          mediaElement.appendChild(durationElement)
         }
-
-        // Add status if provided
-        if (status) {
-          info += ` • ${status}`
-        }
-
-        return info
       }
 
-      // Differentiate between different types of metadata-only files
+      // Set native browser tooltip with file info
+      const formatTooltipInfo = (name, type, size, status = null) => {
+        let tooltip = `${name}\n${type.toUpperCase()} • ${formatFileSize(size)}`
+        if (status) {
+          tooltip += ` • (${status})`
+        }
+        return tooltip
+      }
+
+      // Set appropriate tooltip and styling based on file status
       if (!item.file || !item.url) {
         if (item.fromFileSystemAPI) {
-          // File from FileSystemAccessAPI that can be restored
-          typeElement.textContent = formatTypeInfo(
+          mediaElement.title = formatTooltipInfo(
+            item.name,
             item.type,
             item.size,
             STRINGS.USER_INTERFACE.fileStatus.needsPermission
           )
           mediaElement.classList.add('needs-permission')
         } else {
-          // File from drag & drop - truly metadata-only
-          typeElement.textContent = formatTypeInfo(
+          mediaElement.title = formatTooltipInfo(
+            item.name,
             item.type,
             item.size,
             STRINGS.USER_INTERFACE.fileStatus.metadataOnly
@@ -509,13 +564,11 @@ class UIManager {
           mediaElement.classList.add('metadata-only')
         }
       } else {
-        // File with full access - check if it's temporary or persistent
         if (item.fromFileSystemAPI) {
-          // Persistent file from FileSystemAccessAPI
-          typeElement.textContent = formatTypeInfo(item.type, item.size)
+          mediaElement.title = formatTooltipInfo(item.name, item.type, item.size)
         } else {
-          // Temporary file from drag & drop
-          typeElement.textContent = formatTypeInfo(
+          mediaElement.title = formatTooltipInfo(
+            item.name,
             item.type,
             item.size,
             STRINGS.USER_INTERFACE.fileStatus.temporary
@@ -524,10 +577,116 @@ class UIManager {
         }
       }
 
-      mediaElement.appendChild(nameElement)
-      mediaElement.appendChild(typeElement)
+      // Add delete button
+      const deleteBtn = document.createElement('button')
+      deleteBtn.className = 'media-delete-btn'
+      deleteBtn.textContent = '×'
+      deleteBtn.title = STRINGS.USER_INTERFACE.tooltips.removeMediaItem
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation()
+        this.handleRemoveMediaItem(item.id)
+      })
+      mediaElement.appendChild(deleteBtn)
+
       this.mediaPool.appendChild(mediaElement)
     })
+  }
+
+  /**
+   * Update notices display in the dedicated notices container
+   * @param {Array} filesNeedingPermission - Files that need permission restoration
+   * @param {Array} temporaryFiles - Temporary drag & drop files
+   */
+  updateNoticesDisplay(filesNeedingPermission, temporaryFiles) {
+    // Always show permission banner if files need permission (non-dismissible)
+    if (filesNeedingPermission.length > 0) {
+      this.createPermissionBanner(filesNeedingPermission)
+    }
+
+    // Add temporary files notice if needed and not dismissed
+    // Use persisted FileSystem API working state with fallback to current check
+    const apiWorking =
+      stateManager.getFileSystemAPIWorking() ?? fileSystemFacade.isFileSystemAccessActuallyWorking()
+    if (temporaryFiles.length > 0 && !this.dismissedNotices.temporary && apiWorking) {
+      this.createTemporaryNotice(temporaryFiles)
+    }
+  }
+
+  /**
+   * Create permission banner (non-dismissible, thin banner style)
+   * @param {Array} filesNeedingPermission - Files that need permission restoration
+   */
+  createPermissionBanner(filesNeedingPermission) {
+    // Check if permission banner already exists and update count
+    const existingBanner = this.mediaPoolNotices.querySelector('.permission-banner')
+    if (existingBanner) {
+      const fileCount = filesNeedingPermission.length
+      existingBanner.textContent = t.permissionBannerClick(fileCount)
+      return
+    }
+
+    const permissionBanner = document.createElement('div')
+    permissionBanner.className = 'permission-banner'
+
+    const fileCount = filesNeedingPermission.length
+    permissionBanner.textContent = t.permissionBannerClick(fileCount)
+
+    // Make entire banner clickable
+    permissionBanner.addEventListener('click', () => {
+      this.handleBulkFileRestore(filesNeedingPermission)
+    })
+
+    // Insert in the notices area (just before media pool)
+    this.mediaPoolNotices.appendChild(permissionBanner)
+  }
+
+  /**
+   * Create temporary files notice with close functionality
+   * @param {Array} temporaryFiles - Temporary drag & drop files
+   */
+  createTemporaryNotice(temporaryFiles) {
+    // Check if temporary notice already exists and update count
+    const existingNotice = this.mediaPoolNotices.querySelector('.temporary-notice')
+    if (existingNotice) {
+      const noticeText = existingNotice.querySelector('.notice-text')
+      if (noticeText) {
+        const fileCount = temporaryFiles.length
+        noticeText.textContent = t.temporaryNotice(fileCount)
+      }
+      return
+    }
+
+    const tempNotice = document.createElement('div')
+    tempNotice.className = 'notice temporary-notice'
+
+    const noticeContent = document.createElement('div')
+    noticeContent.className = 'notice-content'
+
+    const noticeText = document.createElement('span')
+    noticeText.className = 'notice-text'
+    const fileCount = temporaryFiles.length
+    noticeText.textContent = t.temporaryNotice(fileCount)
+
+    const tipText = document.createElement('div')
+    tipText.className = 'notice-tip'
+    tipText.textContent = STRINGS.USER_MESSAGES.status.fileSystemTip
+
+    // Close button
+    const closeBtn = document.createElement('button')
+    closeBtn.className = 'notice-close-btn'
+    closeBtn.textContent = '×'
+    closeBtn.title = STRINGS.USER_INTERFACE.tooltips.dismissNotice
+    closeBtn.addEventListener('click', () => {
+      this.dismissedNotices.temporary = true
+      tempNotice.remove()
+    })
+
+    noticeContent.appendChild(noticeText)
+    noticeContent.appendChild(tipText)
+    tempNotice.appendChild(noticeContent)
+    tempNotice.appendChild(closeBtn)
+
+    this.mediaPoolNotices.appendChild(tempNotice)
   }
 
   /**

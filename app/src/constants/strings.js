@@ -47,6 +47,8 @@ export const STRINGS = {
     tooltips: {
       filesButton: 'Browse for individual files',
       foldersButton: 'Browse for entire folders',
+      removeMediaItem: 'Remove from pool',
+      dismissNotice: 'Dismiss',
     },
 
     // Labels and headings
@@ -168,6 +170,7 @@ export const STRINGS = {
         poolCleared: 'Cleared {{count}} media item{{plural}}',
         poolClearFailed: 'Failed to clear media pool',
         confirmClearAll: 'Are you sure you want to clear all {{count}} media item{{plural}}?',
+        itemRemoved: 'Media item removed from pool',
       },
     },
 
@@ -178,6 +181,7 @@ export const STRINGS = {
       fileSystemTip:
         'Use 📄 Files or 📁 Folders buttons for persistent files that will be available next time you visit',
       permissionBanner: 'Click to restore access to your files',
+      permissionBannerClick: '{{count}} file{{plural}} need permission - click to restore access',
       clearMediaConfirm: 'Clear all media from the pool? This action cannot be undone.',
     },
   },
@@ -513,6 +517,7 @@ export const t = {
   filesAdded: (count) => t.get('USER_MESSAGES.notifications.success.mediaAdded', { count }),
   filesSkipped: (count) => t.get('USER_MESSAGES.notifications.error.filesSkipped', { count }),
   permissionNotice: (count) => t.get('USER_MESSAGES.status.permissionNotice', { count }),
+  permissionBannerClick: (count) => t.get('USER_MESSAGES.status.permissionBannerClick', { count }),
   temporaryNotice: (count) => t.get('USER_MESSAGES.status.temporaryNotice', { count }),
   supportedFormats: (supportedTypes) =>
     t.get('USER_INTERFACE.dropZone.supportedFormats', { supportedTypes }),
