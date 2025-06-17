@@ -400,6 +400,9 @@ class UIManager {
     // Clear current display
     this.mediaPool.innerHTML = ''
 
+    // Update clear button visibility (aligned with text pool pattern)
+    this.updateClearMediaVisibility(mediaItems.length)
+
     if (mediaItems.length === 0) {
       const emptyMessage = document.createElement('div')
       emptyMessage.className = 'media-pool-empty'
@@ -570,22 +573,34 @@ class UIManager {
   }
 
   /**
-   * Handle clear media button click
+   * Handle clear media button click (aligned with text pool pattern)
    */
   handleClearMediaClick() {
     const mediaItems = stateManager.getMediaPool()
 
-    // Only show confirmation if there are items to clear
     if (mediaItems.length === 0) {
+      toastManager.show(STRINGS.USER_MESSAGES.notifications.media.poolAlreadyEmpty, {
+        type: 'info',
+      })
       return
     }
 
-    // Show confirmation dialog
-    const confirmed = window.confirm(STRINGS.USER_MESSAGES.status.clearMediaConfirm)
+    // Show confirmation dialog for larger pools (aligned with text pool pattern)
+    if (mediaItems.length > 5) {
+      const confirmed = window.confirm(
+        t.get('USER_MESSAGES.notifications.media.confirmClearAll', { count: mediaItems.length })
+      )
+      if (!confirmed) {
+        return
+      }
+    }
 
-    if (confirmed) {
-      stateManager.clearMediaPool()
-      toastManager.success(t.get('USER_MESSAGES.notifications.success.mediaCleared'))
+    if (stateManager.clearMediaPool()) {
+      toastManager.success(
+        t.get('USER_MESSAGES.notifications.media.poolCleared', { count: mediaItems.length })
+      )
+    } else {
+      toastManager.error(STRINGS.USER_MESSAGES.notifications.media.poolClearFailed)
     }
   }
 
@@ -602,6 +617,18 @@ class UIManager {
       this.welcomeMessage.classList.add('hidden')
     } else {
       this.welcomeMessage.classList.remove('hidden')
+    }
+  }
+
+  /**
+   * Update clear media button visibility based on pool size (aligned with text pool pattern)
+   * @param {number} poolSize - Current media pool size
+   */
+  updateClearMediaVisibility(poolSize) {
+    if (poolSize > 0) {
+      this.clearMediaBtn.style.display = 'block'
+    } else {
+      this.clearMediaBtn.style.display = 'none'
     }
   }
 
