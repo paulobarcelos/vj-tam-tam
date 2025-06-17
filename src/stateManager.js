@@ -8,6 +8,7 @@ import { storageFacade } from './facades/storageFacade.js'
 import { fileSystemAccessFacade } from './facades/fileSystemAccessFacade.js'
 import { STRINGS, t } from './constants/strings.js'
 import { filterRestorableMedia } from './utils/mediaUtils.js'
+import { STATE_EVENTS, TEXT_POOL_EVENTS } from './constants/events.js'
 
 /**
  * @typedef {Object} MediaItem
@@ -38,6 +39,8 @@ class StateManager {
       uiSettings: {
         advancedControlsVisible: false, // default collapsed
       },
+      // Text frequency for text overlay display (0-1 normalized scale)
+      textFrequency: 0.5, // Default middle value (equivalent to step 4 of 8)
     }
     // Text pool configuration
     this.textPoolMaxSize = 1000 // Configurable limit
@@ -65,7 +68,7 @@ class StateManager {
     await this.restoreFromPersistence()
 
     // Set up listener to save state on updates
-    eventBus.on('state.mediaPoolUpdated', () => {
+    eventBus.on(STATE_EVENTS.MEDIA_POOL_UPDATED, () => {
       this.saveCurrentState()
     })
   }
@@ -103,7 +106,7 @@ class StateManager {
           const needsPermission = normalizedFiles.some((file) => file.fromFileSystemAPI)
 
           // Emit restoration event
-          eventBus.emit('state.mediaPoolRestored', {
+          eventBus.emit(STATE_EVENTS.MEDIA_POOL_RESTORED, {
             mediaPool: this.getMediaPool(),
             totalCount: restoredFiles.length,
             source: needsPermission ? 'FileSystemAccessAPI-NeedsPermission' : 'FileSystemAccessAPI',
@@ -191,6 +194,22 @@ class StateManager {
       } else {
         console.log(STRINGS.SYSTEM_MESSAGES.stateManager.noTextPool)
       }
+
+      // Always restore text frequency from localStorage with fallback to default
+      if (typeof persistedState?.textFrequency === 'number') {
+        this.state.textFrequency = Math.max(0, Math.min(1, persistedState.textFrequency))
+        console.log(
+          t.get('SYSTEM_MESSAGES.stateManager.textFrequencyRestored', {
+            frequency: this.state.textFrequency,
+          })
+        )
+      } else {
+        console.log(
+          t.get('SYSTEM_MESSAGES.stateManager.textFrequencyDefault', {
+            frequency: this.state.textFrequency,
+          })
+        )
+      }
     } catch (error) {
       console.error(STRINGS.SYSTEM_MESSAGES.stateManager.restorationError, error)
     }
@@ -227,7 +246,7 @@ class StateManager {
 
         // Emit an event indicating state was restored from persistence
         // Use a different event name to avoid triggering auto-save immediately
-        eventBus.emit('state.mediaPoolRestored', {
+        eventBus.emit(STATE_EVENTS.MEDIA_POOL_RESTORED, {
           mediaPool: this.getMediaPool(),
           totalCount: restoredItems.length,
           source: 'localStorage-metadata',
@@ -267,6 +286,8 @@ class StateManager {
         segmentSettings: this.state.segmentSettings,
         // Persist UI settings
         uiSettings: this.state.uiSettings,
+        // Persist text frequency
+        textFrequency: this.state.textFrequency,
         // Persist other relevant state properties if they exist (e.g., autoPlaybackEnabled)
         // autoPlaybackEnabled: this.state.autoPlaybackEnabled,
         // lastPlaybackState: this.state.lastPlaybackState,
@@ -354,7 +375,7 @@ class StateManager {
 
     // Emit state change notification if anything was added or upgraded
     if (actuallyNewItems.length > 0 || upgradedItems.length > 0) {
-      eventBus.emit('state.mediaPoolUpdated', {
+      eventBus.emit(STATE_EVENTS.MEDIA_POOL_UPDATED, {
         mediaPool: this.getMediaPool(),
         addedItems: actuallyNewItems,
         upgradedItems: upgradedItems,
@@ -421,7 +442,7 @@ class StateManager {
       this.state.mediaPool.splice(itemIndex, 1)
 
       // Emit state change notification
-      eventBus.emit('state.mediaPoolUpdated', {
+      eventBus.emit(STATE_EVENTS.MEDIA_POOL_UPDATED, {
         mediaPool: this.getMediaPool(),
         removedItem: removedItem,
         totalCount: this.state.mediaPool.length,
@@ -461,7 +482,7 @@ class StateManager {
     this.state.mediaPool = []
 
     // Emit state change notification
-    eventBus.emit('state.mediaPoolUpdated', {
+    eventBus.emit(STATE_EVENTS.MEDIA_POOL_UPDATED, {
       mediaPool: this.getMediaPool(),
       totalCount: 0,
       cleared: true,
@@ -536,7 +557,7 @@ class StateManager {
     this.saveCurrentState()
 
     // Emit event for settings change
-    eventBus.emit('state.segmentSettingsUpdated', {
+    eventBus.emit(STATE_EVENTS.SEGMENT_SETTINGS_UPDATED, {
       segmentSettings: this.getSegmentSettings(),
     })
   }
@@ -608,7 +629,7 @@ class StateManager {
     this.saveCurrentState()
 
     // Emit event for UI settings change
-    eventBus.emit('state.uiSettingsUpdated', {
+    eventBus.emit(STATE_EVENTS.UI_SETTINGS_UPDATED, {
       uiSettings: this.getUISettings(),
     })
   }
@@ -639,7 +660,7 @@ class StateManager {
 
     // Performance monitoring
     if (this.state.textPool.length > 500) {
-      eventBus.emit('textPool.performanceWarning', {
+      eventBus.emit(TEXT_POOL_EVENTS.PERFORMANCE_WARNING, {
         poolSize: this.state.textPool.length,
         suggestion: 'Consider implementing text pool management features',
       })
@@ -648,7 +669,7 @@ class StateManager {
     this.saveCurrentState()
 
     // Comprehensive event emission
-    eventBus.emit('textPool.updated', {
+    eventBus.emit(TEXT_POOL_EVENTS.UPDATED, {
       action: 'added',
       text: trimmedText,
       textPool: [...this.state.textPool],
@@ -656,7 +677,7 @@ class StateManager {
       timestamp: Date.now(),
     })
 
-    eventBus.emit('textPool.sizeChanged', {
+    eventBus.emit(TEXT_POOL_EVENTS.SIZE_CHANGED, {
       newSize: this.state.textPool.length,
       previousSize: this.state.textPool.length - 1,
     })
@@ -729,7 +750,7 @@ class StateManager {
     this.saveCurrentState()
 
     // Emit events
-    eventBus.emit('textPool.updated', {
+    eventBus.emit(TEXT_POOL_EVENTS.UPDATED, {
       action: 'removed',
       text: trimmedText,
       textPool: [...this.state.textPool],
@@ -737,7 +758,7 @@ class StateManager {
       timestamp: Date.now(),
     })
 
-    eventBus.emit('textPool.sizeChanged', {
+    eventBus.emit(TEXT_POOL_EVENTS.SIZE_CHANGED, {
       newSize: this.state.textPool.length,
       previousSize: this.state.textPool.length + 1,
       isAtLimit: false,
@@ -777,7 +798,7 @@ class StateManager {
     this.saveCurrentState()
 
     // Emit events
-    eventBus.emit('textPool.updated', {
+    eventBus.emit(TEXT_POOL_EVENTS.UPDATED, {
       action: 'cleared',
       textPool: [],
       poolSize: 0,
@@ -786,7 +807,7 @@ class StateManager {
       timestamp: Date.now(),
     })
 
-    eventBus.emit('textPool.sizeChanged', {
+    eventBus.emit(TEXT_POOL_EVENTS.SIZE_CHANGED, {
       newSize: 0,
       previousSize: previousSize,
       isAtLimit: false,
@@ -831,6 +852,27 @@ class StateManager {
 
     const totalLength = this.state.textPool.reduce((sum, text) => sum + text.length, 0)
     this.textPoolStats.averageTextLength = Math.round(totalLength / this.state.textPool.length)
+  }
+
+  /**
+   * Get the current text frequency setting
+   * @returns {number} - Text frequency value (0-1 normalized)
+   */
+  getTextFrequency() {
+    return this.state.textFrequency
+  }
+
+  /**
+   * Set the text frequency setting
+   * @param {number} frequency - Text frequency value (0-1 normalized)
+   */
+  setTextFrequency(frequency) {
+    this.state.textFrequency = Math.max(0, Math.min(1, frequency))
+    this.saveCurrentState()
+    eventBus.emit(TEXT_POOL_EVENTS.FREQUENCY_CHANGED, {
+      frequency: this.state.textFrequency,
+      timestamp: Date.now(),
+    })
   }
 }
 

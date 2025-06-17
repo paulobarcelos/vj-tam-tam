@@ -16,6 +16,7 @@ import {
   filterUsableMedia,
 } from './utils/mediaUtils.js'
 import { formatFileSize, formatDuration } from './utils/stringUtils.js'
+import { STATE_EVENTS, TEXT_POOL_EVENTS } from './constants/events.js'
 
 class UIManager {
   constructor() {
@@ -49,6 +50,10 @@ class UIManager {
     this.clearTextBtn = null
     this.textPoolFooter = null
     this.textPillElements = new Map() // Track text pill DOM elements
+
+    // Frequency control elements
+    this.textFrequencySlider = null
+    this.frequencyControlSection = null
 
     // Idle/Active state management properties
     this.isUIIdle = false
@@ -91,6 +96,10 @@ class UIManager {
     this.clearTextBtn = document.getElementById('clear-text-btn')
     this.textPoolFooter = document.querySelector('.text-pool-footer')
 
+    // Frequency control elements
+    this.textFrequencySlider = document.getElementById('text-frequency-slider')
+    this.frequencyControlSection = document.querySelector('.frequency-control-section')
+
     if (
       !this.stage ||
       !this.leftDrawer ||
@@ -115,7 +124,9 @@ class UIManager {
       !this.textPoolDisplay ||
       !this.textPoolEmpty ||
       !this.clearTextBtn ||
-      !this.textPoolFooter
+      !this.textPoolFooter ||
+      !this.textFrequencySlider ||
+      !this.frequencyControlSection
     ) {
       console.error(STRINGS.SYSTEM_MESSAGES.uiManager.requiredElementsNotFound)
       return
@@ -126,6 +137,7 @@ class UIManager {
     this.setupFilePickerListeners()
     this.setupAdvancedControlsListeners()
     this.setupTextPoolListeners()
+    this.setupFrequencyControlListeners()
     this.setupActivityDetection()
     this.updateDOMStrings()
   }
@@ -154,18 +166,21 @@ class UIManager {
    */
   setupEventBusListeners() {
     // New StateManager events
-    eventBus.on('state.mediaPoolUpdated', this.handleMediaPoolStateUpdate.bind(this))
-    eventBus.on('state.mediaPoolRestored', this.handleMediaPoolRestored.bind(this))
+    eventBus.on(STATE_EVENTS.MEDIA_POOL_UPDATED, this.handleMediaPoolStateUpdate.bind(this))
+    eventBus.on(STATE_EVENTS.MEDIA_POOL_RESTORED, this.handleMediaPoolRestored.bind(this))
 
     // Listen for segment settings updates
-    eventBus.on('state.segmentSettingsUpdated', this.handleSegmentSettingsUpdate.bind(this))
+    eventBus.on(STATE_EVENTS.SEGMENT_SETTINGS_UPDATED, this.handleSegmentSettingsUpdate.bind(this))
 
     // Listen for UI settings updates
-    eventBus.on('state.uiSettingsUpdated', this.handleUISettingsUpdate.bind(this))
+    eventBus.on(STATE_EVENTS.UI_SETTINGS_UPDATED, this.handleUISettingsUpdate.bind(this))
 
     // Listen for text pool updates
-    eventBus.on('textPool.updated', this.handleTextPoolUpdate.bind(this))
-    eventBus.on('textPool.sizeChanged', this.handleTextPoolSizeChange.bind(this))
+    eventBus.on(TEXT_POOL_EVENTS.UPDATED, this.handleTextPoolUpdate.bind(this))
+    eventBus.on(TEXT_POOL_EVENTS.SIZE_CHANGED, this.handleTextPoolSizeChange.bind(this))
+
+    // Listen for frequency changes
+    eventBus.on(TEXT_POOL_EVENTS.FREQUENCY_CHANGED, this.handleFrequencyChange.bind(this))
   }
 
   /**
@@ -645,7 +660,7 @@ class UIManager {
 
       if (upgradedCount > 0) {
         // Emit update event to refresh UI and trigger other components
-        eventBus.emit('state.mediaPoolUpdated', {
+        eventBus.emit(STATE_EVENTS.MEDIA_POOL_UPDATED, {
           mediaPool: stateManager.getMediaPool(),
           addedItems: [],
           upgradedItems: upgradedItems,
@@ -718,6 +733,20 @@ class UIManager {
     if (this.clearTextBtn) {
       this.clearTextBtn.textContent = STRINGS.USER_INTERFACE.textPool.clearAllButton
     }
+
+    // Update frequency control elements
+    const frequencyLabel = document.getElementById('frequency-label')
+    const frequencyLabelMin = document.getElementById('frequency-label-min')
+    const frequencyLabelMax = document.getElementById('frequency-label-max')
+    const frequencyDescription = document.getElementById('frequency-description')
+
+    if (frequencyLabel) frequencyLabel.textContent = STRINGS.USER_INTERFACE.textPool.frequencyLabel
+    if (frequencyLabelMin)
+      frequencyLabelMin.textContent = STRINGS.USER_INTERFACE.textPool.frequencyNever
+    if (frequencyLabelMax)
+      frequencyLabelMax.textContent = STRINGS.USER_INTERFACE.textPool.frequencyAlways
+    if (frequencyDescription)
+      frequencyDescription.textContent = STRINGS.USER_INTERFACE.textPool.frequencyDescription
   }
 
   /**
@@ -1300,6 +1329,63 @@ class UIManager {
   // ============================================================================
   // ADVANCED CONTROLS MANAGEMENT METHODS
   // ============================================================================
+
+  /**
+   * Set up frequency control event listeners
+   */
+  setupFrequencyControlListeners() {
+    // Frequency slider input
+    this.textFrequencySlider.addEventListener('input', () => {
+      this.handleFrequencyChange()
+    })
+
+    // Frequency slider change (for final value)
+    this.textFrequencySlider.addEventListener('change', (e) => {
+      const frequency = parseFloat(e.target.value)
+      this.handleFrequencyChangeComplete(frequency)
+    })
+
+    // Listen for frequency changes from other sources
+    eventBus.on('textPool.frequencyChanged', (event) => {
+      this.updateFrequencyDisplay(event.frequency)
+    })
+
+    // Keyboard accessibility
+    this.textFrequencySlider.addEventListener('keydown', (e) => {
+      // Allow arrow keys for fine control
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault()
+        const currentFrequency = parseFloat(this.textFrequencySlider.value)
+        const delta = e.key === 'ArrowRight' ? 0.25 : -0.25
+        const newFrequency = Math.max(0, Math.min(1, currentFrequency + delta))
+
+        this.textFrequencySlider.value = newFrequency
+        this.handleFrequencyChange()
+        this.handleFrequencyChangeComplete(newFrequency)
+      }
+    })
+  }
+
+  initializeFrequencyControl() {
+    // Set initial frequency from state
+    const currentFrequency = stateManager.getTextFrequency()
+    this.textFrequencySlider.value = currentFrequency
+    this.updateFrequencyDisplay(currentFrequency)
+  }
+
+  handleFrequencyChange() {
+    // No immediate visual feedback needed for simplified slider
+  }
+
+  handleFrequencyChangeComplete(frequency) {
+    // Final frequency change
+    stateManager.setTextFrequency(frequency)
+  }
+
+  updateFrequencyDisplay(frequency) {
+    // Update slider if change came from external source
+    this.textFrequencySlider.value = frequency
+  }
 
   /**
    * Initialize Advanced Controls from restored state

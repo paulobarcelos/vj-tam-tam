@@ -9,6 +9,7 @@ import { toastManager } from './toastManager.js'
 import { STRINGS } from './constants/strings.js'
 import { t } from './constants/strings.js'
 import { isFileSupported, getMediaType, getSupportedTypes } from './utils/mediaUtils.js'
+import { MEDIA_EVENTS } from './constants/events.js'
 
 /**
  * @typedef {Object} MediaItem
@@ -103,7 +104,7 @@ class MediaProcessor {
 
         // Emit events for successful additions
         if (mediaItems.length > 0) {
-          eventBus.emit('media.filesAdded', {
+          eventBus.emit(MEDIA_EVENTS.FILES_ADDED, {
             files: mediaItems,
             count: mediaItems.length,
           })
@@ -206,7 +207,7 @@ class MediaProcessor {
    */
   removeFromPool(id) {
     stateManager.removeMediaFromPool(id)
-    eventBus.emit('media.fileRemoved', { id })
+    eventBus.emit(MEDIA_EVENTS.FILE_REMOVED, { id })
   }
 
   /**
@@ -214,7 +215,7 @@ class MediaProcessor {
    */
   clearPool() {
     stateManager.clearMediaPool()
-    eventBus.emit('media.poolCleared')
+    eventBus.emit(MEDIA_EVENTS.POOL_CLEARED)
   }
 
   /**

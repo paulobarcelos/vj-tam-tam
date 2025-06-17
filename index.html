@@ -66,6 +66,37 @@
             </button>
           </div>
         </div>
+        
+        <!-- Frequency Control -->
+        <div class="frequency-control-section">
+          <div class="frequency-control-header">
+            <label for="text-frequency-slider" class="frequency-label" id="frequency-label">Text Frequency</label>
+          </div>
+          
+          <div class="frequency-slider-container">
+            <input 
+              type="range" 
+              id="text-frequency-slider" 
+              class="frequency-slider"
+              min="0" 
+              max="1" 
+              value="0.5" 
+              step="0.25"
+              aria-label="Text display frequency"
+              aria-describedby="frequency-description"
+            >
+            
+            <div class="frequency-labels">
+              <span class="frequency-label-min" id="frequency-label-min">Never</span>
+              <span class="frequency-label-max" id="frequency-label-max">Always</span>
+            </div>
+          </div>
+          
+          <div id="frequency-description" class="frequency-description sr-only">
+            Controls how often text messages appear over the visuals. 
+            Range from Never to Always.
+          </div>
+        </div>
       </div>
       
       <!-- Advanced Controls Section -->
@@ -121,6 +152,14 @@
           <p>Please drag and drop your photos and videos here, or click to browse, to start your performance</p>
         </div>
       </div>
+      
+      <!-- Text Overlay (NEW) -->
+      <div id="text-overlay-container" class="text-overlay-container">
+        <div id="text-overlay" class="text-overlay">
+          <!-- Text content will be dynamically inserted here -->
+        </div>
+      </div>
+      
       <!-- Drop indicator overlay -->
       <div id="drop-indicator" class="drop-indicator hidden">
         <div class="drop-message">

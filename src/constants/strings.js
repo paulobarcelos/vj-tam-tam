@@ -98,6 +98,16 @@ export const STRINGS = {
       clearAllButton: 'Clear all',
       deleteButtonTitle: 'Remove this text',
       deleteButtonAriaLabel: 'Remove text: {{text}}',
+      frequencyLabel: 'Text Frequency',
+      frequencyNever: 'Never',
+      frequencyRare: 'Rare',
+      frequencySeldom: 'Seldom',
+      frequencyOccasional: 'Occasional',
+      frequencyNormal: 'Normal',
+      frequencyFrequent: 'Frequent',
+      frequencyOften: 'Often',
+      frequencyAlways: 'Always',
+      frequencyDescription: 'Controls how often text messages appear over the visuals',
     },
   },
 
@@ -267,6 +277,8 @@ export const STRINGS = {
       textPoolRestored: 'Text pool restored from localStorage with {{count}} entries',
       noTextPool: 'No text pool in persistedState, keeping empty pool',
       aboutToRestoreTextPool: 'About to restore text pool',
+      textFrequencyRestored: 'Text frequency restored: {{frequency}}',
+      textFrequencyDefault: 'No text frequency found, using default: {{frequency}}',
 
       // Debug messages
       persistedStateLoaded: 'Persisted state loaded from storage',
@@ -393,6 +405,17 @@ export const STRINGS = {
       parsedState: 'Parsed state',
     },
 
+    // Text Display Manager messages
+    textDisplayManager: {
+      initialized: 'Text display manager initialized',
+      initializationFailed: 'Failed to initialize text display manager',
+      elementsNotFound: 'Text overlay elements not found',
+      textDisplayStarted: 'Text display started',
+      textDisplayStopped: 'Text display stopped',
+      textDisplayPaused: 'Text display paused',
+      textDisplayResumed: 'Text display resumed',
+    },
+
     // Application initialization messages
     application: {
       initialized: 'VJ Tam Tam application ready',
@@ -409,6 +432,7 @@ export const STRINGS = {
       segmentSettingsStatus: 'Current segment settings loaded',
       uiSettingsStatus: 'Current UI settings loaded',
       advancedControlsInitializing: 'Initializing Advanced Controls from restored state',
+      textDisplayManagerInitializing: 'Initializing Text Display Manager',
     },
   },
 
