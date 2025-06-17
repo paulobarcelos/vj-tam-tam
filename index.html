@@ -19,13 +19,19 @@
           <button id="browse-folders-btn" class="file-picker-btn" title="Browse for entire folders">
             📁 Folders
           </button>
-          <button id="clear-media-btn" class="file-picker-btn" title="Clear all media from pool">
-            🗑️ Clear Media
-          </button>
         </div>
       </div>
-      <div id="media-pool" class="media-pool">
-        <!-- Media items will be displayed here -->
+      <div class="media-pool-container">
+        <div id="media-pool" class="media-pool">
+          <!-- Media items will be displayed here -->
+        </div>
+        
+        <!-- Media Pool Footer with Clear Button (aligned with text pool pattern) -->
+        <div class="media-pool-footer">
+          <button id="clear-media-btn" class="clear-all-btn" style="display: none;">
+            <!-- Text content will be set via JavaScript from strings.js -->
+          </button>
+        </div>
       </div>
       
       <!-- Text Pool Section -->

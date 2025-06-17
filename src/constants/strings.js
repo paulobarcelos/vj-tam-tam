@@ -38,7 +38,7 @@ export const STRINGS = {
     buttons: {
       files: '📄 Files',
       folders: '📁 Folders',
-      clearMedia: '🗑️ Clear Media',
+      clearMedia: 'Clear all',
       restoreAccess: '🔓 Restore Access',
       bulkRestore: '↗️ Bulk Restore All',
     },
@@ -161,6 +161,14 @@ export const STRINGS = {
         poolClearFailed: 'Failed to clear text pool',
         confirmClearAll: 'Are you sure you want to clear all {{count}} text message{{plural}}?',
       },
+
+      // Media pool notifications (aligned with text pool pattern)
+      media: {
+        poolAlreadyEmpty: 'Media pool is already empty',
+        poolCleared: 'Cleared {{count}} media item{{plural}}',
+        poolClearFailed: 'Failed to clear media pool',
+        confirmClearAll: 'Are you sure you want to clear all {{count}} media item{{plural}}?',
+      },
     },
 
     // Status banners and notices
@@ -279,6 +287,9 @@ export const STRINGS = {
       aboutToRestoreTextPool: 'About to restore text pool',
       textFrequencyRestored: 'Text frequency restored: {{frequency}}',
       textFrequencyDefault: 'No text frequency found, using default: {{frequency}}',
+
+      // Media pool messages
+      mediaPoolAlreadyEmpty: 'Media pool is already empty',
 
       // Debug messages
       persistedStateLoaded: 'Persisted state loaded from storage',

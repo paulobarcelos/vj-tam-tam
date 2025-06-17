@@ -932,6 +932,15 @@ body {
   100% { transform: scale(1); }
 }
 
+/* Media Pool Footer (aligned with text pool pattern) */
+.media-pool-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.5rem 0 0 0;
+  border-top: 1px solid #333;
+  margin-top: 0.5rem;
+}
+
 /* Text Pool Footer */
 .text-pool-footer {
   display: flex;

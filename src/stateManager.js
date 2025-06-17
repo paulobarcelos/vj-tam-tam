@@ -465,10 +465,18 @@ class StateManager {
   }
 
   /**
-   * Clear all media from the pool
+   * Clear all media from the pool (aligned with text pool pattern)
    * Also clears all stored file handles
+   * @returns {boolean} - True if media pool was cleared, false if already empty
    */
   clearMediaPool() {
+    if (this.state.mediaPool.length === 0) {
+      console.warn(STRINGS.SYSTEM_MESSAGES.stateManager.mediaPoolAlreadyEmpty)
+      return false
+    }
+
+    const previousCount = this.state.mediaPool.length
+
     // Revoke all object URLs
     this.state.mediaPool.forEach((item) => {
       if (item.url) {
@@ -481,12 +489,18 @@ class StateManager {
 
     this.state.mediaPool = []
 
+    // Save state
+    this.saveCurrentState()
+
     // Emit state change notification
     eventBus.emit(STATE_EVENTS.MEDIA_POOL_UPDATED, {
       mediaPool: this.getMediaPool(),
       totalCount: 0,
+      previousCount: previousCount,
       cleared: true,
     })
+
+    return true
   }
 
   /**
