@@ -350,12 +350,16 @@ describe('StateManager', () => {
       const mockItems = [createMockMediaItem('test1.jpg'), createMockMediaItem('test2.mp4')]
       stateManager.addMediaToPool(mockItems)
 
+      // Clear the spy after adding items to isolate the clear event
+      eventBus.emit.mockClear()
+
       stateManager.clearMediaPool()
 
       expect(stateManager.getMediaPool()).toHaveLength(0)
       expect(eventBus.emit).toHaveBeenCalledWith('state.mediaPoolUpdated', {
         mediaPool: expect.any(Array),
         totalCount: 0,
+        previousCount: 2,
         cleared: true,
       })
     })

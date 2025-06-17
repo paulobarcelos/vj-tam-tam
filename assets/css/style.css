@@ -355,6 +355,7 @@ body {
   display: flex;
   flex-direction: column;
   transition: background-color 0.2s ease, opacity 0.3s ease;
+  overflow-y: auto;
 }
 
 .left-drawer.drag-over {
@@ -432,10 +433,24 @@ body {
   outline-offset: 2px;
 }
 
+/* Media Pool Notices Container */
+.media-pool-notices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 1rem;
+  padding-top: 1rem;
+}
+
 .media-pool {
-  flex: 1;
-  padding: 0.5rem;
+  padding: 1rem;
+  padding-top: 0.5rem;
+  max-height: 400px;
   overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  gap: 0.5rem;
+  align-content: start;
 }
 
 /* Toast notifications */
@@ -480,53 +495,245 @@ body {
   }
 }
 
-/* Media pool items */
+/* Media pool items - Square Thumbnail Layout */
 .media-item {
-  background-color: #333;
-  border: 1px solid #555;
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border: 2px solid #555;
   border-radius: 4px;
-  padding: 0.5rem;
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
-}
-
-.media-name {
-  font-weight: 500;
-  margin-bottom: 0.25rem;
-  white-space: nowrap;
+  background-color: #333;
   overflow: hidden;
-  text-overflow: ellipsis;
-  cursor: help;
+  transition: all 0.2s ease;
 }
 
-.media-type {
+.media-item:hover {
+  border-color: #fff;
+  transform: scale(1.02);
+}
+
+.media-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background-color: #222;
+}
+
+
+
+.media-delete-btn {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid #fff;
+  border-radius: 50%;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-weight: bold;
   font-size: 0.8rem;
-  color: #aaa;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.media-item:hover .media-delete-btn {
+  opacity: 1;
+}
+
+.media-delete-btn:hover {
+  background: rgba(255, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+
+.video-indicator {
+  position: absolute;
+  top: 0.25rem;
+  left: 0.25rem;
+  width: 1rem;
+  height: 1rem;
+  color: #fff;
+  font-size: 0.8rem;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+}
+
+.video-indicator::before {
+  content: '▶';
+}
+
+.video-duration {
+  position: absolute;
+  bottom: 0.25rem;
+  right: 0.25rem;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  font-size: 0.6rem;
+  padding: 0.1rem 0.25rem;
+  border-radius: 2px;
+  line-height: 1;
 }
 
 .media-pool-empty {
+  grid-column: 1 / -1;
   text-align: center;
   color: #666;
   font-style: italic;
   padding: 2rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+/* Info Notices Styling */
+.notice {
+  background-color: rgba(0, 0, 0, 0.8);
+  border: 1px solid;
+  border-radius: 4px;
+  padding: 0.75rem;
+  position: relative;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.notice.restore-notice {
+  border-color: #007acc;
+  background-color: rgba(0, 122, 204, 0.1);
+}
+
+.notice.temporary-notice {
+  border-color: #ffa500;
+  background-color: rgba(255, 165, 0, 0.1);
+}
+
+.notice-content {
+  margin-right: 2rem; /* Space for close button */
+}
+
+.notice-text {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.notice-tip {
+  display: block;
+  font-size: 0.8rem;
+  color: #ccc;
+  font-style: italic;
+}
+
+.notice-close-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.notice-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.restore-all-btn {
+  margin-top: 0.5rem;
+  background-color: #007acc;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.restore-all-btn:hover {
+  background-color: #005a99;
+}
+
+/* Permission banner - thin, non-dismissible, positioned before media pool */
+.permission-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem 0.8rem;
+  background: #007acc;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-size: 0.7rem;
+  font-weight: bold;
+  border: 2px solid #000;
+  margin-bottom: 0.5rem;
+  min-height: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.permission-banner:hover {
+  background: #005a99;
+  transform: translateY(-1px);
 }
 
 /* Media pool item metadata-only styling */
 .media-item.metadata-only {
   opacity: 0.6;
-  border-left: 3px solid #ff9500;
+  border-color: #ff9500;
 }
 
-.media-item.metadata-only::after {
-  content: " (restored, needs re-access)";
-  font-size: 0.7rem;
+.media-item.metadata-only::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 149, 0, 0.2);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.media-item.metadata-only .media-type {
   color: #ff9500;
 }
 
 /* Media pool item needs-permission styling (FileSystemAccessAPI files) */
 .media-item.needs-permission {
-  border-left: 3px solid #007acc;
-  background-color: rgba(0, 122, 204, 0.1);
+  border-color: #007acc;
+}
+
+.media-item.needs-permission::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 122, 204, 0.2);
+  pointer-events: none;
+  z-index: 1;
 }
 
 .media-item.needs-permission .media-type {
@@ -535,82 +742,26 @@ body {
 
 /* Media pool item temporary styling (drag & drop files) */
 .media-item.temporary-file {
-  border-left: 3px solid #ffa500;
-  background-color: rgba(255, 165, 0, 0.1);
+  border-color: #ffa500;
+}
+
+.media-item.temporary-file::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 165, 0, 0.2);
+  pointer-events: none;
+  z-index: 1;
 }
 
 .media-item.temporary-file .media-type {
   color: #ffb84d;
 }
 
-/* Restore notice banner */
-.restore-notice {
-  background-color: rgba(0, 122, 204, 0.1);
-  border: 1px solid #007acc;
-  border-radius: 6px;
-  padding: 0.75rem;
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
 
-.restore-notice-text {
-  color: #4da6ff;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.restore-all-btn {
-  background-color: #007acc;
-  color: #fff;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
-
-.restore-all-btn:hover {
-  background-color: #005a9e;
-  transform: translateY(-1px);
-}
-
-.restore-all-btn:active {
-  transform: translateY(0);
-}
-
-.restore-all-btn:focus {
-  outline: 2px solid #4da6ff;
-  outline-offset: 2px;
-}
-
-/* Temporary files notice banner */
-.temporary-notice {
-  background-color: rgba(255, 165, 0, 0.1);
-  border: 1px solid #ffa500;
-  border-radius: 6px;
-  padding: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.temporary-notice-text {
-  color: #ffb84d;
-  font-size: 0.9rem;
-  font-weight: 500;
-  display: block;
-  margin-bottom: 0.25rem;
-}
-
-.temporary-tip {
-  color: #cc8800;
-  font-size: 0.8rem;
-  font-style: italic;
-}
 
 /* Responsive design */
 @media (max-width: 768px) {

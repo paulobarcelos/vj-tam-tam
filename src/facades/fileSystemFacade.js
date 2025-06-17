@@ -107,6 +107,12 @@ class FileSystemFacade {
 
       console.log(t.get('SYSTEM_MESSAGES.fileSystemFacade.filesSelected', { count: files.length }))
       this.lastOperationUsedAPI = true // Mark as successful API usage
+
+      // Update StateManager with API working state
+      import('../stateManager.js').then(({ stateManager }) => {
+        stateManager.setFileSystemAPIWorking(true)
+      })
+
       return files
     } catch (error) {
       if (error.name === 'AbortError') {
@@ -129,6 +135,14 @@ class FileSystemFacade {
 
         toastManager.show(STRINGS.USER_MESSAGES.notifications.info.filePickerFallback, {
           type: 'info',
+        })
+
+        // Mark as fallback used since API failed
+        this.lastOperationUsedAPI = false
+
+        // Update StateManager with API not working state
+        import('../stateManager.js').then(({ stateManager }) => {
+          stateManager.setFileSystemAPIWorking(false)
         })
 
         // Fall back to HTML input file picker
@@ -160,6 +174,12 @@ class FileSystemFacade {
         t.get('SYSTEM_MESSAGES.fileSystemFacade.directoryFilesFound', { count: files.length })
       )
       this.lastOperationUsedAPI = true // Mark as successful API usage
+
+      // Update StateManager with API working state
+      import('../stateManager.js').then(({ stateManager }) => {
+        stateManager.setFileSystemAPIWorking(true)
+      })
+
       return files
     } catch (error) {
       if (error.name === 'AbortError') {
@@ -182,6 +202,14 @@ class FileSystemFacade {
 
         toastManager.show(STRINGS.USER_MESSAGES.notifications.info.folderPickerFallback, {
           type: 'info',
+        })
+
+        // Mark as fallback used since API failed
+        this.lastOperationUsedAPI = false
+
+        // Update StateManager with API not working state
+        import('../stateManager.js').then(({ stateManager }) => {
+          stateManager.setFileSystemAPIWorking(false)
         })
 
         // Fall back to HTML input folder picker

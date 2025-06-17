@@ -41,6 +41,8 @@ class StateManager {
       },
       // Text frequency for text overlay display (0-1 normalized scale)
       textFrequency: 0.5, // Default middle value (equivalent to step 4 of 8)
+      // FileSystem Access API state tracking
+      fileSystemAPIWorking: null, // null = unknown, true = working, false = not working
     }
     // Text pool configuration
     this.textPoolMaxSize = 1000 // Configurable limit
@@ -210,6 +212,14 @@ class StateManager {
           })
         )
       }
+
+      // Always restore FileSystem API working state from localStorage with fallback to null (unknown)
+      if (typeof persistedState?.fileSystemAPIWorking === 'boolean') {
+        this.state.fileSystemAPIWorking = persistedState.fileSystemAPIWorking
+        console.log('FileSystem API working state restored:', this.state.fileSystemAPIWorking)
+      } else {
+        console.log('No FileSystem API working state found, using default: null')
+      }
     } catch (error) {
       console.error(STRINGS.SYSTEM_MESSAGES.stateManager.restorationError, error)
     }
@@ -288,6 +298,8 @@ class StateManager {
         uiSettings: this.state.uiSettings,
         // Persist text frequency
         textFrequency: this.state.textFrequency,
+        // Persist FileSystem API working state
+        fileSystemAPIWorking: this.state.fileSystemAPIWorking,
         // Persist other relevant state properties if they exist (e.g., autoPlaybackEnabled)
         // autoPlaybackEnabled: this.state.autoPlaybackEnabled,
         // lastPlaybackState: this.state.lastPlaybackState,
@@ -887,6 +899,28 @@ class StateManager {
       frequency: this.state.textFrequency,
       timestamp: Date.now(),
     })
+  }
+
+  /**
+   * Get FileSystem Access API working state
+   * @returns {boolean|null} - true if working, false if not working, null if unknown
+   */
+  getFileSystemAPIWorking() {
+    return this.state.fileSystemAPIWorking
+  }
+
+  /**
+   * Set FileSystem Access API working state and persist it
+   * @param {boolean} isWorking - Whether the API is working
+   */
+  setFileSystemAPIWorking(isWorking) {
+    if (typeof isWorking !== 'boolean') {
+      console.warn('FileSystem API working state must be boolean', isWorking)
+      return
+    }
+
+    this.state.fileSystemAPIWorking = isWorking
+    this.saveCurrentState()
   }
 }
 

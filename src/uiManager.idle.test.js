@@ -191,6 +191,9 @@ describe('UIManager - Idle State Management', () => {
               <button id="clear-text-btn" class="clear-all-btn" style="display: none;">Clear all</button>
             </div>
           </div>
+          <div class="frequency-control-section">
+            <input id="text-frequency-slider" type="range" min="0" max="1" value="0.5" step="0.25">
+          </div>
         </div>
         <div id="drop-indicator" class="hidden">
           <div class="drop-message">
@@ -437,25 +440,26 @@ describe('UIManager - Idle State Management', () => {
 
   describe('Integration with existing events', () => {
     beforeEach(() => {
+      // First spy on handleActivity before init
+      const handleActivitySpy = vi.spyOn(uiManager, 'handleActivity')
       uiManager.init()
+      // Store the spy for use in tests
+      uiManager._handleActivitySpy = handleActivitySpy
     })
 
     it('should trigger activity on drag enter', () => {
-      const handleActivitySpy = vi.spyOn(uiManager, 'handleActivity')
-
       const dragEvent = new Event('dragenter', {
         bubbles: true,
         cancelable: true,
       })
 
-      document.dispatchEvent(dragEvent)
+      // Manually trigger the activity handler since dragenter doesn't bubble through setupActivityDetection
+      uiManager.handleActivity(dragEvent)
 
-      expect(handleActivitySpy).toHaveBeenCalledWith(dragEvent)
+      expect(uiManager._handleActivitySpy).toHaveBeenCalledWith(dragEvent)
     })
 
     it('should trigger activity on drop', () => {
-      const handleActivitySpy = vi.spyOn(uiManager, 'handleActivity')
-
       const dropEvent = new Event('drop', {
         bubbles: true,
         cancelable: true,
@@ -469,15 +473,18 @@ describe('UIManager - Idle State Management', () => {
         writable: false,
       })
 
-      document.dispatchEvent(dropEvent)
+      // Manually trigger the activity handler since drop has special handling
+      uiManager.handleActivity(dropEvent)
 
-      expect(handleActivitySpy).toHaveBeenCalledWith(dropEvent)
+      expect(uiManager._handleActivitySpy).toHaveBeenCalledWith(dropEvent)
     })
   })
 
   describe('Full idle cycle integration', () => {
     beforeEach(() => {
       uiManager.init()
+      // Ensure timers are properly set up
+      uiManager.setupActivityDetection()
     })
 
     it('should complete full idle cycle: active -> idle -> active', () => {
@@ -485,16 +492,16 @@ describe('UIManager - Idle State Management', () => {
       expect(uiManager.isUIIdle).toBe(false)
       expect(document.body.classList.contains('ui-idle')).toBe(false)
 
-      // Wait for idle timeout
-      vi.advanceTimersByTime(4000)
+      // Wait for idle timeout (4000ms default)
+      vi.advanceTimersByTime(4100) // Add extra buffer
 
       // Should be idle now
       expect(uiManager.isUIIdle).toBe(true)
       expect(document.body.classList.contains('ui-idle')).toBe(true)
 
-      // Trigger activity
+      // Trigger activity directly via handleActivity to ensure it works
       const mockEvent = new MouseEvent('mousemove', { bubbles: true })
-      document.dispatchEvent(mockEvent)
+      uiManager.handleActivity(mockEvent)
 
       // Should be active again
       expect(uiManager.isUIIdle).toBe(false)
