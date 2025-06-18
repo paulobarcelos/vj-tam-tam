@@ -30,9 +30,6 @@ vi.mock('./constants/strings.js', () => ({
         error: {
           videoLoadFailed: 'Video load failed for {fileName}',
         },
-        info: {
-          videoOffsetFallback: 'Video offset fallback used',
-        },
       },
     },
   },

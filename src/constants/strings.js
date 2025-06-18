@@ -150,8 +150,6 @@ export const STRINGS = {
         folderPickerFallback:
           'FileSystemAccessAPI permission denied. Using fallback folder picker.',
         filePickerActive: 'File picker already active, ignoring click',
-        videoOffsetFallback:
-          'Video offsets were too large for this video and were temporarily ignored for playback',
       },
 
       // Text pool notifications

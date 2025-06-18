@@ -299,10 +299,7 @@ class PlaybackEngine {
           // Seek to start point with retry mechanism
           this.seekToStartPoint(video, segmentParams.startPoint)
 
-          // Show toast notification if fallback was used (AC 1.9)
-          if (segmentParams.fallbackUsed === 'both') {
-            toastManager.info(STRINGS.USER_MESSAGES.notifications.info.videoOffsetFallback)
-          }
+          // Video offset fallback applied if needed (no user notification for noise reduction)
 
           // Start segment monitoring if cycling is active
           if (this.isCyclingActive) {
