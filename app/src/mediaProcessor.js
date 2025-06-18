@@ -175,7 +175,12 @@ class MediaProcessor {
         }
       } catch (error) {
         // Duration detection failed, continue without duration
-        console.warn(`Failed to detect duration for ${file.name}:`, error)
+        console.warn(
+          t.get('SYSTEM_MESSAGES.mediaProcessor.videoDurationDetectionFailed', {
+            fileName: file.name,
+          }),
+          error
+        )
       }
     }
 
