@@ -8,18 +8,6 @@
  */
 
 /**
- * Interpolate a template string with values
- * @param {string} template - Template string with {{key}} placeholders
- * @param {Object} values - Object with values to interpolate
- * @returns {string} - Interpolated string
- */
-export const interpolate = (template, values = {}) => {
-  return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
-    return values[key] !== undefined ? values[key] : match
-  })
-}
-
-/**
  * ============================================================================
  * CENTRALIZED STRINGS - FULLY SERIALIZABLE FOR I18N
  * ============================================================================
@@ -524,6 +512,11 @@ export const STRINGS = {
     upgradeNotification: 'Restored access to {{count}} file{{plural}}: {{fileName}}',
     upgradeNotificationSingle: 'Restored access to 1 file: {{fileName}}',
     upgradeNotificationMultiple: 'Restored access to {{count}} files',
+    fileRestored: 'File "{{fileName}}" restored successfully',
+    fileRestoreFailed: 'Failed to restore file "{{fileName}}"',
+    filesRestored: '{{count}} file{{plural}} restored successfully',
+    noFilesRestored: 'No files could be restored',
+    bulkRestoreFailed: 'Failed to restore file permissions',
   },
 }
 
@@ -547,7 +540,19 @@ export const getString = (path) => {
  * @param {number} count - Count to determine plurality
  * @returns {string} - 's' if plural, empty string if singular
  */
-const getPlural = (count) => (count !== 1 ? 's' : '')
+export const getPlural = (count) => (count !== 1 ? 's' : '')
+
+/**
+ * Interpolate a template string with values
+ * @param {string} template - Template string with {{key}} placeholders
+ * @param {Object} values - Object with values to interpolate
+ * @returns {string} - Interpolated string
+ */
+export const interpolate = (template, values = {}) => {
+  return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+    return values[key] !== undefined ? values[key] : match
+  })
+}
 
 /**
  * ============================================================================
@@ -592,9 +597,9 @@ export const t = {
     }
     return t.get('TEMPLATES.fileDisplay', { type, size, status: '' })
   },
-  fileRestored: (fileName) => `File "${fileName}" restored successfully`,
-  fileRestoreFailed: (fileName) => `Failed to restore file "${fileName}"`,
-  filesRestored: (count) => `${count} file${count === 1 ? '' : 's'} restored successfully`,
-  noFilesRestored: () => 'No files could be restored',
-  bulkRestoreFailed: () => 'Failed to restore file permissions',
+  fileRestored: (fileName) => t.get('TEMPLATES.fileRestored', { fileName }),
+  fileRestoreFailed: (fileName) => t.get('TEMPLATES.fileRestoreFailed', { fileName }),
+  filesRestored: (count) => t.get('TEMPLATES.filesRestored', { count }),
+  noFilesRestored: () => t.get('TEMPLATES.noFilesRestored'),
+  bulkRestoreFailed: () => t.get('TEMPLATES.bulkRestoreFailed'),
 }
