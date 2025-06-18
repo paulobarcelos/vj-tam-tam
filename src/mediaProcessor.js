@@ -26,7 +26,7 @@ import { MEDIA_EVENTS } from './constants/events.js'
 
 class MediaProcessor {
   constructor() {
-    this.nextId = 1
+    // Using random IDs eliminates collision issues on app restart
   }
 
   /**
@@ -154,7 +154,7 @@ class MediaProcessor {
     const mediaType = getMediaType(file)
 
     const mediaItem = {
-      id: `media_${this.nextId++}`,
+      id: `media_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: file.name,
       type: mediaType,
       mimeType: file.type,
