@@ -422,9 +422,13 @@ class UIManager {
   /**
    * Create thumbnail element for media item
    * @param {object} mediaItem - The media item object
-   * @returns {HTMLElement} The thumbnail element
+   * @returns {HTMLElement} The thumbnail container element
    */
   createThumbnailElement(mediaItem) {
+    // Create a container for the thumbnail that can hold both media and indicators
+    const thumbnailContainer = document.createElement('div')
+    thumbnailContainer.className = 'media-thumbnail-container'
+
     if (mediaItem.url && (mediaItem.file || mediaItem.fromFileSystemAPI)) {
       // Create actual image/video thumbnail
       if (mediaItem.type === 'video') {
@@ -439,7 +443,7 @@ class UIManager {
           video.currentTime = 0.1 // Small offset to avoid black frame
         })
 
-        return video
+        thumbnailContainer.appendChild(video)
       } else {
         const img = document.createElement('img')
         img.className = 'media-thumbnail'
@@ -453,12 +457,15 @@ class UIManager {
           img.parentNode?.replaceChild(placeholder, img)
         })
 
-        return img
+        thumbnailContainer.appendChild(img)
       }
     } else {
       // Create placeholder for files without access
-      return this.createPlaceholderThumbnail(mediaItem)
+      const placeholder = this.createPlaceholderThumbnail(mediaItem)
+      thumbnailContainer.appendChild(placeholder)
     }
+
+    return thumbnailContainer
   }
 
   /**
@@ -505,6 +512,9 @@ class UIManager {
     this.mediaPool.innerHTML = ''
 
     const mediaItems = stateManager.getMediaPool()
+
+    // Update clear button visibility
+    this.updateClearMediaVisibility(mediaItems.length)
 
     if (mediaItems.length === 0) {
       this.showEmptyMediaPoolMessage()
