@@ -49,6 +49,7 @@ export const STRINGS = {
       foldersButton: 'Browse for entire folders',
       removeMediaItem: 'Remove from pool',
       dismissNotice: 'Dismiss',
+      restoreAccess: 'Restore file access',
     },
 
     // Labels and headings
@@ -75,6 +76,8 @@ export const STRINGS = {
       needsPermission: 'needs permission',
       metadataOnly: 'metadata only',
       temporary: 'temporary',
+      ready: 'ready',
+      unknownSize: 'unknown size',
     },
 
     // Welcome and instruction text
@@ -355,6 +358,55 @@ export const STRINGS = {
       idleStateEntered: 'UI entered idle state',
       idleStateExited: 'UI exited idle state',
       activityDetectionInitialized: 'Activity detection initialized',
+
+      // Permission restoration console messages
+      noPermissionNeeded: '🌐 No files need permission, skipping global hijacking setup',
+      globalHijackingSetup:
+        '🌐 Setting up global activation hijacking for {{count}} files needing permission',
+      globalHijackingRemoval: '🌐 Removing global activation hijacking listeners',
+      globalHijackingComplete: '🌐 Global activation hijacking setup complete',
+      globalListenersAdding: '🌐 Adding global listeners for events: {{events}}',
+      globalHijackerTriggered:
+        '🌐 Global hijacker triggered: {{eventType}} on {{tagName}} {{className}}',
+      skipEscapeKey: '🌐 Skipping Escape key',
+      skipReservedKey: '🌐 Skipping reserved key combination: {{key}}',
+      skipNonMousePointer: '🌐 Skipping non-mouse pointerdown: {{pointerType}}',
+      skipMousePointerUp: '🌐 Skipping mouse pointerup',
+      opportunisticRestore: '🌐 Attempting opportunistic restore for {{count}} files...',
+      opportunisticComplete: '🌐 Opportunistic restore completed successfully',
+      opportunisticFailed: '🌐 Opportunistic permission restore failed:',
+      noFilesNeedPermission: '🌐 No files currently need permission',
+
+      // Individual restore button messages
+      createRestoreButton: '🔓 Creating restore button for: {{fileName}}',
+      restoreButtonAdded: '🔓 Restore button added to controls for: {{fileName}}',
+      restoreButtonClicked: '🔓 Restore button clicked, preventing propagation...',
+      singleFileRestore: '🔓 Single file restore clicked for: {{fileName}}',
+      singleFileDetails: '🔓 Item details:',
+      callingRestoreAccess: '🔓 Calling fileSystemFacade.requestStoredFilesAccess...',
+      restoreResult: '🔓 Restore result:',
+      restoreSuccessful: '🔓 Successfully restored, updating state manager...',
+      noFilesRestored: '🔓 No files were restored',
+      restoreError: '🔓 Error restoring file:',
+
+      // Bulk restore messages
+      bulkRestoreSilent: '{{prefix}} Bulk restore (silent) for {{count}} files',
+      bulkRestoreCall:
+        '{{prefix}} Calling fileSystemFacade.requestStoredFilesAccess for bulk restore...',
+      bulkRestoreResult: '{{prefix}} Bulk restore result: {{count}} files restored',
+      bulkRestoreSilentSuccess: '{{prefix}} Silent bulk restore successful: {{count}} files',
+      bulkRestoreSilentNoFiles: '{{prefix}} Silent bulk restore: no files restored',
+      bulkRestoreSilentFailed: '{{prefix}} Silent bulk restore failed:',
+      bulkRestoreNoFiles: '{{prefix}} No files were restored in bulk operation',
+
+      // Media pool debug messages
+      debugMediaPoolHeader: '=== MEDIA POOL DEBUG ===',
+      debugTotalItems: 'Total items: {{count}}',
+      debugItemDetails: 'Item {{index}}:',
+      debugFilesNeedingPermission: 'Files needing permission: {{count}}',
+      debugTemporaryFiles: 'Temporary files: {{count}}',
+      debugUsableFiles: 'Usable files: {{count}}',
+      debugFooter: '========================',
     },
 
     // Playback Engine messages
@@ -531,4 +583,9 @@ export const t = {
     }
     return t.get('TEMPLATES.fileDisplay', { type, size, status: '' })
   },
+  fileRestored: (fileName) => `File "${fileName}" restored successfully`,
+  fileRestoreFailed: (fileName) => `Failed to restore file "${fileName}"`,
+  filesRestored: (count) => `${count} file${count === 1 ? '' : 's'} restored successfully`,
+  noFilesRestored: () => 'No files could be restored',
+  bulkRestoreFailed: () => 'Failed to restore file permissions',
 }
