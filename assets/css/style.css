@@ -14,6 +14,139 @@ body {
   height: 100vh;
 }
 
+/* ===================================================
+   BRUTALIST MINIMALISM DESIGN SYSTEM - BUTTONS
+   Following UI-UX-Spec.md Section 2 requirements
+   =================================================== */
+
+/* Base Button Classes - Brutalist Minimalism */
+.btn {
+  /* Typography: Arial Bold per UI-UX-Spec Section 2 */
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  min-height: 44px; /* Accessibility: minimum touch target */
+  
+  /* Brutalist Design */
+  background-color: #ffffff;
+  color: #000000;
+  border: 2px solid #000000;
+  border-radius: 0; /* No rounded corners - brutalist */
+  
+  /* Interaction */
+  cursor: pointer;
+  transition: all 0.1s ease; /* Quick transitions for immediate feedback */
+  text-decoration: none;
+  outline: none;
+  
+  /* Prevent text selection */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Button States */
+.btn:hover {
+  background-color: #000000;
+  color: #ffffff;
+  transform: translateY(-1px); /* Subtle lift effect */
+}
+
+.btn:active {
+  transform: translateY(0);
+  background-color: #333333;
+  color: #ffffff;
+}
+
+.btn:focus {
+  outline: 3px solid #ffffff;
+  outline-offset: 2px;
+  background-color: #000000;
+  color: #ffffff;
+}
+
+.btn:disabled {
+  background-color: #666666;
+  color: #cccccc;
+  border-color: #666666;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Button Size Variants */
+.btn--small {
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  min-height: 36px;
+}
+
+.btn--large {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  min-height: 52px;
+}
+
+/* Button Style Variants */
+.btn--secondary {
+  background-color: transparent;
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+.btn--secondary:hover {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+.btn--secondary:focus {
+  outline-color: #000000;
+  background-color: #ffffff;
+  color: #000000;
+}
+
+.btn--danger {
+  background-color: #ffffff;
+  color: #000000;
+  border-color: #000000;
+}
+
+.btn--danger:hover {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+.btn--icon {
+  padding: 0.5rem;
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 1rem;
+}
+
+.btn--icon-small {
+  padding: 0.25rem;
+  min-width: 32px;
+  min-height: 32px;
+  font-size: 0.9rem;
+}
+
+/* Button Groups */
+.btn-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-group .btn {
+  flex: 1;
+}
+
+/* ================================================= */
+
 #app {
   position: relative;
   height: 100vh;
@@ -403,35 +536,7 @@ body {
   gap: 0.5rem;
 }
 
-.file-picker-btn {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 0.4rem 0.8rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-family: Arial, sans-serif;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  user-select: none;
-}
-
-.file-picker-btn:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.4);
-  transform: translateY(-1px);
-}
-
-.file-picker-btn:active {
-  transform: translateY(0);
-  background-color: rgba(255, 255, 255, 0.15);
-}
-
-.file-picker-btn:focus {
-  outline: 2px solid #007acc;
-  outline-offset: 2px;
-}
+/* Legacy .file-picker-btn styles removed - now using .btn classes */
 
 /* Media Pool Notices Container */
 .media-pool-notices {
@@ -453,44 +558,78 @@ body {
   align-content: start;
 }
 
-/* Toast notifications */
+/* ===================================================
+   BRUTALIST MINIMALISM DESIGN SYSTEM - TOAST NOTIFICATIONS
+   Following UI-UX-Spec.md Section 5.4 requirements
+   =================================================== */
+
+/* Toast notifications - positioned bottom-center per UI-UX-Spec */
 .toast-container {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .toast {
-  background-color: rgba(0, 0, 0, 0.9);
-  color: white;
-  padding: 12px 20px;
-  border-radius: 6px;
-  margin-bottom: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  border: 1px solid #444;
+  /* Typography: Arial Bold per UI-UX-Spec Section 2 */
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  
+  /* Brutalist Design */
+  background-color: #ffffff;
+  color: #000000;
+  border: 2px solid #000000;
+  border-radius: 0; /* No rounded corners - brutalist */
+  
+  /* Layout */
+  padding: 0.75rem 1.5rem;
   max-width: 400px;
+  min-width: 200px;
+  text-align: center;
   word-wrap: break-word;
-  animation: toast-slide-in 0.3s ease-out;
+  
+  /* Animation */
+  animation: toast-slide-up 0.3s ease-out;
+  
+  /* Positioning */
+  margin-bottom: 0;
 }
 
+/* Toast variants with brutalist black/white styling */
 .toast.error {
-  border-color: #ff4444;
-  background-color: rgba(255, 68, 68, 0.9);
+  background-color: #000000;
+  color: #ffffff;
+  border-color: #ffffff;
 }
 
 .toast.success {
-  border-color: #44ff44;
-  background-color: rgba(68, 255, 68, 0.9);
+  background-color: #ffffff;
+  color: #000000;
+  border-color: #000000;
 }
 
-@keyframes toast-slide-in {
+.toast.info {
+  background-color: #ffffff;
+  color: #000000;
+  border-color: #000000;
+}
+
+/* Toast animations */
+@keyframes toast-slide-up {
   from {
-    transform: translateX(100%);
+    transform: translateY(100%);
     opacity: 0;
   }
   to {
-    transform: translateX(0);
+    transform: translateY(0);
     opacity: 1;
   }
 }
@@ -542,45 +681,25 @@ body {
   opacity: 1;
 }
 
+/* Media control button overrides for round style */
 .media-restore-btn {
-  width: 1.5rem;
-  height: 1.5rem;
-  border: none;
-  border-radius: 50%;
-  background: rgba(0, 122, 204, 0.9);
-  color: white;
-  font-size: 0.8rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.media-restore-btn:hover {
-  background: #005a99;
-  transform: scale(1.1);
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+  min-width: 1.5rem !important;
+  min-height: 1.5rem !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  font-size: 0.8rem !important;
 }
 
 .media-delete-btn {
-  width: 1.5rem;
-  height: 1.5rem;
-  border: none;
-  border-radius: 50%;
-  background: rgba(255, 0, 0, 0.8);
-  color: white;
-  font-size: 1rem;
-  font-weight: bold;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.media-delete-btn:hover {
-  background: rgba(255, 0, 0, 1);
-  transform: scale(1.1);
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+  min-width: 1.5rem !important;
+  min-height: 1.5rem !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  font-size: 1rem !important;
 }
 
 .video-indicator {
@@ -659,27 +778,18 @@ body {
   font-style: italic;
 }
 
+/* Notice close button overrides */
 .notice-close-btn {
-  position: absolute;
+  position: absolute !important;
   top: 0.5rem;
   right: 0.5rem;
-  width: 1.5rem;
-  height: 1.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
-  color: #fff;
-  font-size: 0.8rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.notice-close-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: scale(1.1);
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+  min-width: 1.5rem !important;
+  min-height: 1.5rem !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  font-size: 0.8rem !important;
 }
 
 .restore-all-btn {
@@ -808,28 +918,7 @@ body {
   background-color: rgba(42, 42, 42, 0.8);
 }
 
-.section-toggle-btn {
-  background: none;
-  border: none;
-  color: #fff;
-  font-family: Arial, sans-serif;
-  font-weight: bold;
-  font-size: 0.9rem;
-  cursor: pointer;
-  width: 100%;
-  text-align: left;
-  padding: 0;
-  transition: color 0.2s ease;
-}
-
-.section-toggle-btn:hover {
-  color: #007acc;
-}
-
-.section-toggle-btn:focus {
-  outline: 2px solid #007acc;
-  outline-offset: 2px;
-}
+/* Legacy .section-toggle-btn styles removed - now using .btn classes */
 
 .toggle-indicator {
   float: right;
@@ -970,22 +1059,7 @@ body {
   border-color: #007acc;
 }
 
-.add-text-btn {
-  width: 36px;
-  height: 36px;
-  background-color: #007acc;
-  border: none;
-  border-radius: 3px;
-  color: #fff;
-  font-size: 1.2rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.add-text-btn:hover {
-  background-color: #005a99;
-}
+/* Legacy .add-text-btn styles removed - now using .btn classes */
 
 /* Text Pool Display Container */
 .text-pool-display-container {
@@ -1052,37 +1126,24 @@ body {
   word-wrap: break-word;
 }
 
-/* Delete Button Styling */
+/* Text pill delete button overrides */
 .delete-text-btn {
-  position: absolute;
+  position: absolute !important;
   top: -6px;
   right: -6px;
-  width: 20px;
-  height: 20px;
-  background-color: #ff4444;
-  border: 2px solid #000;
-  border-radius: 50%;
-  color: #fff;
-  font-size: 0.75rem;
-  font-weight: bold;
-  cursor: pointer;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  font-size: 0.75rem !important;
   opacity: 0;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   z-index: 10;
   line-height: 1;
 }
 
-.delete-text-btn:hover {
-  background-color: #cc0000;
-  transform: scale(1.1);
-}
-
 .delete-text-btn:focus {
-  outline: 2px solid #007acc;
-  outline-offset: 2px;
   opacity: 1;
 }
 
@@ -1125,36 +1186,7 @@ body {
   margin-top: 0.5rem;
 }
 
-.clear-all-btn {
-  background: none;
-  border: none;
-  color: #999;
-  font-family: Arial, sans-serif;
-  font-size: 0.75rem;
-  font-weight: normal;
-  cursor: pointer;
-  text-decoration: underline;
-  transition: color 0.2s ease;
-  padding: 0.25rem 0.5rem;
-  border-radius: 3px;
-}
-
-.clear-all-btn:hover {
-  color: #fff;
-  text-decoration: none;
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.clear-all-btn:focus {
-  outline: 2px solid #007acc;
-  outline-offset: 2px;
-  color: #fff;
-}
-
-.clear-all-btn:active {
-  background-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(1px);
-}
+/* Legacy .clear-all-btn styles removed - now using .btn classes */
 
 /* Hide footer when text pool is empty */
 .text-pool-footer.hidden {

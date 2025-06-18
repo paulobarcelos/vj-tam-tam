@@ -12,11 +12,11 @@
     <div id="left-drawer" class="left-drawer">
       <div class="drawer-header">
         <h2>Media Pool</h2>
-        <div class="file-picker-controls">
-          <button id="browse-files-btn" class="file-picker-btn" title="Browse for individual files">
+        <div class="file-picker-controls btn-group">
+          <button id="browse-files-btn" class="btn btn--secondary" title="Browse for individual files">
             📄 Files
           </button>
-          <button id="browse-folders-btn" class="file-picker-btn" title="Browse for entire folders">
+          <button id="browse-folders-btn" class="btn btn--secondary" title="Browse for entire folders">
             📁 Folders
           </button>
         </div>
@@ -33,7 +33,7 @@
         
         <!-- Media Pool Footer with Clear Button (aligned with text pool pattern) -->
         <div class="media-pool-footer">
-          <button id="clear-media-btn" class="clear-all-btn" style="display: none;">
+          <button id="clear-media-btn" class="btn btn--danger btn--small" style="display: none;">
             <!-- Text content will be set via JavaScript from strings.js -->
           </button>
         </div>
@@ -55,7 +55,7 @@
               maxlength="200"
               autocomplete="off"
             >
-            <button id="add-text-btn" class="add-text-btn" title="Add text">+</button>
+            <button id="add-text-btn" class="btn btn--icon" title="Add text">+</button>
           </div>
         </div>
 
@@ -72,7 +72,7 @@
           
           <!-- Clear All Button (NEW) -->
           <div class="text-pool-footer">
-            <button id="clear-text-btn" class="clear-all-btn" style="display: none;">
+            <button id="clear-text-btn" class="btn btn--danger btn--small" style="display: none;">
               <!-- Text content will be set via JavaScript from strings.js -->
             </button>
           </div>
@@ -113,7 +113,7 @@
       <!-- Advanced Controls Section -->
       <div class="drawer-section">
         <div class="advanced-controls-header">
-          <button id="advanced-controls-toggle" class="section-toggle-btn">
+          <button id="advanced-controls-toggle" class="btn btn--secondary btn--small">
             Advanced Settings <span class="toggle-indicator">[Show]</span>
           </button>
         </div>

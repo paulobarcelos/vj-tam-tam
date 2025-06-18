@@ -715,7 +715,7 @@ class UIManager {
     if (needsPermission) {
       console.log(t.get('SYSTEM_MESSAGES.uiManager.createRestoreButton', { fileName: item.name }))
       const restoreBtn = document.createElement('button')
-      restoreBtn.className = 'media-restore-btn'
+      restoreBtn.className = 'btn btn--icon-small media-restore-btn'
       restoreBtn.innerHTML = '🔓'
       restoreBtn.title = t.get('USER_INTERFACE.tooltips.restoreAccess')
       restoreBtn.addEventListener('click', async (e) => {
@@ -733,7 +733,7 @@ class UIManager {
 
     // Add delete button
     const deleteBtn = document.createElement('button')
-    deleteBtn.className = 'media-delete-btn'
+    deleteBtn.className = 'btn btn--icon-small btn--danger media-delete-btn'
     deleteBtn.innerHTML = '×'
     deleteBtn.title = t.get('USER_INTERFACE.tooltips.removeMediaItem')
     deleteBtn.addEventListener('click', (e) => {
@@ -1443,7 +1443,7 @@ class UIManager {
 
     // Create delete button
     const deleteBtn = document.createElement('button')
-    deleteBtn.className = 'delete-text-btn'
+    deleteBtn.className = 'btn btn--icon-small btn--danger delete-text-btn'
     deleteBtn.innerHTML = '×'
     deleteBtn.title = STRINGS.USER_INTERFACE.textPool.deleteButtonTitle
     deleteBtn.setAttribute(
@@ -1928,7 +1928,7 @@ class UIManager {
 
     // Close button
     const closeBtn = document.createElement('button')
-    closeBtn.className = 'notice-close-btn'
+    closeBtn.className = 'btn btn--icon-small notice-close-btn'
     closeBtn.textContent = '×'
     closeBtn.title = STRINGS.USER_INTERFACE.tooltips.dismissNotice
     closeBtn.addEventListener('click', () => {
