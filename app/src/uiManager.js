@@ -3,20 +3,20 @@
  * Manages visual feedback and coordinates with other modules through the event bus
  */
 
-import { eventBus } from './eventBus.js'
-import { mediaProcessor } from './mediaProcessor.js'
-import { fileSystemFacade } from './facades/fileSystemFacade.js'
 import { stateManager } from './stateManager.js'
-import { fileSystemAccessFacade } from './facades/fileSystemAccessFacade.js'
+import { eventBus } from './eventBus.js'
+import { STATE_EVENTS, TEXT_POOL_EVENTS } from './constants/events.js'
 import { toastManager } from './toastManager.js'
+import { fileSystemFacade } from './facades/fileSystemFacade.js'
+import { fileSystemAccessFacade } from './facades/fileSystemAccessFacade.js'
 import { STRINGS, t } from './constants/strings.js'
 import {
-  filterMediaNeedingPermission,
-  filterTemporaryMedia,
   filterUsableMedia,
+  filterTemporaryMedia,
+  filterMediaNeedingPermission,
 } from './utils/mediaUtils.js'
-import { formatFileSize, formatDuration } from './utils/stringUtils.js'
-import { STATE_EVENTS, TEXT_POOL_EVENTS } from './constants/events.js'
+import { formatDuration } from './utils/stringUtils.js'
+import { mediaProcessor } from './mediaProcessor.js'
 
 class UIManager {
   constructor() {
@@ -69,9 +69,10 @@ class UIManager {
   }
 
   /**
-   * Initialize the UI Manager and set up event listeners
+   * Initialize the UI Manager
    */
   init() {
+    // Initialize DOM elements
     this.stage = document.getElementById('stage')
     this.leftDrawer = document.getElementById('left-drawer')
     this.dropIndicator = document.getElementById('drop-indicator')
@@ -106,6 +107,7 @@ class UIManager {
     this.textFrequencySlider = document.getElementById('text-frequency-slider')
     this.frequencyControlSection = document.querySelector('.frequency-control-section')
 
+    // Check for required DOM elements
     if (
       !this.stage ||
       !this.leftDrawer ||
@@ -136,20 +138,36 @@ class UIManager {
       !this.frequencyControlSection
     ) {
       console.error(STRINGS.SYSTEM_MESSAGES.uiManager.requiredElementsNotFound)
-      return
+      return false
     }
 
+    // Make debug method available in console
+    window.debugMediaPool = () => this.debugMediaPoolState()
+
+    // Set up event listeners
     this.setupDragAndDropListeners()
     this.setupEventBusListeners()
     this.setupFilePickerListeners()
     this.setupAdvancedControlsListeners()
     this.setupTextPoolListeners()
     this.setupFrequencyControlListeners()
+
+    // Initialize activity detection for idle state management
     this.setupActivityDetection()
+
+    // Update DOM strings
     this.updateDOMStrings()
+
+    // Initialize advanced controls from restored state
+    this.initializeAdvancedControlsFromRestoredState()
+
+    // Initialize text pool display
+    this.initializeTextPoolDisplay()
 
     // Initialize media pool display (will show empty message if no media)
     this.updateMediaPoolDisplay()
+
+    return true
   }
 
   /**
@@ -484,126 +502,400 @@ class UIManager {
    * Update the media pool display with current media items
    */
   updateMediaPoolDisplay() {
+    this.mediaPool.innerHTML = ''
+
     const mediaItems = stateManager.getMediaPool()
 
-    // Clear current displays
-    this.mediaPool.innerHTML = ''
-    this.mediaPoolNotices.innerHTML = ''
-
-    // Update clear button visibility (aligned with text pool pattern)
-    this.updateClearMediaVisibility(mediaItems.length)
-
-    // Handle empty state
     if (mediaItems.length === 0) {
-      const emptyMessage = document.createElement('div')
-      emptyMessage.className = 'media-pool-empty'
-      emptyMessage.textContent = STRINGS.USER_INTERFACE.welcome.emptyPool
-      this.mediaPool.appendChild(emptyMessage)
+      this.showEmptyMediaPoolMessage()
       return
     }
 
-    // Check if any files need permission restoration
-    const filesNeedingPermission = filterMediaNeedingPermission(mediaItems)
-    // Check if any files are temporary (drag & drop)
-    const temporaryFiles = filterTemporaryMedia(mediaItems)
-
-    // Add notices to the notices container (not the grid)
-    this.updateNoticesDisplay(filesNeedingPermission, temporaryFiles)
-
-    // Add each media item to the display
     mediaItems.forEach((item) => {
-      const mediaElement = document.createElement('div')
-      mediaElement.className = 'media-item'
-      mediaElement.dataset.mediaId = item.id
-
-      // Create thumbnail image/video element
-      const thumbnailElement = this.createThumbnailElement(item)
-      mediaElement.appendChild(thumbnailElement)
-
-      // Add video indicator for video files
-      if (item.type === 'video') {
-        const videoIndicator = document.createElement('div')
-        videoIndicator.className = 'video-indicator'
-        mediaElement.appendChild(videoIndicator)
-
-        // Add duration overlay if available
-        if (item.duration) {
-          const durationElement = document.createElement('div')
-          durationElement.className = 'video-duration'
-          durationElement.textContent = formatDuration(item.duration)
-          mediaElement.appendChild(durationElement)
-        }
-      }
-
-      // Set native browser tooltip with file info
-      const formatTooltipInfo = (name, type, size, status = null) => {
-        let tooltip = `${name}\n${type.toUpperCase()} • ${formatFileSize(size)}`
-        if (status) {
-          tooltip += ` • (${status})`
-        }
-        return tooltip
-      }
-
-      // Set appropriate tooltip and styling based on file status
-      if (!item.file || !item.url) {
-        if (item.fromFileSystemAPI) {
-          mediaElement.title = formatTooltipInfo(
-            item.name,
-            item.type,
-            item.size,
-            STRINGS.USER_INTERFACE.fileStatus.needsPermission
-          )
-          mediaElement.classList.add('needs-permission')
-        } else {
-          mediaElement.title = formatTooltipInfo(
-            item.name,
-            item.type,
-            item.size,
-            STRINGS.USER_INTERFACE.fileStatus.metadataOnly
-          )
-          mediaElement.classList.add('metadata-only')
-        }
-      } else {
-        if (item.fromFileSystemAPI) {
-          mediaElement.title = formatTooltipInfo(item.name, item.type, item.size)
-        } else {
-          mediaElement.title = formatTooltipInfo(
-            item.name,
-            item.type,
-            item.size,
-            STRINGS.USER_INTERFACE.fileStatus.temporary
-          )
-          mediaElement.classList.add('temporary-file')
-        }
-      }
-
-      // Add delete button
-      const deleteBtn = document.createElement('button')
-      deleteBtn.className = 'media-delete-btn'
-      deleteBtn.textContent = '×'
-      deleteBtn.title = STRINGS.USER_INTERFACE.tooltips.removeMediaItem
-      deleteBtn.addEventListener('click', (e) => {
-        e.stopPropagation()
-        this.handleRemoveMediaItem(item.id)
-      })
-      mediaElement.appendChild(deleteBtn)
-
+      const mediaElement = this.createMediaElement(item)
       this.mediaPool.appendChild(mediaElement)
     })
+
+    // Check for temporary files and update notices
+    const temporaryFiles = filterTemporaryMedia(mediaItems)
+    this.updateNoticesDisplay([], temporaryFiles)
+
+    // Set up global user activation hijacking for permission restoration
+    this.setupGlobalActivationHijacking()
   }
 
   /**
-   * Update notices display in the dedicated notices container
-   * @param {Array} filesNeedingPermission - Files that need permission restoration
-   * @param {Array} temporaryFiles - Temporary drag & drop files
+   * Set up global user activation hijacking to opportunistically restore permissions
    */
-  updateNoticesDisplay(filesNeedingPermission, temporaryFiles) {
-    // Always show permission banner if files need permission (non-dismissible)
-    if (filesNeedingPermission.length > 0) {
-      this.createPermissionBanner(filesNeedingPermission)
+  setupGlobalActivationHijacking() {
+    const filesNeedingPermission = filterMediaNeedingPermission(stateManager.getMediaPool())
+
+    if (filesNeedingPermission.length === 0) {
+      console.log(STRINGS.SYSTEM_MESSAGES.uiManager.noPermissionNeeded)
+      return // No files need permission, no hijacking needed
     }
 
-    // Add temporary files notice if needed and not dismissed
+    console.log(
+      t.get('SYSTEM_MESSAGES.uiManager.globalHijackingSetup', {
+        count: filesNeedingPermission.length,
+      })
+    )
+
+    // Remove any existing hijacking listeners to avoid duplicates
+    this.removeGlobalActivationHijacking()
+
+    // Events that constitute valid user activation
+    const activationEvents = [
+      'click',
+      'keydown',
+      'mousedown',
+      'pointerdown',
+      'pointerup',
+      'touchend',
+    ]
+
+    this.activationHijacker = async (event) => {
+      console.log(
+        t.get('SYSTEM_MESSAGES.uiManager.globalHijackerTriggered', {
+          eventType: event.type,
+          tagName: event.target.tagName,
+          className: event.target.className || '[no class]',
+        })
+      )
+
+      // Skip if this is the Escape key (not valid for activation)
+      if (event.type === 'keydown' && event.key === 'Escape') {
+        console.log(STRINGS.SYSTEM_MESSAGES.uiManager.skipEscapeKey)
+        return
+      }
+
+      // Skip if this is a reserved key (like Cmd+R, Ctrl+T, etc.)
+      if (event.type === 'keydown' && (event.metaKey || event.ctrlKey)) {
+        console.log(t.get('SYSTEM_MESSAGES.uiManager.skipReservedKey', { key: event.key }))
+        return
+      }
+
+      // Skip pointerdown if not mouse
+      if (event.type === 'pointerdown' && event.pointerType !== 'mouse') {
+        console.log(
+          t.get('SYSTEM_MESSAGES.uiManager.skipNonMousePointer', { pointerType: event.pointerType })
+        )
+        return
+      }
+
+      // Skip pointerup if it's mouse (should be handled by pointerdown)
+      if (event.type === 'pointerup' && event.pointerType === 'mouse') {
+        console.log(STRINGS.SYSTEM_MESSAGES.uiManager.skipMousePointerUp)
+        return
+      }
+
+      // Try to restore permissions opportunistically
+      const currentFilesNeedingPermission = filterMediaNeedingPermission(
+        stateManager.getMediaPool()
+      )
+
+      if (currentFilesNeedingPermission.length > 0) {
+        console.log(
+          t.get('SYSTEM_MESSAGES.uiManager.opportunisticRestore', {
+            count: currentFilesNeedingPermission.length,
+          })
+        )
+        try {
+          await this.handleBulkFileRestore(currentFilesNeedingPermission, true) // silent mode
+          console.log(STRINGS.SYSTEM_MESSAGES.uiManager.opportunisticComplete)
+        } catch (error) {
+          // Silent failure - we're just being opportunistic
+          console.debug(STRINGS.SYSTEM_MESSAGES.uiManager.opportunisticFailed, error)
+        }
+      } else {
+        console.log(STRINGS.SYSTEM_MESSAGES.uiManager.noFilesNeedPermission)
+      }
+    }
+
+    console.log(
+      t.get('SYSTEM_MESSAGES.uiManager.globalListenersAdding', { events: activationEvents })
+    )
+    // Add listeners to document for global coverage
+    activationEvents.forEach((eventType) => {
+      document.addEventListener(eventType, this.activationHijacker, {
+        passive: true,
+        capture: true,
+      })
+    })
+    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.globalHijackingComplete)
+  }
+
+  /**
+   * Remove global activation hijacking listeners
+   */
+  removeGlobalActivationHijacking() {
+    if (this.activationHijacker) {
+      const activationEvents = [
+        'click',
+        'keydown',
+        'mousedown',
+        'pointerdown',
+        'pointerup',
+        'touchend',
+      ]
+      activationEvents.forEach((eventType) => {
+        document.removeEventListener(eventType, this.activationHijacker, {
+          passive: true,
+          capture: true,
+        })
+      })
+      this.activationHijacker = null
+    }
+  }
+
+  /**
+   * Create media element with thumbnails and controls
+   */
+  createMediaElement(item) {
+    const mediaElement = document.createElement('div')
+    mediaElement.className = 'media-item'
+    mediaElement.dataset.id = item.id
+
+    // Determine status based on actual item properties (not relying on status field)
+    const needsPermission = (!item.file || !item.url) && item.fromFileSystemAPI
+    const isTemporary =
+      (item.file && item.url && !item.fromFileSystemAPI) ||
+      (!item.file && !item.url && !item.fromFileSystemAPI)
+    const isMetadataOnly = !item.file && !item.url
+
+    // Add status classes based on actual state
+    if (needsPermission) {
+      mediaElement.classList.add('needs-permission')
+    } else if (isTemporary) {
+      mediaElement.classList.add('temporary-file')
+    } else if (isMetadataOnly) {
+      mediaElement.classList.add('metadata-only')
+    }
+
+    // Create thumbnail using existing method
+    const thumbnail = this.createThumbnailElement(item)
+
+    // Add video indicator for video files
+    if (item.type === 'video') {
+      const videoIndicator = document.createElement('div')
+      videoIndicator.className = 'video-indicator'
+
+      const playIcon = document.createElement('div')
+      playIcon.className = 'play-icon'
+      playIcon.innerHTML = '▶'
+      videoIndicator.appendChild(playIcon)
+
+      if (item.duration) {
+        const durationDisplay = document.createElement('div')
+        durationDisplay.className = 'video-duration'
+        durationDisplay.textContent = this.formatDuration(item.duration)
+        videoIndicator.appendChild(durationDisplay)
+      }
+
+      thumbnail.appendChild(videoIndicator)
+    }
+
+    mediaElement.appendChild(thumbnail)
+
+    // Create controls container
+    const controls = document.createElement('div')
+    controls.className = 'media-controls'
+
+    // Add restore button for files needing permission
+    if (needsPermission) {
+      console.log(t.get('SYSTEM_MESSAGES.uiManager.createRestoreButton', { fileName: item.name }))
+      const restoreBtn = document.createElement('button')
+      restoreBtn.className = 'media-restore-btn'
+      restoreBtn.innerHTML = '🔓'
+      restoreBtn.title = t.get('USER_INTERFACE.tooltips.restoreAccess')
+      restoreBtn.addEventListener('click', async (e) => {
+        console.log(STRINGS.SYSTEM_MESSAGES.uiManager.restoreButtonClicked)
+        e.stopPropagation()
+        try {
+          await this.handleSingleFileRestore(item)
+        } catch (error) {
+          console.error(STRINGS.SYSTEM_MESSAGES.uiManager.restoreError, error)
+        }
+      })
+      controls.appendChild(restoreBtn)
+      console.log(t.get('SYSTEM_MESSAGES.uiManager.restoreButtonAdded', { fileName: item.name }))
+    }
+
+    // Add delete button
+    const deleteBtn = document.createElement('button')
+    deleteBtn.className = 'media-delete-btn'
+    deleteBtn.innerHTML = '×'
+    deleteBtn.title = t.get('USER_INTERFACE.tooltips.removeMediaItem')
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation()
+      this.removeMediaItem(item.id)
+    })
+    controls.appendChild(deleteBtn)
+
+    mediaElement.appendChild(controls)
+
+    // Add native tooltip with file info
+    const sizeText = item.size
+      ? `${(item.size / 1024 / 1024).toFixed(1)} MB`
+      : t.get('USER_INTERFACE.fileStatus.unknownSize') || 'Unknown size'
+    const statusText = needsPermission
+      ? t.get('USER_INTERFACE.fileStatus.needsPermission')
+      : isMetadataOnly
+        ? t.get('USER_INTERFACE.fileStatus.metadataOnly')
+        : isTemporary
+          ? t.get('USER_INTERFACE.fileStatus.temporary')
+          : t.get('USER_INTERFACE.fileStatus.ready') || 'Ready'
+
+    mediaElement.title = `${item.name}\n${sizeText}\n${statusText.toUpperCase()}`
+
+    return mediaElement
+  }
+
+  /**
+   * Handle restoration of a single file
+   * @param {Object} item - Media item to restore
+   */
+  async handleSingleFileRestore(item) {
+    console.log(t.get('SYSTEM_MESSAGES.uiManager.singleFileRestore', { fileName: item.name }))
+    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.singleFileDetails, {
+      id: item.id,
+      name: item.name,
+      hasFile: !!item.file,
+      hasUrl: !!item.url,
+      fromFileSystemAPI: item.fromFileSystemAPI,
+      type: item.type,
+    })
+
+    try {
+      console.log(STRINGS.SYSTEM_MESSAGES.uiManager.callingRestoreAccess)
+      const restoredFiles = await fileSystemAccessFacade.requestStoredFilesAccess([item])
+      console.log(STRINGS.SYSTEM_MESSAGES.uiManager.restoreResult, restoredFiles)
+
+      if (restoredFiles.length > 0) {
+        console.log(STRINGS.SYSTEM_MESSAGES.uiManager.restoreSuccessful)
+        // Update the state manager with restored file
+        stateManager.addMediaToPool(restoredFiles)
+        this.showToast(t.fileRestored(item.name), 'success')
+
+        // Update display to reflect changes
+        this.updateMediaPoolDisplay()
+      } else {
+        console.log(STRINGS.SYSTEM_MESSAGES.uiManager.noFilesRestored)
+        this.showToast(t.fileRestoreFailed(item.name), 'error')
+      }
+    } catch (error) {
+      console.error(STRINGS.SYSTEM_MESSAGES.uiManager.restoreError, error)
+      this.showToast(t.fileRestoreFailed(item.name), 'error')
+    }
+  }
+
+  /**
+   * Handle bulk file restoration
+   * @param {Array} filesNeedingPermission - Files that need permission restoration
+   * @param {boolean} silent - Whether to show toasts/errors (for opportunistic restoration)
+   */
+  async handleBulkFileRestore(filesNeedingPermission, silent = false) {
+    const logPrefix = silent ? '🌐📦' : '📦'
+
+    if (!silent) {
+      console.log(
+        t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreAttempt', {
+          count: filesNeedingPermission.length,
+        })
+      )
+    } else {
+      console.log(
+        t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreSilent', {
+          prefix: logPrefix,
+          count: filesNeedingPermission.length,
+        })
+      )
+    }
+
+    try {
+      console.log(t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreCall', { prefix: logPrefix }))
+      const restoredFiles =
+        await fileSystemAccessFacade.requestStoredFilesAccess(filesNeedingPermission)
+      console.log(
+        t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreResult', {
+          prefix: logPrefix,
+          count: restoredFiles.length,
+        })
+      )
+
+      if (restoredFiles.length > 0) {
+        // Update the state manager with restored files
+        stateManager.addMediaToPool(restoredFiles)
+
+        if (!silent) {
+          console.log(
+            t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreSuccess', { count: restoredFiles.length })
+          )
+          this.showToast(t.filesRestored(restoredFiles.length), 'success')
+        } else {
+          console.log(
+            t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreSilentSuccess', {
+              prefix: logPrefix,
+              count: restoredFiles.length,
+            })
+          )
+        }
+
+        // Count upgraded files
+        const upgradedCount = restoredFiles.filter((file) => file.wasUpgraded).length
+        if (upgradedCount > 0 && !silent) {
+          console.log(t.get('SYSTEM_MESSAGES.uiManager.metadataUpgrade', { count: upgradedCount }))
+        }
+
+        // Update display to reflect changes
+        this.updateMediaPoolDisplay()
+      } else if (!silent) {
+        console.log(t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreNoFiles', { prefix: logPrefix }))
+        this.showToast(t.noFilesRestored(), 'error')
+      } else {
+        console.log(
+          t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreSilentNoFiles', { prefix: logPrefix })
+        )
+      }
+    } catch (error) {
+      if (!silent) {
+        console.error(STRINGS.SYSTEM_MESSAGES.uiManager.bulkFileRestoreError, error)
+
+        // Try to restore individual files and report specific failures
+        for (const file of filesNeedingPermission) {
+          try {
+            await fileSystemAccessFacade.requestStoredFilesAccess([file])
+          } catch (fileError) {
+            console.error(
+              t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreFailed', { fileName: file.name })
+            )
+            console.error(
+              t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreError', { fileName: file.name }),
+              fileError
+            )
+          }
+        }
+
+        this.showToast(t.bulkRestoreFailed(), 'error')
+      } else {
+        console.error(
+          t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreSilentFailed', { prefix: logPrefix }),
+          error
+        )
+      }
+    }
+  }
+
+  /**
+   * Update notices display (now only for temporary files)
+   * @param {Array} filesNeedingPermission - Files that need permission restoration (ignored now)
+   * @param {Array} temporaryFiles - Files that are temporary
+   */
+  updateNoticesDisplay(filesNeedingPermission, temporaryFiles) {
+    // Clear all notices first
+    this.mediaPoolNotices.innerHTML = ''
+
+    // Only show temporary files notice if needed and not dismissed
     // Use persisted FileSystem API working state with fallback to current check
     const apiWorking =
       stateManager.getFileSystemAPIWorking() ?? fileSystemFacade.isFileSystemAccessActuallyWorking()
@@ -613,80 +905,38 @@ class UIManager {
   }
 
   /**
-   * Create permission banner (non-dismissible, thin banner style)
-   * @param {Array} filesNeedingPermission - Files that need permission restoration
+   * Clean up when component is destroyed
    */
-  createPermissionBanner(filesNeedingPermission) {
-    // Check if permission banner already exists and update count
-    const existingBanner = this.mediaPoolNotices.querySelector('.permission-banner')
-    if (existingBanner) {
-      const fileCount = filesNeedingPermission.length
-      existingBanner.textContent = t.permissionBannerClick(fileCount)
-      return
-    }
-
-    const permissionBanner = document.createElement('div')
-    permissionBanner.className = 'permission-banner'
-
-    const fileCount = filesNeedingPermission.length
-    permissionBanner.textContent = t.permissionBannerClick(fileCount)
-
-    // Make entire banner clickable
-    permissionBanner.addEventListener('click', () => {
-      this.handleBulkFileRestore(filesNeedingPermission)
-    })
-
-    // Insert in the notices area (just before media pool)
-    this.mediaPoolNotices.appendChild(permissionBanner)
+  cleanup() {
+    this.removeGlobalActivationHijacking()
   }
 
   /**
-   * Create temporary files notice with close functionality
-   * @param {Array} temporaryFiles - Temporary drag & drop files
+   * Update welcome message visibility based on media pool state
    */
-  createTemporaryNotice(temporaryFiles) {
-    // Check if temporary notice already exists and update count
-    const existingNotice = this.mediaPoolNotices.querySelector('.temporary-notice')
-    if (existingNotice) {
-      const noticeText = existingNotice.querySelector('.notice-text')
-      if (noticeText) {
-        const fileCount = temporaryFiles.length
-        noticeText.textContent = t.temporaryNotice(fileCount)
-      }
-      return
+  updateWelcomeMessageVisibility() {
+    const mediaItems = stateManager.getMediaPool()
+
+    // Check for usable media (files that actually have file and url access)
+    const usableMedia = filterUsableMedia(mediaItems)
+
+    if (usableMedia.length > 0) {
+      this.welcomeMessage.classList.add('hidden')
+    } else {
+      this.welcomeMessage.classList.remove('hidden')
     }
+  }
 
-    const tempNotice = document.createElement('div')
-    tempNotice.className = 'notice temporary-notice'
-
-    const noticeContent = document.createElement('div')
-    noticeContent.className = 'notice-content'
-
-    const noticeText = document.createElement('span')
-    noticeText.className = 'notice-text'
-    const fileCount = temporaryFiles.length
-    noticeText.textContent = t.temporaryNotice(fileCount)
-
-    const tipText = document.createElement('div')
-    tipText.className = 'notice-tip'
-    tipText.textContent = STRINGS.USER_MESSAGES.status.fileSystemTip
-
-    // Close button
-    const closeBtn = document.createElement('button')
-    closeBtn.className = 'notice-close-btn'
-    closeBtn.textContent = '×'
-    closeBtn.title = STRINGS.USER_INTERFACE.tooltips.dismissNotice
-    closeBtn.addEventListener('click', () => {
-      this.dismissedNotices.temporary = true
-      tempNotice.remove()
-    })
-
-    noticeContent.appendChild(noticeText)
-    noticeContent.appendChild(tipText)
-    tempNotice.appendChild(noticeContent)
-    tempNotice.appendChild(closeBtn)
-
-    this.mediaPoolNotices.appendChild(tempNotice)
+  /**
+   * Update clear media button visibility based on pool size (aligned with text pool pattern)
+   * @param {number} poolSize - Current media pool size
+   */
+  updateClearMediaVisibility(poolSize) {
+    if (poolSize > 0) {
+      this.clearMediaBtn.style.display = 'block'
+    } else {
+      this.clearMediaBtn.style.display = 'none'
+    }
   }
 
   /**
@@ -760,107 +1010,6 @@ class UIManager {
       )
     } else {
       toastManager.error(STRINGS.USER_MESSAGES.notifications.media.poolClearFailed)
-    }
-  }
-
-  /**
-   * Update welcome message visibility based on media pool state
-   */
-  updateWelcomeMessageVisibility() {
-    const mediaItems = stateManager.getMediaPool()
-
-    // Check for usable media (files that actually have file and url access)
-    const usableMedia = filterUsableMedia(mediaItems)
-
-    if (usableMedia.length > 0) {
-      this.welcomeMessage.classList.add('hidden')
-    } else {
-      this.welcomeMessage.classList.remove('hidden')
-    }
-  }
-
-  /**
-   * Update clear media button visibility based on pool size (aligned with text pool pattern)
-   * @param {number} poolSize - Current media pool size
-   */
-  updateClearMediaVisibility(poolSize) {
-    if (poolSize > 0) {
-      this.clearMediaBtn.style.display = 'block'
-    } else {
-      this.clearMediaBtn.style.display = 'none'
-    }
-  }
-
-  /**
-   * Handle bulk file restore
-   * @param {Array} filesNeedingPermission - Array of files needing restoration
-   */
-  async handleBulkFileRestore(filesNeedingPermission) {
-    try {
-      console.log(
-        t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreAttempt', {
-          count: filesNeedingPermission.length,
-        })
-      )
-
-      let upgradedCount = 0
-      const upgradedItems = []
-
-      // Process each file that needs permission
-      for (const item of filesNeedingPermission) {
-        try {
-          // Get the file from FileSystemAccessAPI
-          const restoredFile = await fileSystemAccessFacade.getFileFromHandle(item.id)
-
-          if (restoredFile) {
-            // Update the existing item in StateManager with the restored file
-            const existingItem = stateManager.getMediaById(item.id)
-            if (existingItem) {
-              const upgradedItem = {
-                ...existingItem,
-                file: restoredFile.file,
-                url: restoredFile.url,
-                fromFileSystemAPI: true, // Keep the flag
-              }
-
-              // Replace the item in the media pool
-              stateManager.state.mediaPool = stateManager.state.mediaPool.map((poolItem) =>
-                poolItem.id === item.id ? upgradedItem : poolItem
-              )
-
-              upgradedItems.push(upgradedItem)
-              upgradedCount++
-            }
-          } else {
-            console.warn(
-              t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreFailed', { fileName: item.name })
-            )
-          }
-        } catch (error) {
-          console.warn(
-            t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreError', { fileName: item.name }),
-            error
-          )
-        }
-      }
-
-      if (upgradedCount > 0) {
-        // Emit update event to refresh UI and trigger other components
-        eventBus.emit(STATE_EVENTS.MEDIA_POOL_UPDATED, {
-          mediaPool: stateManager.getMediaPool(),
-          addedItems: [],
-          upgradedItems: upgradedItems,
-          totalCount: stateManager.getMediaCount(),
-        })
-
-        // Toast will be shown by handleMediaPoolStateUpdate when the event is processed
-        console.log(t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreSuccess', { count: upgradedCount }))
-      } else {
-        toastManager.error(STRINGS.USER_MESSAGES.notifications.error.fileRestoreFailed)
-      }
-    } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.uiManager.bulkFileRestoreError, error)
-      toastManager.error(STRINGS.USER_MESSAGES.notifications.error.fileRestoreError)
     }
   }
 
@@ -1692,6 +1841,136 @@ class UIManager {
       clearTimeout(this.idleTimer)
       this.idleTimer = null
     }
+  }
+
+  /**
+   * Show empty media pool message
+   */
+  showEmptyMediaPoolMessage() {
+    const emptyMessage = document.createElement('div')
+    emptyMessage.className = 'media-pool-empty'
+    emptyMessage.textContent = STRINGS.USER_INTERFACE.welcome.emptyPool
+    this.mediaPool.appendChild(emptyMessage)
+  }
+
+  /**
+   * Format duration in seconds to readable string
+   * @param {number} duration - Duration in seconds
+   * @returns {string} Formatted duration string
+   */
+  formatDuration(duration) {
+    return formatDuration(duration)
+  }
+
+  /**
+   * Remove media item from pool
+   * @param {string} itemId - ID of item to remove
+   */
+  removeMediaItem(itemId) {
+    stateManager.removeMediaFromPool(itemId)
+  }
+
+  /**
+   * Show toast message
+   * @param {string} message - Message to show
+   * @param {string} type - Type of toast (success, error, etc.)
+   */
+  showToast(message, type) {
+    if (type === 'success') {
+      toastManager.success(message)
+    } else if (type === 'error') {
+      toastManager.error(message)
+    } else {
+      toastManager.show(message)
+    }
+  }
+
+  /**
+   * Create temporary files notice with close functionality
+   * @param {Array} temporaryFiles - Temporary drag & drop files
+   */
+  createTemporaryNotice(temporaryFiles) {
+    // Check if temporary notice already exists and update count
+    const existingNotice = this.mediaPoolNotices.querySelector('.temporary-notice')
+    if (existingNotice) {
+      const noticeText = existingNotice.querySelector('.notice-text')
+      if (noticeText) {
+        const fileCount = temporaryFiles.length
+        noticeText.textContent = t.temporaryNotice(fileCount)
+      }
+      return
+    }
+
+    const tempNotice = document.createElement('div')
+    tempNotice.className = 'notice temporary-notice'
+
+    const noticeContent = document.createElement('div')
+    noticeContent.className = 'notice-content'
+
+    const noticeText = document.createElement('span')
+    noticeText.className = 'notice-text'
+    const fileCount = temporaryFiles.length
+    noticeText.textContent = t.temporaryNotice(fileCount)
+
+    const tipText = document.createElement('div')
+    tipText.className = 'notice-tip'
+    tipText.textContent = STRINGS.USER_MESSAGES.status.fileSystemTip
+
+    // Close button
+    const closeBtn = document.createElement('button')
+    closeBtn.className = 'notice-close-btn'
+    closeBtn.textContent = '×'
+    closeBtn.title = STRINGS.USER_INTERFACE.tooltips.dismissNotice
+    closeBtn.addEventListener('click', () => {
+      this.dismissedNotices.temporary = true
+      tempNotice.remove()
+    })
+
+    noticeContent.appendChild(noticeText)
+    noticeContent.appendChild(tipText)
+    tempNotice.appendChild(noticeContent)
+    tempNotice.appendChild(closeBtn)
+
+    this.mediaPoolNotices.appendChild(tempNotice)
+  }
+
+  /**
+   * Debug method to log current media pool state
+   */
+  debugMediaPoolState() {
+    const mediaItems = stateManager.getMediaPool()
+    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.debugMediaPoolHeader)
+    console.log(t.get('SYSTEM_MESSAGES.uiManager.debugTotalItems', { count: mediaItems.length }))
+
+    mediaItems.forEach((item, index) => {
+      console.log(t.get('SYSTEM_MESSAGES.uiManager.debugItemDetails', { index }), {
+        name: item.name,
+        type: item.type,
+        hasFile: !!item.file,
+        hasUrl: !!item.url,
+        fromFileSystemAPI: item.fromFileSystemAPI,
+        needsPermission: (!item.file || !item.url) && item.fromFileSystemAPI,
+        isTemporary:
+          (item.file && item.url && !item.fromFileSystemAPI) ||
+          (!item.file && !item.url && !item.fromFileSystemAPI),
+        isMetadataOnly: !item.file && !item.url,
+      })
+    })
+
+    const filesNeedingPermission = filterMediaNeedingPermission(mediaItems)
+    const temporaryFiles = filterTemporaryMedia(mediaItems)
+    const usableFiles = filterUsableMedia(mediaItems)
+
+    console.log(
+      t.get('SYSTEM_MESSAGES.uiManager.debugFilesNeedingPermission', {
+        count: filesNeedingPermission.length,
+      })
+    )
+    console.log(
+      t.get('SYSTEM_MESSAGES.uiManager.debugTemporaryFiles', { count: temporaryFiles.length })
+    )
+    console.log(t.get('SYSTEM_MESSAGES.uiManager.debugUsableFiles', { count: usableFiles.length }))
+    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.debugFooter)
   }
 }
 
