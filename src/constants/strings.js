@@ -296,6 +296,16 @@ export const STRINGS = {
       // Media pool messages
       mediaPoolAlreadyEmpty: 'Media pool is already empty',
 
+      // FileSystem API messages
+      fileSystemAPIWorkingStateRestored: 'FileSystem API working state restored:',
+      fileSystemAPIWorkingStateDefault:
+        'No FileSystem API working state found, using default: null',
+      fileSystemAPIWorkingStateInvalid: 'FileSystem API working state must be boolean',
+
+      // Text pool messages
+      textNotFoundInPool: 'Text not found in pool:',
+      textPoolAlreadyEmpty: 'Text pool is already empty',
+
       // Debug messages
       persistedStateLoaded: 'Persisted state loaded from storage',
       segmentSettingsPreRestore: 'Current state before segment settings restoration',
@@ -318,6 +328,7 @@ export const STRINGS = {
         'No file handle for {{fileName}} - drag-and-drop file, metadata-only persistence',
       fileProcessingError: 'Error processing files:',
       droppedItemsError: 'Error processing dropped items:',
+      videoDurationDetectionFailed: 'Failed to detect duration for {{fileName}}:',
     },
 
     // UI Manager messages

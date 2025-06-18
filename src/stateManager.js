@@ -216,9 +216,12 @@ class StateManager {
       // Always restore FileSystem API working state from localStorage with fallback to null (unknown)
       if (typeof persistedState?.fileSystemAPIWorking === 'boolean') {
         this.state.fileSystemAPIWorking = persistedState.fileSystemAPIWorking
-        console.log('FileSystem API working state restored:', this.state.fileSystemAPIWorking)
+        console.log(
+          STRINGS.SYSTEM_MESSAGES.stateManager.fileSystemAPIWorkingStateRestored,
+          this.state.fileSystemAPIWorking
+        )
       } else {
-        console.log('No FileSystem API working state found, using default: null')
+        console.log(STRINGS.SYSTEM_MESSAGES.stateManager.fileSystemAPIWorkingStateDefault)
       }
     } catch (error) {
       console.error(STRINGS.SYSTEM_MESSAGES.stateManager.restorationError, error)
@@ -756,7 +759,7 @@ class StateManager {
     const index = this.state.textPool.indexOf(trimmedText)
 
     if (index === -1) {
-      console.warn('Text not found in pool:', trimmedText)
+      console.warn(STRINGS.SYSTEM_MESSAGES.stateManager.textNotFoundInPool, trimmedText)
       return false
     }
 
@@ -799,7 +802,7 @@ class StateManager {
    */
   clearTextPool() {
     if (this.state.textPool.length === 0) {
-      console.warn('Text pool is already empty')
+      console.warn(STRINGS.SYSTEM_MESSAGES.stateManager.textPoolAlreadyEmpty)
       return false
     }
 
@@ -915,7 +918,7 @@ class StateManager {
    */
   setFileSystemAPIWorking(isWorking) {
     if (typeof isWorking !== 'boolean') {
-      console.warn('FileSystem API working state must be boolean', isWorking)
+      console.warn(STRINGS.SYSTEM_MESSAGES.stateManager.fileSystemAPIWorkingStateInvalid, isWorking)
       return
     }
 
