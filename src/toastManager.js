@@ -56,6 +56,14 @@ class ToastManager {
   }
 
   /**
+   * Show an info toast
+   * @param {string} message - Info message
+   */
+  info(message) {
+    return this.show(message, { type: 'info', duration: 5000 })
+  }
+
+  /**
    * Remove a specific toast
    * @param {HTMLElement} toast - Toast element to remove
    */

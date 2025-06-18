@@ -158,8 +158,8 @@ class UIManager {
     // Update DOM strings
     this.updateDOMStrings()
 
-    // Initialize advanced controls from restored state
-    this.initializeAdvancedControlsFromRestoredState()
+    // NOTE: Advanced controls initialization is deferred until after StateManager.init()
+    // This happens in main.js after state restoration is complete
 
     // Initialize text pool display
     this.initializeTextPoolDisplay()
