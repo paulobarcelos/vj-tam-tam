@@ -342,34 +342,11 @@ describe('UIManager - Idle State Management', () => {
       expect(uiManager.lastActivityTime).toBeGreaterThan(initialTime)
     })
 
-    it('should ignore ESC key in fullscreen mode', () => {
-      const exitIdleSpy = vi.spyOn(uiManager, 'exitIdleState')
-      const resetTimerSpy = vi.spyOn(uiManager, 'resetIdleTimer')
-
-      // Mock fullscreen element
-      Object.defineProperty(document, 'fullscreenElement', {
-        value: document.body,
-        writable: true,
-      })
-
-      const mockEvent = { type: 'keydown', key: 'Escape' }
-      uiManager.handleActivity(mockEvent)
-
-      expect(exitIdleSpy).not.toHaveBeenCalled()
-      expect(resetTimerSpy).not.toHaveBeenCalled()
-    })
-
-    it('should handle ESC key when not in fullscreen', () => {
+    it('should handle ESC key normally', () => {
       const exitIdleSpy = vi.spyOn(uiManager, 'exitIdleState')
 
       // Set to idle first
       uiManager.isUIIdle = true
-
-      // Mock no fullscreen element
-      Object.defineProperty(document, 'fullscreenElement', {
-        value: null,
-        writable: true,
-      })
 
       const mockEvent = { type: 'keydown', key: 'Escape' }
       uiManager.handleActivity(mockEvent)

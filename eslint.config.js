@@ -27,6 +27,8 @@ export default [
         clearTimeout: 'readonly',
         setInterval: 'readonly',
         clearInterval: 'readonly',
+        matchMedia: 'readonly',
+        screen: 'readonly',
       },
     },
     rules: {
