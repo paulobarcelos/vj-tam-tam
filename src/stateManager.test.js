@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { eventBus } from './eventBus.js'
-import { stateManager } from './stateManager.js'
+import { stateManager, StateManager } from './stateManager.js'
 import { storageFacade } from './facades/storageFacade.js'
 
 // Mock eventBus with functional implementation
@@ -601,5 +601,60 @@ describe('StateManager', () => {
         )
       })
     })
+  })
+})
+
+describe('StateManager Advanced Panel Visibility (Story 6.1)', () => {
+  it('should default advancedControlsVisible to false on fresh initialization', () => {
+    const manager = new StateManager()
+
+    expect(manager.state.uiSettings.advancedControlsVisible).toBe(false)
+  })
+
+  it('should return false for advancedControlsVisible when no localStorage exists', async () => {
+    // Clear localStorage
+    localStorage.clear()
+
+    const manager = new StateManager()
+    await manager.restoreFromPersistence()
+
+    expect(manager.getUISettings().advancedControlsVisible).toBe(false)
+  })
+
+  it('should maintain default false state when localStorage has other settings but not advancedControlsVisible', async () => {
+    // Setup localStorage with other settings but not advancedControlsVisible
+    const partialState = {
+      segmentSettings: { minDuration: 10 },
+      textPool: ['test text'],
+    }
+    storageFacade.loadState.mockReturnValue(partialState)
+
+    const manager = new StateManager()
+    await manager.restoreFromPersistence()
+
+    expect(manager.getUISettings().advancedControlsVisible).toBe(false)
+  })
+
+  it('should restore advancedControlsVisible from localStorage when present', async () => {
+    // Setup localStorage with advancedControlsVisible set to true
+    const stateWithAdvanced = {
+      uiSettings: { advancedControlsVisible: true },
+    }
+    storageFacade.loadState.mockReturnValue(stateWithAdvanced)
+
+    const manager = new StateManager()
+    await manager.restoreFromPersistence()
+
+    expect(manager.getUISettings().advancedControlsVisible).toBe(true)
+  })
+
+  it('should handle corrupted localStorage gracefully and default to false', async () => {
+    // Setup corrupted localStorage (storageFacade returns null on parse error)
+    storageFacade.loadState.mockReturnValue(null)
+
+    const manager = new StateManager()
+    await manager.restoreFromPersistence()
+
+    expect(manager.getUISettings().advancedControlsVisible).toBe(false)
   })
 })

@@ -951,6 +951,31 @@ body {
   background-color: rgba(42, 42, 42, 0.8);
 }
 
+/* Toggle button styling per Story 6.2 */
+#advanced-controls-toggle {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.toggle-icon {
+  margin-right: 0.5rem;
+  transition: transform 0.2s ease;
+  font-size: 0.8rem;
+  display: inline-block;
+  width: 12px;
+}
+
+.toggle-text {
+  flex: 1;
+}
+
+#advanced-controls-toggle[aria-expanded="true"] .toggle-icon {
+  transform: rotate(90deg);
+}
+
 /* Legacy .section-toggle-btn styles removed - now using .btn classes */
 
 .toggle-indicator {
@@ -963,6 +988,12 @@ body {
   padding: 1rem;
   background-color: rgba(26, 26, 26, 0.8);
   border-top: 1px solid #333;
+  /* Default hidden state per Story 6.1 AC 1.1 & 1.3 */
+  display: none;
+}
+
+.advanced-controls-section.visible {
+  display: block;
 }
 
 .advanced-controls-section.hidden {
