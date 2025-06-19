@@ -1116,21 +1116,29 @@ class UIManager {
 
     // Segment duration controls
     this.setupSegmentDurationControls()
+
+    // Initialize toggle state from current UI settings
+    this.initializeAdvancedPanelToggleState()
   }
 
   /**
-   * Handle Advanced Controls toggle button click
+   * Initialize advanced panel toggle state from StateManager (Story 6.2)
+   */
+  initializeAdvancedPanelToggleState() {
+    const uiSettings = stateManager.getUISettings()
+    this.updateAdvancedPanelVisibility(uiSettings.advancedControlsVisible)
+  }
+
+  /**
+   * Handle Advanced Controls toggle button click (Story 6.2)
    */
   handleAdvancedControlsToggle() {
-    const isHidden = this.advancedControlsSection.classList.contains('hidden')
-    const indicator = this.advancedControlsToggle.querySelector('.toggle-indicator')
+    // Get current state
+    const currentState = stateManager.getUISettings().advancedControlsVisible
+    const newState = !currentState
 
-    this.advancedControlsSection.classList.toggle('hidden')
-    indicator.textContent = isHidden ? '[Hide]' : '[Show]'
-
-    // Update state manager instead of localStorage directly
-    const isVisible = !this.advancedControlsSection.classList.contains('hidden')
-    stateManager.updateUISettings({ advancedControlsVisible: isVisible })
+    // Update state manager (which handles persistence automatically)
+    stateManager.updateUISettings({ advancedControlsVisible: newState })
   }
 
   /**
@@ -1290,20 +1298,35 @@ class UIManager {
   }
 
   /**
-   * Handle UI settings updates
+   * Handle UI settings updates (Story 6.2)
    * @param {Object} data - Event data containing updated UI settings
    */
   handleUISettingsUpdate(data) {
     const uiSettings = data.uiSettings
-    const indicator = this.advancedControlsToggle.querySelector('.toggle-indicator')
 
-    // Update advanced controls visibility
-    if (uiSettings.advancedControlsVisible) {
+    // Update advanced controls visibility with new toggle structure
+    this.updateAdvancedPanelVisibility(uiSettings.advancedControlsVisible)
+  }
+
+  /**
+   * Update advanced panel visibility and toggle button state (Story 6.2)
+   * @param {boolean} isVisible - Whether the panel should be visible
+   */
+  updateAdvancedPanelVisibility(isVisible) {
+    const toggleIcon = this.advancedControlsToggle.querySelector('.toggle-icon')
+
+    if (isVisible) {
       this.advancedControlsSection.classList.remove('hidden')
-      indicator.textContent = '[Hide]'
+      this.advancedControlsSection.classList.add('visible')
+      this.advancedControlsSection.setAttribute('aria-hidden', 'false')
+      this.advancedControlsToggle.setAttribute('aria-expanded', 'true')
+      if (toggleIcon) toggleIcon.textContent = '▼'
     } else {
       this.advancedControlsSection.classList.add('hidden')
-      indicator.textContent = '[Show]'
+      this.advancedControlsSection.classList.remove('visible')
+      this.advancedControlsSection.setAttribute('aria-hidden', 'true')
+      this.advancedControlsToggle.setAttribute('aria-expanded', 'false')
+      if (toggleIcon) toggleIcon.textContent = '▶'
     }
   }
 
@@ -1760,16 +1783,14 @@ class UIManager {
     // Restore UI settings from state manager
     const uiSettings = stateManager.getUISettings()
     console.log(STRINGS.SYSTEM_MESSAGES.uiManager.uiSettingsFromState, uiSettings)
-    const indicator = this.advancedControlsToggle.querySelector('.toggle-indicator')
+
+    // Use the existing method to update panel visibility and toggle state
+    this.updateAdvancedPanelVisibility(uiSettings.advancedControlsVisible)
 
     if (uiSettings.advancedControlsVisible) {
       console.log(STRINGS.SYSTEM_MESSAGES.uiManager.advancedControlsVisible)
-      this.advancedControlsSection.classList.remove('hidden')
-      indicator.textContent = '[Hide]'
     } else {
       console.log(STRINGS.SYSTEM_MESSAGES.uiManager.advancedControlsHidden)
-      this.advancedControlsSection.classList.add('hidden')
-      indicator.textContent = '[Show]'
     }
 
     // Set the flag to true to prevent double initialization

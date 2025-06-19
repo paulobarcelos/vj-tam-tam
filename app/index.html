@@ -125,11 +125,16 @@
       <!-- Advanced Controls Section -->
       <div class="drawer-section">
         <div class="advanced-controls-header">
-          <button id="advanced-controls-toggle" class="btn btn--secondary btn--small">
-            Advanced Settings <span class="toggle-indicator">[Show]</span>
+          <button 
+            id="advanced-controls-toggle" 
+            class="btn btn--secondary btn--small"
+            aria-expanded="false"
+            aria-controls="advanced-controls-section">
+            <span class="toggle-icon">▶</span>
+            <span class="toggle-text">Advanced Settings</span>
           </button>
         </div>
-        <div id="advanced-controls-section" class="advanced-controls-section hidden">
+        <div id="advanced-controls-section" class="advanced-controls-section" aria-hidden="true">
           <div class="control-group">
             <label for="min-duration-control">Minimum Segment Duration</label>
             <div class="control-pair">

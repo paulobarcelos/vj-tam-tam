@@ -101,3 +101,7 @@ describe('storageFacade', () => {
     ) // Show user warning
   })
 })
+
+/**
+ * Unit tests for StorageFacade advanced panel visibility methods (Story 6.1)
+ */
