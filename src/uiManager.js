@@ -919,6 +919,13 @@ class UIManager {
    */
   cleanup() {
     this.removeGlobalActivationHijacking()
+    this.cleanupActivityDetection()
+
+    // Clear any pending timeouts
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer)
+      this.idleTimer = null
+    }
   }
 
   /**
@@ -1807,12 +1814,7 @@ class UIManager {
    * Handle user activity for idle state management
    * @param {Event} event - User activity event
    */
-  handleActivity(event) {
-    // Special handling for ESC in fullscreen - don't treat as activity
-    if (event.type === 'keydown' && event.key === 'Escape' && document.fullscreenElement) {
-      return
-    }
-
+  handleActivity() {
     if (this.isUIIdle) {
       this.exitIdleState()
     } else {
@@ -1945,41 +1947,31 @@ class UIManager {
   }
 
   /**
-   * Debug method to log current media pool state
+   * Debug method to display current media pool state
+   * Available as window.debugMediaPool() for console debugging
    */
   debugMediaPoolState() {
-    const mediaItems = stateManager.getMediaPool()
     console.log(STRINGS.SYSTEM_MESSAGES.uiManager.debugMediaPoolHeader)
+    const mediaItems = eventBus.getData('mediaPool') || []
     console.log(t.get('SYSTEM_MESSAGES.uiManager.debugTotalItems', { count: mediaItems.length }))
 
+    let permissionCount = 0
+    let temporaryCount = 0
+    let usableCount = 0
+
     mediaItems.forEach((item, index) => {
-      console.log(t.get('SYSTEM_MESSAGES.uiManager.debugItemDetails', { index }), {
-        name: item.name,
-        type: item.type,
-        hasFile: !!item.file,
-        hasUrl: !!item.url,
-        fromFileSystemAPI: item.fromFileSystemAPI,
-        needsPermission: (!item.file || !item.url) && item.fromFileSystemAPI,
-        isTemporary:
-          (item.file && item.url && !item.fromFileSystemAPI) ||
-          (!item.file && !item.url && !item.fromFileSystemAPI),
-        isMetadataOnly: !item.file && !item.url,
-      })
+      console.log(t.get('SYSTEM_MESSAGES.uiManager.debugItemDetails', { index: index + 1 }), item)
+
+      if (item.needsPermission) permissionCount++
+      if (item.isTemporary) temporaryCount++
+      if (!item.needsPermission && !item.isTemporary) usableCount++
     })
 
-    const filesNeedingPermission = filterMediaNeedingPermission(mediaItems)
-    const temporaryFiles = filterTemporaryMedia(mediaItems)
-    const usableFiles = filterUsableMedia(mediaItems)
-
     console.log(
-      t.get('SYSTEM_MESSAGES.uiManager.debugFilesNeedingPermission', {
-        count: filesNeedingPermission.length,
-      })
+      t.get('SYSTEM_MESSAGES.uiManager.debugFilesNeedingPermission', { count: permissionCount })
     )
-    console.log(
-      t.get('SYSTEM_MESSAGES.uiManager.debugTemporaryFiles', { count: temporaryFiles.length })
-    )
-    console.log(t.get('SYSTEM_MESSAGES.uiManager.debugUsableFiles', { count: usableFiles.length }))
+    console.log(t.get('SYSTEM_MESSAGES.uiManager.debugTemporaryFiles', { count: temporaryCount }))
+    console.log(t.get('SYSTEM_MESSAGES.uiManager.debugUsableFiles', { count: usableCount }))
     console.log(STRINGS.SYSTEM_MESSAGES.uiManager.debugFooter)
   }
 }
