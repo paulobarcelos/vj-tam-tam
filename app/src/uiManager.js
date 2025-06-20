@@ -17,6 +17,7 @@ import {
 } from './utils/mediaUtils.js'
 import { formatDuration } from './utils/stringUtils.js'
 import { mediaProcessor } from './mediaProcessor.js'
+import { projectionManager } from './projectionManager.js'
 
 class UIManager {
   constructor() {
@@ -921,6 +922,11 @@ class UIManager {
     this.removeGlobalActivationHijacking()
     this.cleanupActivityDetection()
 
+    // Clean up projection manager
+    if (projectionManager) {
+      projectionManager.cleanup()
+    }
+
     // Clear any pending timeouts
     if (this.idleTimer) {
       clearTimeout(this.idleTimer)
@@ -1793,6 +1799,13 @@ class UIManager {
       console.log(STRINGS.SYSTEM_MESSAGES.uiManager.advancedControlsHidden)
     }
 
+    // Initialize projection manager after advanced controls (Story 6.3)
+    if (projectionManager.init()) {
+      console.log('ProjectionManager initialized as part of advanced controls')
+    } else {
+      console.warn('ProjectionManager failed to initialize')
+    }
+
     // Set the flag to true to prevent double initialization
     this.advancedControlsInitialized = true
     console.log(STRINGS.SYSTEM_MESSAGES.uiManager.advancedControlsInitComplete)
@@ -1805,6 +1818,9 @@ class UIManager {
     this.isUIIdle = true
     document.body.classList.add('ui-idle')
     console.log(STRINGS.SYSTEM_MESSAGES.uiManager.idleStateEntered)
+
+    // Emit idle state change for projection manager (AC 3.7)
+    eventBus.emit('ui.idleStateChanged', { isIdle: true })
   }
 
   /**
@@ -1815,6 +1831,9 @@ class UIManager {
       this.isUIIdle = false
       document.body.classList.remove('ui-idle')
       console.log(STRINGS.SYSTEM_MESSAGES.uiManager.idleStateExited)
+
+      // Emit idle state change for projection manager (AC 3.7)
+      eventBus.emit('ui.idleStateChanged', { isIdle: false })
     }
     this.resetIdleTimer()
   }

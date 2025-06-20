@@ -129,7 +129,6 @@ describe('Story 3.5: DOM Structure Validation', () => {
 
   beforeEach(() => {
     // Create test DOM with button structure
-    const { JSDOM } = require('jsdom')
     const dom = new JSDOM(`
       <!DOCTYPE html>
       <html>

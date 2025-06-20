@@ -37,6 +37,18 @@ export const STATE_EVENTS = {
   MEDIA_POOL_UPDATED: 'state.mediaPoolUpdated',
   SEGMENT_SETTINGS_UPDATED: 'state.segmentSettingsUpdated',
   UI_SETTINGS_UPDATED: 'state.uiSettingsUpdated',
+  PROJECTION_MODE_UPDATED: 'state.projectionModeUpdated',
+}
+
+/**
+ * Projection mode related events (Story 6.3)
+ */
+export const PROJECTION_EVENTS = {
+  MODE_ENABLED: 'projection.modeEnabled',
+  MODE_DISABLED: 'projection.modeDisabled',
+  LAYOUT_CHANGED: 'projection.layoutChanged',
+  LAYOUT_SAVED: 'projection.layoutSaved',
+  LAYOUT_LOADED: 'projection.layoutLoaded',
 }
 
 /**

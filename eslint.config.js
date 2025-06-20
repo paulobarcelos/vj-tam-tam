@@ -29,6 +29,8 @@ export default [
         clearInterval: 'readonly',
         matchMedia: 'readonly',
         screen: 'readonly',
+        // Maptastic library global
+        Maptastic: 'readonly',
       },
     },
     rules: {

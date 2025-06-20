@@ -135,6 +135,23 @@
           </button>
         </div>
         <div id="advanced-controls-section" class="advanced-controls-section" aria-hidden="true">
+          <!-- Projection Setup Toggle Control -->
+          <div class="projection-controls">
+            <button 
+              id="projection-toggle-btn" 
+              class="btn btn--primary btn--full-width projection-button"
+              data-projection-active="false"
+              aria-expanded="false"
+              aria-controls="projection-mode-controls">
+              <span class="button-text">Enter Projection Setup</span>
+            </button>
+            
+            <!-- Additional projection controls appear when active -->
+            <div id="projection-mode-controls" class="projection-settings" style="display: none;">
+              <!-- Aspect ratio controls, transform controls will be added in subsequent stories -->
+            </div>
+          </div>
+          
           <div class="control-group">
             <label for="min-duration-control">Minimum Segment Duration</label>
             <div class="control-pair">
@@ -199,8 +216,14 @@
 
     <!-- Toast notification container -->
     <div id="toast-container" class="toast-container"></div>
+    
+    <!-- Projection handles container (above all other content) -->
+    <div id="projection-handles-container" class="projection-handles-container"></div>
   </div>
 
+  <!-- Maptastic library for projection mapping -->
+  <script src="lib/maptastic.js"></script>
+  
   <!-- Main application script -->
   <script type="module" src="src/main.js"></script>
 </body>
