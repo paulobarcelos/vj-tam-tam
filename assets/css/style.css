@@ -164,6 +164,8 @@ body {
   border: 2px solid transparent;
   transition: border-color 0.2s ease;
   z-index: 1;
+  /* Enable positioning context for corner handles */
+  transform-origin: top left;
 }
 
 .stage.drag-over {
@@ -607,6 +609,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
+  pointer-events: none;
 }
 
 .toast {
@@ -949,6 +952,104 @@ body {
 .advanced-controls-header {
   padding: 1rem;
   background-color: rgba(42, 42, 42, 0.8);
+}
+
+/* Projection Controls Styling */
+.projection-controls {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #333;
+}
+
+.projection-button {
+  background: #1a1a1a;
+  border: 2px solid #333;
+  color: white;
+  padding: 1rem;
+  width: 100%;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+
+.projection-button:hover {
+  background: #2a2a2a;
+  border-color: #444;
+}
+
+.projection-button[data-projection-active="true"] {
+  background: #333;
+  border-color: #555;
+  color: #fff;
+}
+
+.projection-button[data-projection-active="true"]:hover {
+  background: #444;
+  border-color: #666;
+}
+
+.projection-settings {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  padding: 1rem;
+  margin-top: 0.5rem;
+  border-radius: 4px;
+}
+
+/* Maptastic handles visibility based on UI state (AC 3.7) */
+.ui-idle canvas[data-maptastic] {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.ui-active canvas[data-maptastic] {
+  opacity: 1;
+}
+
+/* Custom Corner Handles for Projection Mode */
+.projection-corner-handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background-color: #ffffff;
+  border: 2px solid #000000;
+  border-radius: 20px;
+  cursor: grab;
+  z-index: 1001; /* Above the container */
+  pointer-events: auto; /* Enable interaction for handles themselves */
+  
+  /* Center the handle on the corner point */
+  transform: translate(-50%, -50%);
+  
+  /* Make it visible above other elements */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.projection-corner-handle:hover {
+  background-color: #000000;
+  border-color: #ffffff;
+  transform: translate(-50%, -50%) scale(1.1);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
+}
+
+.projection-corner-handle.dragging {
+  cursor: grabbing;
+  background-color: #007acc;
+  border-color: #ffffff;
+  transform: translate(-50%, -50%) scale(1.2);
+  box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.6);
+}
+
+/* Hide corner handles during idle state */
+.ui-idle .projection-corner-handle {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.ui-active .projection-corner-handle {
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 /* Toggle button styling per Story 6.2 */
@@ -1343,4 +1444,15 @@ body {
   .delete-text-btn {
     opacity: 0.7; /* Always visible on touch devices */
   }
+}
+
+/* Projection Handles Container */
+.projection-handles-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Allow clicks to pass through to underlying elements */
+  z-index: 1000; /* Above both stage and drawer */
 }

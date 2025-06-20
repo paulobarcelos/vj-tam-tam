@@ -39,6 +39,12 @@ class StateManager {
       uiSettings: {
         advancedControlsVisible: false, // default collapsed
       },
+      // Projection mode settings (Story 6.3)
+      projectionMode: {
+        active: false, // default projection mode inactive
+        maptasticLayout: null, // saved corner positions
+        projectionSurfaceAspectRatio: null, // saved projection surface aspect ratio
+      },
       // Text frequency for text overlay display (0-1 normalized scale)
       textFrequency: 0.5, // Default middle value (equivalent to step 4 of 8)
       // FileSystem Access API state tracking
@@ -174,6 +180,24 @@ class StateManager {
         console.log(STRINGS.SYSTEM_MESSAGES.stateManager.noUISettings, this.state.uiSettings)
       }
 
+      // Always restore projection mode from localStorage with fallback to defaults
+      console.log(
+        STRINGS.SYSTEM_MESSAGES.stateManager.aboutToRestoreProjectionMode,
+        persistedState?.projectionMode
+      )
+      if (persistedState?.projectionMode) {
+        this.state.projectionMode = {
+          ...this.state.projectionMode, // Start with defaults
+          ...persistedState.projectionMode, // Override with persisted values
+        }
+        console.log(STRINGS.SYSTEM_MESSAGES.stateManager.projectionModeRestored)
+      } else {
+        console.log(
+          STRINGS.SYSTEM_MESSAGES.stateManager.noProjectionMode,
+          this.state.projectionMode
+        )
+      }
+
       // Always restore text pool from localStorage with fallback to defaults
       console.log(
         STRINGS.SYSTEM_MESSAGES.stateManager.aboutToRestoreTextPool,
@@ -299,6 +323,8 @@ class StateManager {
         segmentSettings: this.state.segmentSettings,
         // Persist UI settings
         uiSettings: this.state.uiSettings,
+        // Persist projection mode settings (Story 6.3)
+        projectionMode: this.state.projectionMode,
         // Persist text frequency
         textFrequency: this.state.textFrequency,
         // Persist FileSystem API working state
@@ -660,6 +686,42 @@ class StateManager {
     // Emit event for UI settings change
     eventBus.emit(STATE_EVENTS.UI_SETTINGS_UPDATED, {
       uiSettings: this.getUISettings(),
+    })
+  }
+
+  /**
+   * Get current projection mode settings
+   * @returns {Object} Current projection mode settings
+   */
+  getProjectionMode() {
+    return { ...this.state.projectionMode }
+  }
+
+  /**
+   * Update projection mode settings and persist automatically
+   * @param {Object} newSettings - Partial projection mode settings to update
+   */
+  updateProjectionMode(newSettings) {
+    if (typeof newSettings !== 'object' || newSettings === null) {
+      console.warn(STRINGS.SYSTEM_MESSAGES.stateManager.invalidProjectionModeSettings)
+      return
+    }
+
+    const previousSettings = { ...this.state.projectionMode }
+
+    this.state.projectionMode = {
+      ...this.state.projectionMode,
+      ...newSettings,
+    }
+
+    // Save to localStorage
+    this.saveCurrentState()
+
+    // Emit event for projection mode settings change
+    eventBus.emit(STATE_EVENTS.PROJECTION_MODE_UPDATED, {
+      previousSettings,
+      projectionMode: this.getProjectionMode(),
+      timestamp: Date.now(),
     })
   }
 
