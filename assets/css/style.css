@@ -267,8 +267,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* Base text size - will be overridden by length-based classes */
-  font-size: 20vh;
+  /* Base text size - uses CSS variables set by JavaScript based on projection surface */
+  font-size: var(--text-base-size, 20vh); /* Fallback to viewport units if variables not set */
   
   /* Clamp text to 5 lines */
   display: -webkit-box;
@@ -278,21 +278,20 @@ body {
   overflow: hidden;
 }
 
-/* Text length-based sizing classes (ready for user customization) */
+/* Text length-based sizing classes using CSS variables */
 .text-overlay.text-short {
-  /* User will define styling for short text (< 15 chars) */
-  font-size: min(20vw, 20vh);
+  /* Short text: equivalent to min(20vw, 20vh) of projection surface */
+  font-size: var(--text-short-size, min(20vw, 20vh));
 }
 
 .text-overlay.text-medium {
-  /* User will define styling for medium text (15-80 chars) */
-  font-size: min(13vw, 13vh);
+  /* Medium text: equivalent to min(13vw, 13vh) of projection surface */
+  font-size: var(--text-medium-size, min(13vw, 13vh));
 }
 
 .text-overlay.text-long {
-  /* User will define styling for long text (> 80 chars) */
-  font-size: min(10vh, 10vw);
-
+  /* Long text: equivalent to min(10vw, 10vh) of projection surface */
+  font-size: var(--text-long-size, min(10vh, 10vw));
 }
 
 /* Text Overlay Visibility States */

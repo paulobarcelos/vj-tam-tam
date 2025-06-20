@@ -25,6 +25,7 @@ export const TEXT_OVERLAY_EVENTS = {
   SHOWN: 'textOverlay.shown',
   HIDDEN: 'textOverlay.hidden',
   FREQUENCY_UPDATED: 'textOverlay.frequencyUpdated',
+  FONT_SIZE_UPDATED: 'textOverlay.fontSizeUpdated',
   PERFORMANCE_WARNING: 'textOverlay.performanceWarning',
   STYLING_CONFIG_UPDATED: 'textOverlay.stylingConfigUpdated',
 }
