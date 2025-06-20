@@ -1023,6 +1023,23 @@ body {
   
   /* Make it visible above other elements */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  
+  /* Flexbox for centering corner label text */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Corner labels using CSS pseudo-elements */
+.projection-corner-handle::before {
+  content: attr(data-corner-label);
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  font-weight: bold;
+  color: #fff;
+  line-height: 1;
+  text-align: center;
+  pointer-events: none; /* Don't interfere with handle interactions */
 }
 
 .projection-corner-handle:hover {
@@ -1032,12 +1049,22 @@ body {
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
 }
 
+.projection-corner-handle:hover::before {
+  color: #ffffff;
+  font-weight: 900;
+}
+
 .projection-corner-handle.dragging {
   cursor: grabbing;
   background-color: #007acc40;
   border-color: #ffffff;
   transform: translate(-50%, -50%) scale(1.2);
   box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.6);
+}
+
+.projection-corner-handle.dragging::before {
+  color: #ffffff;
+  font-weight: 900;
 }
 
 /* Hide corner handles during idle state */
