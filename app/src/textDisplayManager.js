@@ -7,7 +7,12 @@
 import { eventBus } from './eventBus.js'
 import { stateManager } from './stateManager.js'
 import { STRINGS } from './constants/strings.js'
-import { TEXT_OVERLAY_EVENTS, TEXT_POOL_EVENTS, CYCLING_EVENTS } from './constants/events.js'
+import {
+  TEXT_OVERLAY_EVENTS,
+  TEXT_POOL_EVENTS,
+  CYCLING_EVENTS,
+  PROJECTION_EVENTS,
+} from './constants/events.js'
 
 class TextDisplayManager {
   constructor() {
@@ -52,6 +57,10 @@ class TextDisplayManager {
     eventBus.on(TEXT_POOL_EVENTS.FREQUENCY_CHANGED, (event) =>
       this.updateFrequency(event.frequency)
     )
+
+    // Listen for projection mode changes to update font sizing
+    eventBus.on(PROJECTION_EVENTS.MODE_ENABLED, () => this.handleProjectionModeChange())
+    eventBus.on(PROJECTION_EVENTS.MODE_DISABLED, () => this.handleProjectionModeChange())
   }
 
   startTextDisplay() {
@@ -155,6 +164,49 @@ class TextDisplayManager {
     })
   }
 
+  /**
+   * Update CSS variables for text sizing based on projection surface dimensions
+   * This ensures proper scaling in projection mode while keeping styling in CSS
+   */
+  updateTextSizingVariables() {
+    // Get projection mode state to determine if we're in projection mode
+    const projectionState = stateManager.getProjectionMode()
+
+    let surfaceWidth, surfaceHeight
+
+    if (projectionState && projectionState.active) {
+      // In projection mode: use projection surface dimensions
+      surfaceWidth = projectionState.screenWidth || window.innerWidth
+      surfaceHeight = projectionState.screenHeight || window.innerHeight
+    } else {
+      // In normal mode: clear CSS variables to use viewport units fallback
+      document.documentElement.style.removeProperty('--text-base-size')
+      document.documentElement.style.removeProperty('--text-short-size')
+      document.documentElement.style.removeProperty('--text-medium-size')
+      document.documentElement.style.removeProperty('--text-long-size')
+      return
+    }
+
+    // Calculate font sizes as percentage of surface dimensions
+    const baseSize = Math.max(Math.floor(surfaceHeight * 0.2), 16)
+    const shortSize = Math.max(Math.floor(Math.min(surfaceWidth * 0.2, surfaceHeight * 0.2)), 16)
+    const mediumSize = Math.max(Math.floor(Math.min(surfaceWidth * 0.13, surfaceHeight * 0.13)), 16)
+    const longSize = Math.max(Math.floor(Math.min(surfaceWidth * 0.1, surfaceHeight * 0.1)), 16)
+
+    // Set CSS variables on the document root
+    document.documentElement.style.setProperty('--text-base-size', `${baseSize}px`)
+    document.documentElement.style.setProperty('--text-short-size', `${shortSize}px`)
+    document.documentElement.style.setProperty('--text-medium-size', `${mediumSize}px`)
+    document.documentElement.style.setProperty('--text-long-size', `${longSize}px`)
+
+    return {
+      baseSize,
+      shortSize,
+      mediumSize,
+      longSize,
+    }
+  }
+
   showText(text) {
     if (!text || !this.overlayElement) return
 
@@ -163,6 +215,9 @@ class TextDisplayManager {
 
     // Apply text length classification and styling
     this.applyTextClassification(text)
+
+    // Update CSS variables for projection-aware sizing
+    const fontSizes = this.updateTextSizingVariables()
 
     // Apply random color (pure black or white)
     this.applyRandomColor()
@@ -177,6 +232,7 @@ class TextDisplayManager {
     eventBus.emit(TEXT_OVERLAY_EVENTS.SHOWN, {
       text,
       classification: this.getTextClassification(text),
+      fontSizes: fontSizes,
       timestamp: Date.now(),
     })
   }
@@ -254,6 +310,23 @@ class TextDisplayManager {
       frequency: frequency,
       timestamp: Date.now(),
     })
+  }
+
+  /**
+   * Handle projection mode changes - update CSS variables for font sizing
+   */
+  handleProjectionModeChange() {
+    // Update CSS variables for all text sizes
+    const fontSizes = this.updateTextSizingVariables()
+
+    if (this.currentText) {
+      eventBus.emit(TEXT_OVERLAY_EVENTS.FONT_SIZE_UPDATED, {
+        text: this.currentText,
+        fontSizes: fontSizes,
+        classification: this.getTextClassification(this.currentText),
+        timestamp: Date.now(),
+      })
+    }
   }
 
   getCurrentText() {
