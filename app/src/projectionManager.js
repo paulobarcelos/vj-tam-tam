@@ -318,11 +318,15 @@ class ProjectionManager {
     // Remove existing handles first
     this.removeCornerHandles()
 
+    // Corner labels for identification
+    const cornerLabels = ['TL', 'TR', 'BR', 'BL']
+
     // Create 4 corner handles
     for (let i = 0; i < 4; i++) {
       const handle = document.createElement('div')
       handle.className = 'projection-corner-handle'
       handle.dataset.cornerIndex = i
+      handle.dataset.cornerLabel = cornerLabels[i]
 
       // Add event listeners for dragging
       handle.addEventListener('mousedown', this.handleMouseDown)
