@@ -26,12 +26,12 @@ class ProjectionManager {
     this.dragCornerIndex = -1
     this.dragOffset = { x: 0, y: 0 }
 
-    // Default corner positions (normalized 0-1)
+    // Default corner positions (pixel coordinates)
     this.cornerPositions = [
       { x: 0, y: 0 }, // top-left
-      { x: 1, y: 0 }, // top-right
-      { x: 1, y: 1 }, // bottom-right
-      { x: 0, y: 1 }, // bottom-left
+      { x: window.innerWidth, y: 0 }, // top-right
+      { x: window.innerWidth, y: window.innerHeight }, // bottom-right
+      { x: 0, y: window.innerHeight }, // bottom-left
     ]
 
     // Projection surface configuration
@@ -372,7 +372,7 @@ class ProjectionManager {
   handleMouseDown(event) {
     event.preventDefault()
     const cornerIndex = parseInt(event.target.dataset.cornerIndex)
-    this.startDrag(cornerIndex, event.clientX, event.clientY)
+    this.startDrag(cornerIndex)
   }
 
   /**
@@ -381,26 +381,18 @@ class ProjectionManager {
   handleTouchStart(event) {
     event.preventDefault()
     const cornerIndex = parseInt(event.target.dataset.cornerIndex)
-    const touch = event.touches[0]
-    this.startDrag(cornerIndex, touch.clientX, touch.clientY)
+    this.startDrag(cornerIndex)
   }
 
   /**
    * Start dragging a corner
    */
-  startDrag(cornerIndex, clientX, clientY) {
+  startDrag(cornerIndex) {
     this.isDragging = true
     this.dragCornerIndex = cornerIndex
 
-    const handle = this.cornerHandles[cornerIndex]
-    const handleRect = handle.getBoundingClientRect()
-
-    this.dragOffset = {
-      x: clientX - handleRect.left,
-      y: clientY - handleRect.top,
-    }
-
     // Add dragging class for visual feedback
+    const handle = this.cornerHandles[cornerIndex]
     handle.classList.add('dragging')
   }
 
@@ -427,26 +419,16 @@ class ProjectionManager {
    * Update drag position
    */
   updateDrag(clientX, clientY) {
-    const stageRect = this.stageElement.getBoundingClientRect()
-
-    // Calculate position relative to stage (with drag offset)
-    const relativeX = clientX - this.dragOffset.x - stageRect.left
-    const relativeY = clientY - this.dragOffset.y - stageRect.top
-
-    // Normalize to 0-1 range
-    const normalizedX = Math.max(0, Math.min(1, relativeX / stageRect.width))
-    const normalizedY = Math.max(0, Math.min(1, relativeY / stageRect.height))
-
-    // Update corner position
+    // Corner position is exactly where the mouse is - no offset calculation needed
     this.cornerPositions[this.dragCornerIndex] = {
-      x: normalizedX,
-      y: normalizedY,
+      x: clientX,
+      y: clientY,
     }
 
-    // Update handle position (absolute positioning relative to stage)
+    // Update handle position to match mouse position exactly
     const handle = this.cornerHandles[this.dragCornerIndex]
-    handle.style.left = `${stageRect.left + normalizedX * stageRect.width}px`
-    handle.style.top = `${stageRect.top + normalizedY * stageRect.height}px`
+    handle.style.left = `${clientX}px`
+    handle.style.top = `${clientY}px`
 
     // Update Maptastic layout
     this.updateMaptasticLayout()
@@ -492,21 +474,16 @@ class ProjectionManager {
     if (!this.maptasticInstance || !this.stageElement) return
 
     try {
-      const stageRect = this.stageElement.getBoundingClientRect()
-
-      // Source points: original corners of element in natural state
+      // Source points: original corners of element in natural state (stage dimensions)
       const sourcePoints = [
         [0, 0], // top-left
-        [stageRect.width, 0], // top-right
-        [stageRect.width, stageRect.height], // bottom-right
-        [0, stageRect.height], // bottom-left
+        [this.projectionSurface.screenWidth, 0], // top-right
+        [this.projectionSurface.screenWidth, this.projectionSurface.screenHeight], // bottom-right
+        [0, this.projectionSurface.screenHeight], // bottom-left
       ]
 
-      // Target points: where those corners should be mapped to (based on user dragging)
-      const targetPoints = this.cornerPositions.map((pos) => [
-        stageRect.left + pos.x * stageRect.width,
-        stageRect.top + pos.y * stageRect.height,
-      ])
+      // Target points: where those corners should be mapped to (pixel coordinates from user dragging)
+      const targetPoints = this.cornerPositions.map((pos) => [pos.x, pos.y])
 
       // Complete layout data structure for Maptastic
       const layout = [
@@ -516,6 +493,7 @@ class ProjectionManager {
           targetPoints: targetPoints,
         },
       ]
+      console.log('layout', layout)
 
       this.maptasticInstance.setLayout(layout)
     } catch (error) {
@@ -567,30 +545,20 @@ class ProjectionManager {
    * Update handle positions based on current corner positions
    */
   updateHandlePositions() {
-    if (!this.stageElement || this.cornerHandles.length === 0) return
+    if (this.cornerHandles.length === 0) return
 
-    // In projection mode, handles are positioned based on screen coordinates, not stage coordinates
-    // Initial positions are calculated from stage, but then they become independent
-    if (!this.cornerHandles[0].style.left || this.cornerHandles[0].style.left === '') {
-      // First time positioning - use stage as reference
-      const stageRect = this.stageElement.getBoundingClientRect()
+    // Position handles using pixel coordinates directly
+    this.cornerHandles.forEach((handle, index) => {
+      if (handle && this.cornerPositions[index]) {
+        const pos = this.cornerPositions[index]
 
-      this.cornerHandles.forEach((handle, index) => {
-        if (handle && this.cornerPositions[index]) {
-          const pos = this.cornerPositions[index]
+        // Use pixel coordinates directly (no normalization)
+        handle.style.left = `${pos.x}px`
+        handle.style.top = `${pos.y}px`
+      }
+    })
 
-          // Calculate initial pixel position based on stage
-          const pixelX = stageRect.left + pos.x * stageRect.width
-          const pixelY = stageRect.top + pos.y * stageRect.height
-
-          handle.style.left = `${pixelX}px`
-          handle.style.top = `${pixelY}px`
-        }
-      })
-
-      console.log('Corner handles positioned initially based on stage')
-    }
-    // If handles already have positions, don't move them - they're fixed in projection mode
+    console.log('Corner handles positioned using pixel coordinates')
   }
 
   /**
