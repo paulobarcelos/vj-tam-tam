@@ -2,6 +2,8 @@
 
 [[LLM: If available, review any provided relevant documents to gather all relevant context before beginning. If at a minimum you cannot local `docs/prd.md` ask the user what docs will provide the basis for the architecture.]]
 
+[[LLM: The default path and filename unless specified is docs/architecture.md]]
+
 ## Introduction
 
 [[LLM: This section establishes the document's purpose and scope. Keep the content below but ensure project name is properly substituted.
@@ -341,7 +343,7 @@ Use YAML format for better readability. If no REST API, skip this section.]]
 
 ^^CONDITION: has_rest_api^^
 
-````yaml
+```yaml
 openapi: 3.0.0
 info:
   title:
@@ -355,7 +357,7 @@ servers:
       '[object Object]': null
     description:
       '[object Object]': null
-```text
+```
 
 ^^/CONDITION: has_rest_api^^
 
@@ -418,7 +420,6 @@ After presenting the structure, apply `tasks#advanced-elicitation` protocol to r
 ├── {{package-manifest}}        # Dependencies manifest
 ├── {{config-files}}            # Language/framework configs
 └── README.md                   # Project documentation
-```text
 
 @{example: monorepo-structure}
 project-root/
@@ -430,6 +431,7 @@ project-root/
 ├── scripts/ # Monorepo management scripts
 └── package.json # Root package.json with workspaces
 @{/example}
+```
 
 [[LLM: After presenting the source tree structure, apply `tasks#advanced-elicitation` protocol]]
 
@@ -468,7 +470,7 @@ Get user input on deployment preferences and CI/CD tool choices.]]
 
 ```text
 {{promotion_flow_diagram}}
-````
+```
 
 ### Rollback Strategy
 

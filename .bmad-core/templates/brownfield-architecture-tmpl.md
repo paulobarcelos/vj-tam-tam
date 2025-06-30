@@ -1,5 +1,7 @@
 # {{Project Name}} Brownfield Enhancement Architecture
 
+[[LLM: The default path and filename unless specified is docs/architecture.md]]
+
 [[LLM: IMPORTANT - SCOPE AND ASSESSMENT REQUIRED:
 
 This architecture document is for SIGNIFICANT enhancements to existing projects that require comprehensive architectural planning. Before proceeding:
@@ -222,9 +224,9 @@ Present component architecture and apply `tasks#advanced-elicitation` protocol]]
 
 [[LLM: Create Mermaid diagram showing how new components interact with existing ones]]
 
-````mermaid
+```mermaid
 {{component_interaction_diagram}}
-```text
+```
 
 ## API Design and Integration
 
@@ -258,13 +260,13 @@ Present API design and apply `tasks#advanced-elicitation` protocol]]
 
 ```json
 {{request_schema}}
-````
+```
 
 **Response:**
 
-````json
+```json
 {{response_schema}}
-```text
+```
 
 <</REPEAT>>
 
@@ -313,7 +315,7 @@ Present integration plan and apply `tasks#advanced-elicitation` protocol]]
 
 ```plaintext
 {{existing_structure_relevant_parts}}
-````
+```
 
 ### New File Organization
 

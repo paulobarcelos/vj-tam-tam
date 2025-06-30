@@ -1,5 +1,7 @@
 # {{Project Name}} UI/UX Specification
 
+[[LLM: The default path and filename unless specified is docs/front-end-spec.md]]
+
 [[LLM: Review provided documents including Project Brief, PRD, and any user research to gather context. Focus on understanding user needs, pain points, and desired outcomes before beginning the specification.]]
 
 ## Introduction
@@ -74,9 +76,9 @@ After presenting this section, apply `tasks#advanced-elicitation` protocol]]
 
 ### Site Map / Screen Inventory
 
-````mermaid
+```mermaid
 {{sitemap_diagram}}
-```text
+```
 
 @{example: sitemap}
 
@@ -93,7 +95,7 @@ graph TD
     D --> D1[Profile]
     D --> D2[Settings]
     D --> D3[Billing]
-````
+```
 
 @{/example}
 
@@ -129,9 +131,9 @@ Create subsections for each major flow. After presenting all flows, apply `tasks
 
 #### Flow Diagram
 
-````mermaid
+```mermaid
 {{flow_diagram}}
-```text
+```
 
 **Edge Cases & Error Handling:**
 
@@ -165,7 +167,7 @@ graph TD
     Validate -->|Yes| Verify[Email Verification]
     Verify --> Complete[Account Created]
     Complete --> Dashboard[Redirect to Dashboard]
-````
+```
 
 **Edge Cases & Error Handling:**
 
