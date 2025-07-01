@@ -1,6 +1,6 @@
 # VJ Tam Tam - UI/UX Specification
 
-## 1. Design Principles
+## Design Principles
 
 ### Visual Aesthetic
 
@@ -17,7 +17,7 @@
 - **Minimalist Notifications**: Non-intrusive toast messages for essential feedback only
 - **Comprehensive Persistence**: All relevant UI states, interaction parameters (including advanced controls, projection settings, corner calibration data, drawer states, active tabs), and user configurations are saved to `localStorage` to ensure a consistent experience across sessions.
 
-## 2. Visual Design System
+## Visual Design System
 
 ### Typography
 
@@ -39,7 +39,7 @@
 - **Style**: Can be more expressive than the rest of the interface
 - **Purpose**: Brand identity while maintaining overall minimalism
 
-## 3. Layout Structure
+## Layout Structure
 
 ### Stage (Main Display Area)
 
@@ -57,7 +57,7 @@
 - **Animation**: Quick fade-in or instant appearance (no elaborate animations).
 - **Sizing**: See Section 7: Responsive Behavior.
 
-## 4. Interaction States
+## Interaction States
 
 ### Idle State
 
@@ -93,9 +93,9 @@
 - **Exit**: "End Calibration" button returns to Projection Mode view within the Advanced Controls.
 - **Persistence**: Corner calibration points (Maptastic settings) are saved to `localStorage` as part of Projection Mode settings.
 
-## 5. Component Specifications
+## Component Specifications
 
-### 5.1 Welcome State
+### Welcome State
 
 **When**: Media pool is empty.
 **Content**: "Welcome to VJ Tam Tam, please drag and drop your photos and videos here, or click to browse, to start your performance."
@@ -107,7 +107,7 @@
 - Clear, prominent display
   **Interaction**: The area (or a specific part of it) is clickable to open a system file picker.
 
-### 5.2 Left Drawer Panel Structure
+### Left Drawer Panel Structure
 
 #### Header
 
@@ -200,7 +200,7 @@
 - Small, unobtrusive.
 - References to "Bum Bum Tam Tam" origin.
 
-### 5.3 Corner Calibration Interface
+### Corner Calibration Interface
 
 **When Active**: Corner Calibration Mode enabled.
 **Stage Elements**:
@@ -220,7 +220,7 @@
 - Corner handles deactivate (but their positions are saved).
 - Drawer reappears with previous state if it was hidden.
 
-### 5.4 Toast Notifications
+### Toast Notifications
 
 **Position**: Bottom-center of the screen.
 **Variants**:
@@ -241,9 +241,9 @@
 - Projection setup warnings (e.g., video offsets ignored).
 - Other non-critical system feedback.
 
-## 6. User Flows
+## User Flows
 
-### 6.1 First-Time User Flow
+### First-Time User Flow
 
 1.  **Initial Load**: Black screen with welcome message (see 5.1).
 2.  **Add Media**: User drags media files to the stage OR clicks the designated area/button within the welcome message/empty media pool to browse and select files.
@@ -251,21 +251,21 @@
 4.  **UI Discovery**: User moves mouse, Left Drawer Panel appears.
 5.  **Content Management**: User adds more media, explores text overlays.
 
-### 6.2 Media Management Flow
+### Media Management Flow
 
 1.  **Add Media**: Drag-drop to stage or media pool area in drawer, or click browse button in media pool area.
 2.  **Visual Feedback**: Immediate square thumbnail generation and grid update in drawer.
 3.  **Management**: Hover to delete individual items, or use "Clear all" for media pool.
 4.  **Playback Integration**: New media immediately available for random selection.
 
-### 6.3 Text Overlay Flow
+### Text Overlay Flow
 
 1.  **Add Text**: Type in input field in drawer, press Enter or click Add button.
 2.  **Visual Confirmation**: Text appears as pill in text pool in drawer.
 3.  **Configure Frequency**: Adjust slider for display frequency.
 4.  **Live Integration**: Text overlays begin appearing over media on stage.
 
-### 6.4 Advanced Features Flow
+### Advanced Features Flow
 
 1.  **Reveal Controls**: Toggle Advanced Controls visibility in drawer.
 2.  **Basic Adjustments**: Adjust media segment duration, colors, video skip settings, toggle test card.
@@ -274,7 +274,7 @@
 5.  **Corner Calibration**: Enter calibration mode, adjust Maptastic corner handles, exit calibration.
 6.  **Fine-tuning**: Return to projection controls for additional adjustments if needed.
 
-## 7. Responsive Behavior
+## Responsive Behavior
 
 The Left Drawer Panel is always an **overlay** on top of the stage with a **translucent background**.
 
@@ -286,7 +286,7 @@ The Left Drawer Panel is always an **overlay** on top of the stage with a **tran
   - It remains a translucent overlay covering the stage.
 - All controls within the drawer reflow and adapt to the available width, ensuring usability. Scrollbars appear for sections if content overflows.
 
-## 8. Accessibility Considerations
+## Accessibility Considerations
 
 ### Keyboard Navigation
 
@@ -307,7 +307,7 @@ The Left Drawer Panel is always an **overlay** on top of the stage with a **tran
 - Clear state indication for toggles and modes.
 - Consistent interaction patterns across components.
 
-## 9. Technical Implementation Notes
+## Technical Implementation Notes
 
 ### State Management
 

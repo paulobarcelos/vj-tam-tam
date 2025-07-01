@@ -1,0 +1,32 @@
+# Key Features / Scope (High-Level Ideas for MVP)
+
+- **Media Input:**
+  - Ability to add media (photos: JPG, PNG, GIF, HEIC, WebP; videos: MP4, MOV, WebM, AVI) via drag-and-drop of files/folders or a native file picker dialog.
+  - Additive media pool: new files are added to the existing set, not replaced.
+  - Option to clear the entire media pool.
+- **Playback Engine:**
+  - Continuous, random playback of media segments.
+  - Configurable segment duration (min/max sliders, with initial defaults of 5s for both, range 1-30s).
+  - Hard cuts between media segments (no crossfades or smooth transitions).
+  - Fullscreen display, responsive to screen size, always covering the stage ("cover" mode only).
+- **Text Overlays:**
+  - Ability to add unlimited custom text strings (via input field).
+  - Additive text pool: new entries add to the existing set.
+  - Option to clear the entire text pool.
+  - Random display of text entries on top of visuals.
+  - Configurable frequency/probability of text display.
+  - Text rendering: Bold Arial (default), centered, dynamically scaled to fit 80% of screen width or height.
+- **Advanced Display & Projection Tools (UI Toggleable Panel):**
+  - Panel containing advanced controls, hidden by default, toggled visible/hidden by a UI control.
+  - "Projection Setup Mode" toggle within the advanced panel to activate interactive projection tools.
+  - Define Projection Area Size/Aspect Ratio & Fixed Stage (Story E5.S4 complexity). Controls for presets (16:9, 4:3, 1:1), custom input, and a "Match Current Screen" button.
+  - Interactive corner-point warping (via Maptastic), active in Projection Setup Mode.
+  - Scale, translation, rotation, and flip controls, active in Projection Setup Mode.
+  - Test card overlay toggle, available when advanced panel is visible.
+  - Global brightness, contrast, saturation sliders, available when advanced panel is visible.
+  - Video Segment Start/End Control: Sliders or inputs to define how many seconds to skip from the beginning and end of video files (Story E5.S9), available when advanced panel is visible.
+- **Persistence:**
+  - All user settings (timing, text entries, advanced display settings (including projection settings like warp/calibration data), video segment controls), the user-toggled visibility state of UI sections (e.g., the Advanced Controls panel), and the overall projection mode state (active/inactive) are automatically saved to and loaded from `localStorage`. Note: The main drawer's general visibility (as determined by user activity/idle state) and its scroll positions are not persisted. Attempt to persist file references using `FileSystemAccessAPI` if browser supports, otherwise just settings/UI state persist.
+- **UI/UX:**
+  - Minimalist UI, controls auto-hide when idle (including Maptastic handles and test card overlay). Simple custom toast notifications for non-critical feedback.
+- **Fullscreen Mode Control:** A dedicated UI button to allow users to easily enter and exit application fullscreen mode, with its state synchronized with the browser's fullscreen status.

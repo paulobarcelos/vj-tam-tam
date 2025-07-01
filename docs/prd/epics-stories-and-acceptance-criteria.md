@@ -1,177 +1,10 @@
-# Project Requirements Document: VJ Tam Tam
-
-## Introduction / Problem Statement
-
-VJ Tam Tam is a user-friendly, web-based "auto VJ" tool designed to solve the problem of needing quick, engaging, and effortless visual content for social gatherings like parties. Traditional VJ software can be complex and time-consuming to set up and manage during an event. VJ Tam Tam offers a zero-configuration solution where users can simply drop a folder of their existing photos and videos to generate an infinite, dynamic, fullscreen visual display. This eliminates the need for manual slideshow management or complicated setups, allowing hosts and guests to focus on the event itself while providing a unique visual atmosphere. The project was born out of the need for simple, effective visuals for the "Bum Bum Tam Tam" parties and aims to make this capability accessible to anyone.
-
-## Vision & Goals
-
-- **Vision:** To become the go-to, effortless web tool for anyone wanting to add a dynamic, personal, and "eternal" visual backdrop to their social gatherings, empowering them to create a unique atmosphere simply by using their existing media.
-
-- **Primary Goals (MVP):**
-
-  1.  Enable users to instantly initiate an endless, randomized playback of their local photos (JPG/PNG/GIF/HEIC/WebP) and videos (MP4/MOV/WebM/AVI) by simply dropping files or selecting via a file dialog.
-  2.  Implement a core playback engine that seamlessly transitions between media segments (with an initial default duration of 5 seconds each, individually configurable from 1 to 30 seconds) using hard cuts, ensuring a continuous and unpredictable visual flow.
-  3.  Provide an intuitive text overlay system allowing users to add and display custom messages randomly over the visuals, with configurable frequency and a visually impactful presentation.
-  4.  Develop a hidden-by-default "Advanced" mode accessible via a UI toggle, offering essential projection mapping controls (perspective warp, rotate/flip/scale) and basic color correction (brightness, contrast, saturation) for adapting to various projector setups.
-  5.  Ensure all user configurations (file selections - if possible via API, text entries, timing settings, advanced display settings (including projection settings like warp/calibration data), video segment controls) are automatically saved and loaded from `localStorage` for persistence across sessions.
-
-- **Success Criteria (Lean & Pragmatic):**
-  - Successful and stable playback of diverse media types over extended periods (e.g., several hours) without crashes or significant performance degradation on typical desktop browsers.
-  - Positive qualitative feedback from initial users, particularly regarding the ease of use and the unique "eternal slideshow" effect during real-world party scenarios.
-  - Evidence of community engagement via GitHub (e.g., creation of issues for bug reports or feature suggestions, potential pull requests), indicating the tool is being used and valued.
-  - Minimal or no critical errors reported in the browser console during typical usage flows.
-
-## Target Audience / Users
-
-The primary target audience for VJ Tam Tam includes:
-
-1.  **Party Hosts and Event Organizers:** Individuals throwing house parties, small gatherings, or niche events (like the "Bum Bum Tam Tam" parties) who want to easily add a dynamic visual element using their personal media without needing complex, professional VJ software or manual content management during an event. Their key need is a reliable, low-effort, and engaging visual backdrop.
-2.  **Casual Users:** Anyone organizing informal social events (birthdays, dinners, casual hangouts) at home or a private space who wants a unique visual atmosphere that uses their own photos and videos in a fresh, non-traditional way, distinct from a standard photo slideshow. Their need is for simplicity, speed, and zero technical barrier to entry.
-3.  **DIY Venues and Creative Spaces:** Small clubs, galleries, or community spaces that occasionally need simple, customizable visuals for events, art installations, or background ambiance, and appreciate having basic projection correction tools available for non-ideal setups, but without the cost or complexity of professional AV equipment.
-
-These users value ease of use, quick results, and a tool that enhances the atmosphere without demanding constant attention. They are typically comfortable using a web browser on a desktop or laptop connected to a display or projector.
-
-**Key User Interactions & Flows:**
-
-- **Initial Setup:** User visits URL, drops media files/folders or uses file picker. Playback begins automatically.
-- **Persistence & Resumption:** User can close and later revisit the URL; the application state (selected media - if API allows, text entries, settings) will automatically reload from `localStorage`, and playback will resume where they left off.
-- **Mid-Performance Updates:** Users can add more media or modify text entries _while playback is ongoing_. The system should integrate these changes dynamically into the current pool for randomization.
-- **Mid-Performance Adjustments:** Users can access the advanced settings and projection tools _while playback is ongoing_ to make adjustments (e.g., warp perspective, tweak colors) without interrupting the visual stream.
-- **Idle State:** When idle, the UI controls fade away, leaving only the fullscreen visuals. Controls reappear on mouse movement or keypress.
-
-**UI/Visual Approach:**
-
-- **Minimalist Overlay:** A translucent overlay will house controls, appearing only when the user is not idle. This keeps the focus on the visuals.
-- **"About" Information:** A small, unobtrusive text element will be present on the UI (likely in the control overlay) indicating authorship and referencing the "Bum Bum Tam Tam" origin.
-
-**Error Handling:**
-
-- In case of non-critical errors (e.g., failure to load a specific file, invalid user input in a setting), a small, non-intrusive, custom-coded **toast notification** will appear briefly to inform the user, and the application will attempt to continue operation without interruption. Critical errors should be logged to the console as noted in technical preferences.
-
-## Key Features / Scope (High-Level Ideas for MVP)
-
-- **Media Input:**
-  - Ability to add media (photos: JPG, PNG, GIF, HEIC, WebP; videos: MP4, MOV, WebM, AVI) via drag-and-drop of files/folders or a native file picker dialog.
-  - Additive media pool: new files are added to the existing set, not replaced.
-  - Option to clear the entire media pool.
-- **Playback Engine:**
-  - Continuous, random playback of media segments.
-  - Configurable segment duration (min/max sliders, with initial defaults of 5s for both, range 1-30s).
-  - Hard cuts between media segments (no crossfades or smooth transitions).
-  - Fullscreen display, responsive to screen size, always covering the stage ("cover" mode only).
-- **Text Overlays:**
-  - Ability to add unlimited custom text strings (via input field).
-  - Additive text pool: new entries add to the existing set.
-  - Option to clear the entire text pool.
-  - Random display of text entries on top of visuals.
-  - Configurable frequency/probability of text display.
-  - Text rendering: Bold Arial (default), centered, dynamically scaled to fit 80% of screen width or height.
-- **Advanced Display & Projection Tools (UI Toggleable Panel):**
-  - Panel containing advanced controls, hidden by default, toggled visible/hidden by a UI control.
-  - "Projection Setup Mode" toggle within the advanced panel to activate interactive projection tools.
-  - Define Projection Area Size/Aspect Ratio & Fixed Stage (Story E5.S4 complexity). Controls for presets (16:9, 4:3, 1:1), custom input, and a "Match Current Screen" button.
-  - Interactive corner-point warping (via Maptastic), active in Projection Setup Mode.
-  - Scale, translation, rotation, and flip controls, active in Projection Setup Mode.
-  - Test card overlay toggle, available when advanced panel is visible.
-  - Global brightness, contrast, saturation sliders, available when advanced panel is visible.
-  - Video Segment Start/End Control: Sliders or inputs to define how many seconds to skip from the beginning and end of video files (Story E5.S9), available when advanced panel is visible.
-- **Persistence:**
-  - All user settings (timing, text entries, advanced display settings (including projection settings like warp/calibration data), video segment controls), the user-toggled visibility state of UI sections (e.g., the Advanced Controls panel), and the overall projection mode state (active/inactive) are automatically saved to and loaded from `localStorage`. Note: The main drawer's general visibility (as determined by user activity/idle state) and its scroll positions are not persisted. Attempt to persist file references using `FileSystemAccessAPI` if browser supports, otherwise just settings/UI state persist.
-- **UI/UX:**
-  - Minimalist UI, controls auto-hide when idle (including Maptastic handles and test card overlay). Simple custom toast notifications for non-critical feedback.
-- **Fullscreen Mode Control:** A dedicated UI button to allow users to easily enter and exit application fullscreen mode, with its state synchronized with the browser's fullscreen status.
-
-## Post MVP Features / Scope and Ideas
-
-- **Smarter Content Handling:**
-  - Simple image tinting filters (abstract names, palette-based).
-  - More advanced content analysis (e.g., basic scene/face detection) to inform content selection or sequencing.
-  - Option for subtle dynamic effects on media (e.g., very slow, minimal pan/zoom or color shifts).
-- **Enhanced Text Features:**
-  - Smart text placement to avoid overlaying key visual elements (like faces).
-  - Multiple font selection and text styling options.
-  - Simple text entry animations/effects.
-  - Link text color to image tint palettes.
-- **Audio Reactivity:**
-  - Basic beat detection to influence visual pacing or text flashes.
-- **Preset Management:**
-  - Ability to save and load custom projection/filter/aspect ratio presets.
-  - **Shareable Configurations:** Storing settings and text entries in the URL for sharing/bookmarking (with reconciliation logic).
-- **More Media Types:**
-  - Support for audio-only files.
-
-## Known Technical Constraints or Preferences
-
-- **Constraints:**
-  - **Timeline:** Unspecified - project is for fun/learning.
-  - **Budget:** Zero - open-source, community-driven potential.
-  - **Platform:** Desktop browsers only (no explicit mobile support planned).
-  - **Connectivity:** Offline-first after initial load (no backend server dependencies for core function).
-  - **User Management:** No user accounts; all state saved locally via `localStorage`.
-- **Preferences:**
-  - **Frontend Stack:** Pure Vanilla JS + ES Modules (no frameworks).
-  - **Rendering:** HTML/CSS for the stage (`<div>` based) rather than Canvas for core media display.
-  - **Key Libraries:** Maptastic (local copy in `lib/`) for projection warping; native `FileSystemAccessAPI` for file handling.
-  - **Code Structure:** Modular (`core.js`, `mapping.js`, `ui.js` in `src/`), flat directory tree at repo root, `docs/` for specifications. Avoid over-engineering (e.g., minimal functional style over classes).
-  - **Deployment:** GitHub Pages.
-  - **Analytics/Tracking:** Zero analytics or tracking.
-- **Risks:**
-  - Browser security restrictions impacting `FileSystemAccessAPI` persistence across sessions.
-  - Performance issues with rendering large media files or complex projection transforms/CSS filters, especially on older hardware.
-- **User Preferences (Specific/Non-Feature):**
-
-  - Preference for functional programming style over classes in JS where feasible.
-  - Desire for minimal, elegant code structure.
-  - Requirement for console logs to be preserved (not suppressed) for debugging.
-
-- **Technical Assumptions:**
-  The following initial technical preferences and considerations have been noted:
-  - **Rendering Approach:**
-    - The initial preference is for **HTML/CSS** for rendering the main visual display stage, rather than Canvas. This choice is aimed at leveraging better text rendering capabilities and simpler media handling. It's acknowledged that this might limit visual effects to what CSS filters can provide, without pixel-level control.
-  - **Key Libraries:**
-    - **Maptastic.js** is identified as a key library for implementing projection warping features. It's anticipated this will be included as a local copy (e.g., in `lib/maptastic.js`).
-  - **Code Structure & Deployment:**
-    - The project is intended for deployment via **GitHub Pages**, suggesting a client-side heavy application with no complex backend.
-    - Application files (e.g., `index.html`, `src/`, `lib/`, `assets/`) are planned to reside in the **`/app` folder** to facilitate straightforward GitHub Pages deployment via the `gh-pages` branch.
-    - **Deployment Process:** Use `npm run publish` to deploy the `/app` folder contents to the `gh-pages` branch, which is served by GitHub Pages.
-    - JavaScript development will utilize **ES Modules**.
-    - A **flat directory tree** is preferred within the `src/` directory (e.g., containing modules like `core.js`, `mapping.js`, `ui.js`).
-    - A guiding principle is to **avoid over-engineering** where possible (e.g., use classes only if critically necessary, favoring a functional programming style otherwise).
-  - **Initial High-Level File Structure Envisioned:**
-    ```plaintext
-    ./
-    ├── index.html
-    ├── lib/
-    │   └── maptastic.js
-    ├── src/
-    │   ├── core.js
-    │   ├── mapping.js
-    │   └── ui.js
-    └── assets/
-        ├── media/
-        └── test-card.png
-    ```
-
-## Out of Scope Ideas / Post-MVP Exploration
-
-_The following ideas have been recorded during the initial architectural design phase. They are considered out of scope for the MVP but are valuable considerations for future product evolution._
-
-### Develop Custom In-House Perspective Mapping Library
-
-- **Proposal:** Explore the development of a custom, in-house perspective mapping library to replace the MVP's reliance on the Maptastic.js library.
-- **Rationale:**
-  1.  **Legacy Technology:** The currently planned Maptastic.js library for MVP, while functional, has not been updated in over a decade. This presents a potential long-term risk regarding future browser compatibility, maintainability, and security.
-  2.  **Deeper Control & Understanding:** A custom library would provide complete control over this core visual feature, allowing for easier integration of specific needs, potential performance optimizations tailored to VJ Tam Tam, and a modern codebase.
-  3.  **User Engagement & Passion:** The user (Vibe CEO) has expressed a particular interest in this aspect of the technology, which could drive innovation and quality for this key feature.
-
-## Epics, Stories, and Acceptance Criteria
+# Epics, Stories, and Acceptance Criteria
 
 This section outlines the breakdown of MVP scope into implementable Epics and User Stories, each with defined Acceptance Criteria.
 
 **CRITICAL PROCESS REQUIREMENT:** All stories involving UI/UX components MUST explicitly reference the `UI-UX-Spec.md` document as the authoritative design specification. Acceptance criteria must include verification against UI-UX-Spec.md requirements to ensure design compliance.
 
-### Epic 0: Developer Environment & Project Setup
+## Epic 0: Developer Environment & Project Setup
 
 _Goal: To establish a fully functional and verifiable local development environment, ensuring all required tooling and third-party libraries are correctly installed and configured as per the architecture document._
 
@@ -186,7 +19,7 @@ _Goal: To establish a fully functional and verifiable local development environm
     - **AC 2.2:** The downloaded file is renamed to `maptastic.js` and placed inside the `/lib/` directory at the project root.
     - **AC 2.3:** The final path to the file is exactly `./lib/maptastic.js`, as specified in the project structure.
 
-### Epic 1: Foundational Playback & Media Input
+## Epic 1: Foundational Playback & Media Input
 
 _Goal: Establish the basic application structure, enable drag-and-drop/file picker, and create the core engine for playback of full media files._
 
@@ -227,7 +60,7 @@ _Goal: Establish the basic application structure, enable drag-and-drop/file pick
     - **AC E1.S7.2:** When the user adds media to the empty pool, the welcome/instruction text disappears.
     - **AC E1.S7.3:** The welcome/instruction text is styled clearly and centered on the stage.
 
-### Epic 2: Randomized Segment Playback
+## Epic 2: Randomized Segment Playback
 
 _Goal: Enhance the playback engine to handle random segments (configurable duration, e.g., default 5s, range 1-30s) of media files, including skipping parts of videos, providing the "eternal slideshow" effect._
 
@@ -264,7 +97,7 @@ _Goal: Enhance the playback engine to handle random segments (configurable durat
     - **AC 5.1:** Given the advanced UI is visible, there is a control (e.g., a slider or input field) labeled clearly for setting the "skip end" duration for videos.
     - **AC 5.2:** When the user adjusts the "skip end" control, the application updates this setting for subsequent video segment calculations (as used in AC 1.6).
 
-### Epic 3: Core UI/UX Implementation & Design System
+## Epic 3: Core UI/UX Implementation & Design System
 
 _Goal: Align the current UI implementation with the UI-UX-Spec.md and establish design standards for all future development. This epic ensures that the user interface follows the specified brutalist minimalism aesthetic and implements proper overlay positioning, idle/active states, and visual hierarchy as detailed in the UI-UX-Spec.md document._
 
@@ -306,7 +139,7 @@ _Goal: Align the current UI implementation with the UI-UX-Spec.md and establish 
     - **AC 3.6.3:** The button responds to external fullscreen changes (browser ESC key, F11) and updates its state accordingly, following UI-UX-Spec.md interaction principles.
     - **AC 3.6.4:** The button styling follows the brutalist minimalism design system established in UI-UX-Spec.md Sections 1 and 2.
 
-### Epic 4: Text Overlay Experience
+## Epic 4: Text Overlay Experience
 
 _Goal: Implement the text input, pool management, and random display logic, allowing users to add and see their custom messages over the visuals._
 
@@ -352,7 +185,7 @@ _Goal: Implement the text input, pool management, and random display logic, allo
     - **AC 8.5:** Given a text string is displayed, its color is randomly chosen to be either pure black (`#000000`) or pure white (`#FFFFFF`). A different random color choice is made each time a text string is selected for display.
     - **AC 8.6:** Given a text string is displayed, its HTML element has a CSS `z-index` value or stacking context that ensures it appears visually _on top of_ the media elements (`<img>` or `<video>`) displayed on the stage.
 
-### Epic 5: Persistence & Basic Settings
+## Epic 5: Persistence & Basic Settings
 
 _Goal: Implement saving and loading of user configurations and media/text pools using `localStorage`, ensuring the application state persists across sessions._
 
@@ -393,7 +226,7 @@ _Goal: Implement saving and loading of user configurations and media/text pools 
     - **AC E6.S8.1:** Given the user activates the "Clear All Text" control (from Epic 4), then all saved text entries in `localStorage` are removed or the corresponding `localStorage` key is cleared (e.g., `vjtamtam.text.entries`).
     - **AC E6.S8.2:** After clearing text entries from `localStorage`, if the application is reloaded, the text pool starts empty.
 
-### Epic 6: Advanced Display & Projection Tools
+## Epic 6: Advanced Display & Projection Tools
 
 _Goal: Implement the advanced UI panel and integrate the projection mapping, color correction, and other advanced display controls, ensuring they are accessible via a UI toggle and function correctly, with persistence (via localStorage)._
 
@@ -467,44 +300,3 @@ _Goal: Implement the advanced UI panel and integrate the projection mapping, col
     - **AC E6.S11.3 (Exit Fullscreen Functionality):** When the application is in fullscreen mode and the user activates the 'Exit Fullscreen' button, the application attempts to exit browser fullscreen mode.
     - **AC E6.S11.4 (State Synchronization - Button State Reflects Actual Fullscreen):** The visual state of the fullscreen toggle button (e.g., its icon and tooltip) accurately reflects the application's actual current fullscreen status.
     - **AC E6.S11.5 (State Synchronization - External Changes Update Button):** If the user enters or exits fullscreen mode using browser-native controls (e.g., F11 key, browser's View menu, or the ESC key to exit fullscreen), the state of the application's fullscreen toggle button updates automatically to reflect the new actual fullscreen status.
-
-## Relevant Research (Optional)
-
-This project was born from a real-world need at the "Bum Bum Tam Tam" party and validated with a prototype, making extensive upfront market research less critical for the MVP.
-
-(END Checklist START Design Architect UI/UX Specification Mode Prompt)
-
-## Prompt for Design Architect (UI/UX Specification Mode)
-
-**Objective:** Elaborate on the UI/UX aspects of the product defined in this PRD.
-**Mode:** UI/UX Specification Mode
-**Input:** This completed PRD document, particularly focusing on Sections "Target Audience/Users" and "Key Features/Scope (High-Level Ideas for MVP)", especially the UI/UX points.
-**Key Tasks:**
-
-1. Review the product goals, user stories, and any UI-related notes herein.
-2. Collaboratively define detailed user flows, wire-frames (conceptual), and key screen mockups/descriptions, especially for the minimalist UI overlay, advanced controls panel, and Projection Setup Mode interface.
-3. Specify usability requirements and accessibility considerations (to the extent applicable for a non-commercial desktop tool).
-4. Consider visual design principles for the minimalist UI and text overlays.
-5. Populate or create the `front-end-spec-tmpl` document based on these specifications.
-6. Ensure that this PRD is updated or clearly references the detailed UI/UX specifications derived from your work, so that it provides a comprehensive foundation for subsequent architecture and development phases.
-
-Please guide the user through this process to enrich the PRD with detailed UI/UX specifications.
-
-## Initial Architect Prompt
-
-**Objective:** Review this PRD and the defined Epics/Stories to propose a detailed technical implementation plan and address any remaining architectural questions or risks.
-**Mode:** Architecture Mode
-**Input:** This completed PRD document, including the Epics, Stories, and Acceptance Criteria.
-**Key Tasks:**
-
-1. Review the PRD thoroughly, ensuring understanding of all functional and non-functional requirements.
-2. Analyze the defined Epics, Stories, and Acceptance Criteria for completeness, feasibility, and potential technical challenges.
-3. Address the open architectural questions, particularly regarding rendering implementation details (HTML vs. Canvas trade-offs) and codebase modularity/structure.
-4. Propose a detailed technical design or implementation approach for the defined Epics/Stories, considering the agreed-upon Vanilla JS + ES Modules architecture and use of Maptastic/FileSystemAccessAPI.
-5. Identify any new or confirm existing technical risks and propose mitigation strategies.
-6. Refine the conceptual file structure as needed based on implementation considerations.
-7. Prepare for handoff to the Developer agent by outlining clear development tasks based on the stories and technical design.
-
-Please review this PRD and prepare your architectural plan and recommendations based on the requirements and technical preferences outlined.
-
-(END Architect Prompt)
