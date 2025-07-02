@@ -3,42 +3,7 @@ import { fileSystemAccessFacade } from './fileSystemAccessFacade.js'
 
 // Mock the strings module
 vi.mock('../constants/strings.js', () => ({
-  STRINGS: {
-    SYSTEM_MESSAGES: {
-      fileSystemAccess: {
-        notSupported: 'FileSystemAccessAPI not supported',
-        dbOpenError: 'Error opening IndexedDB',
-        initError: 'Error initializing FileSystemAccessFacade',
-        initialized: 'FileSystemAccessFacade initialized',
-        handleStored: 'File handle stored',
-        handleStoreFailed: 'Failed to store file handle',
-        handleStoreError: 'Error storing file handle',
-        fileRetrieveFailed: 'Failed to retrieve file',
-        fileAccessError: 'Error accessing file',
-        fileProcessingError: 'Error processing files',
-        handleRemoved: 'File handle removed',
-        handleRemoveFailed: 'Failed to remove file handle',
-        handleRemoveError: 'Error removing file handle',
-        handlesCleared: 'All file handles cleared',
-        handlesClearFailed: 'Failed to clear file handles',
-        handlesClearError: 'Error clearing file handles',
-        userActivationUnavailable: 'User activation API unavailable',
-        userActivationError: 'Error checking user activation',
-        noHandlesFound: 'No file handles found',
-        handlesFound: 'File handles found',
-        metadataOnlyReturn: 'Returning metadata-only files',
-        accessUnavailable: 'File access unavailable',
-        accessRequested: 'File access requested',
-        handlesFoundForAccess: 'File handles found for access',
-        accessSuccess: 'File access successful',
-        accessFailed: 'File access failed',
-        accessError: 'Error during file access',
-        permissionDenied: 'Permission denied for file',
-        fileAccessFailed: 'Failed to access file',
-        fileRetrieveError: 'Error retrieving files',
-      },
-    },
-  },
+  STRINGS: {},
   t: {
     get: vi.fn((key, params) => {
       // Simple mock implementation for interpolated strings

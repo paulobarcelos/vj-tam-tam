@@ -48,17 +48,21 @@ class PlaybackEngine {
     try {
       this.stageElement = document.getElementById('stage')
       if (!this.stageElement) {
-        throw new Error(STRINGS.SYSTEM_MESSAGES.playbackEngine.stageElementNotFound)
+        console.error('Stage element not found')
+        return false
       }
 
       // Set up event listeners
+      this.setupEventListeners()
+
+      // Listen for direct media pool events
       eventBus.on(STATE_EVENTS.MEDIA_POOL_UPDATED, this.handleMediaPoolUpdate.bind(this))
       eventBus.on(STATE_EVENTS.MEDIA_POOL_RESTORED, this.handleMediaPoolRestored.bind(this))
       window.addEventListener('resize', this.handleWindowResize.bind(this))
 
-      console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.initialized)
+      console.log('PlaybackEngine initialized successfully')
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.initError, error)
+      console.error('PlaybackEngine initialization error:', error)
       throw error
     }
   }
@@ -97,10 +101,10 @@ class PlaybackEngine {
         if (!this.isCyclingActive) {
           this.startCycling()
         }
-        console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.mediaPoolUpdatedActive)
+        console.log('Media pool updated - continuing active playback')
       }
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.mediaPoolUpdateError, error)
+      console.error('Media pool update error:', error)
       toastManager.error(STRINGS.USER_MESSAGES.notifications.error.mediaDisplayFailed)
     }
   }
@@ -126,7 +130,7 @@ class PlaybackEngine {
     try {
       // Validate media item
       if (!mediaItem || !mediaItem.url || !mediaItem.type) {
-        console.warn(STRINGS.SYSTEM_MESSAGES.playbackEngine.invalidMediaItem)
+        console.warn('Invalid media item provided for display')
         return
       }
 
@@ -148,11 +152,7 @@ class PlaybackEngine {
       } else if (mediaItem.type === 'video') {
         mediaElement = this.createVideoElement(mediaItem, segmentSettings)
       } else {
-        console.warn(
-          t.get('SYSTEM_MESSAGES.playbackEngine.unsupportedMediaType', {
-            mediaType: mediaItem.type,
-          })
-        )
+        console.warn(`Unsupported media type: ${mediaItem.type}`)
         return
       }
 
@@ -161,7 +161,7 @@ class PlaybackEngine {
         this.stageElement.appendChild(mediaElement)
       }
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.mediaDisplayError, error)
+      console.error('Media display error:', error)
       toastManager.error(
         t.get('USER_MESSAGES.notifications.error.mediaDisplayFailedWithName', {
           fileName: mediaItem.name,
@@ -187,10 +187,7 @@ class PlaybackEngine {
       img.addEventListener('load', () => {
         // Log image display information for debugging
         console.log(
-          t.get('SYSTEM_MESSAGES.playbackEngine.imageSegmentDebug', {
-            fileName: mediaItem.name,
-            displayDuration: segmentDuration ? segmentDuration.toFixed(2) : '0.00',
-          })
+          `Image segment: ${mediaItem.name}, duration: ${segmentDuration ? segmentDuration.toFixed(2) : '0.00'}s`
         )
 
         if (this.isCyclingActive) {
@@ -200,9 +197,7 @@ class PlaybackEngine {
 
       // Handle image load errors
       img.addEventListener('error', () => {
-        console.error(
-          t.get('SYSTEM_MESSAGES.playbackEngine.imageLoadError', { fileName: mediaItem.name })
-        )
+        console.error(`Image load error: ${mediaItem.name}`)
         toastManager.error(
           t.get('USER_MESSAGES.notifications.error.imageLoadFailed', { fileName: mediaItem.name })
         )
@@ -215,7 +210,7 @@ class PlaybackEngine {
 
       return img
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.imageCreationError, error)
+      console.error('Image element creation error:', error)
       return null
     }
   }
@@ -227,6 +222,7 @@ class PlaybackEngine {
    * @returns {HTMLVideoElement} - Configured video element
    */
   createVideoElement(mediaItem, segmentSettings) {
+    console.log(`Creating video element for file: ${mediaItem.name}`)
     try {
       const video = document.createElement('video')
       video.className = 'stage-media video'
@@ -263,8 +259,15 @@ class PlaybackEngine {
 
       // Handle video metadata loaded - calculate segment parameters and set start time
       video.addEventListener('loadedmetadata', () => {
+        console.log(`Video metadata loaded for file: ${mediaItem.name}`)
+
+        // Get video dimensions and duration
+        const duration = video.duration
+        const naturalWidth = video.videoWidth
+        const naturalHeight = video.videoHeight
+
         console.log(
-          t.get('SYSTEM_MESSAGES.playbackEngine.videoMetadataLoaded', { fileName: mediaItem.name })
+          `Video segment debug - duration: ${duration}s, dimensions: ${naturalWidth}x${naturalHeight}, skipStart: ${segmentSettings.skipStart}s, skipEnd: ${segmentSettings.skipEnd}s`
         )
 
         try {
@@ -285,15 +288,12 @@ class PlaybackEngine {
 
           // Log video segment information for debugging
           console.log(
-            t.get('SYSTEM_MESSAGES.playbackEngine.videoSegmentDebug', {
-              fileName: mediaItem.name,
-              videoDuration: video.duration.toFixed(2),
-              segmentDuration: segmentParams.segmentDuration.toFixed(2),
-              startPoint: segmentParams.startPoint.toFixed(2),
-              endPoint: (segmentParams.startPoint + segmentParams.segmentDuration).toFixed(2),
-              coverage: ((segmentParams.segmentDuration / video.duration) * 100).toFixed(1),
-              fallback: segmentParams.fallbackUsed || 'none',
-            })
+            `Video segment debug for ${mediaItem.name}: duration=${video.duration.toFixed(2)}s, ` +
+              `segmentDuration=${segmentParams.segmentDuration.toFixed(2)}s, ` +
+              `startPoint=${segmentParams.startPoint.toFixed(2)}s, ` +
+              `endPoint=${(segmentParams.startPoint + segmentParams.segmentDuration).toFixed(2)}s, ` +
+              `coverage=${((segmentParams.segmentDuration / video.duration) * 100).toFixed(1)}%, ` +
+              `fallback=${segmentParams.fallbackUsed || 'none'}`
           )
 
           // Seek to start point with retry mechanism
@@ -306,7 +306,7 @@ class PlaybackEngine {
             video._segmentState.isMonitoring = true
           }
         } catch (error) {
-          console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.segmentCalculationError, error)
+          console.error('Video segment calculation error:', error)
           // Fallback to original behavior if segment calculation fails
           if (this.isCyclingActive) {
             this.scheduleVideoMaxDurationTransition()
@@ -378,9 +378,7 @@ class PlaybackEngine {
 
       // Handle video load errors
       video.addEventListener('error', () => {
-        console.error(
-          t.get('SYSTEM_MESSAGES.playbackEngine.videoLoadError', { fileName: mediaItem.name })
-        )
+        console.error(`Video load error for file: ${mediaItem.name}`)
         toastManager.error(
           t.get('USER_MESSAGES.notifications.error.videoLoadFailed', { fileName: mediaItem.name })
         )
@@ -396,7 +394,7 @@ class PlaybackEngine {
 
       return video
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.videoCreationError, error)
+      console.error('Video creation error:', error)
       return null
     }
   }
@@ -412,7 +410,7 @@ class PlaybackEngine {
       video._segmentState.seekAttempts = 0
       video.currentTime = startPoint
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.seekingError, error)
+      console.error('Video seeking error:', error)
       // Continue playback from current position if seeking fails
       video._segmentState.seekTarget = null
     }
@@ -444,7 +442,7 @@ class PlaybackEngine {
         this.currentMediaElement = null
       }
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.currentMediaClearError, error)
+      console.error('Error clearing current media:', error)
     }
   }
 
@@ -453,13 +451,9 @@ class PlaybackEngine {
    */
   handleWindowResize() {
     try {
-      // The CSS object-fit: cover property handles most of the resize logic automatically
-      // This method is available for future enhancements if needed
-      if (this.currentMediaElement) {
-        console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.windowResized)
-      }
+      console.log('Window resized - adjusting media display')
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.windowResizeError, error)
+      console.error('Window resize handling error:', error)
     }
   }
 
@@ -493,9 +487,9 @@ class PlaybackEngine {
       this.stopAutoPlayback()
       this.stopCycling()
 
-      console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.cleanupCompleted)
+      console.log('PlaybackEngine cleanup completed')
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.cleanupError, error)
+      console.error('PlaybackEngine cleanup error:', error)
     }
   }
 
@@ -532,7 +526,7 @@ class PlaybackEngine {
       const randomIndex = Math.floor(Math.random() * availableMedia.length)
       return availableMedia[randomIndex]
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.randomMediaSelectionError, error)
+      console.error('Random media selection error:', error)
       return null
     }
   }
@@ -639,14 +633,14 @@ class PlaybackEngine {
         this.stopCycling()
       }
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.cyclingTransitionError, error)
+      console.error('Cycling transition error:', error)
 
       // Fail-safe: Try to continue cycling with any available media
       try {
         const mediaPool = stateManager.getMediaPool()
         const usableMedia = filterUsableMedia(mediaPool)
         if (usableMedia.length > 0) {
-          console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.failSafeTransitionAttempt)
+          console.log('Attempting fail-safe transition to any available media')
           // Reset recent history to allow any media to be selected
           this.recentMediaHistory = []
           const fallbackMedia = this.getRandomMediaItem()
@@ -659,7 +653,7 @@ class PlaybackEngine {
         }
       } catch (fallbackError) {
         console.error(
-          STRINGS.SYSTEM_MESSAGES.playbackEngine.failSafeTransitionFailed,
+          'Fail-safe transition failed - complete playback engine failure:',
           fallbackError
         )
       }
@@ -681,7 +675,7 @@ class PlaybackEngine {
 
       const firstMediaItem = this.getRandomMediaItem()
       if (!firstMediaItem) {
-        console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.noUsableMediaForCycling)
+        console.log('No usable media available for cycling')
         return
       }
 
@@ -691,12 +685,12 @@ class PlaybackEngine {
       this.addToRecentHistory(firstMediaItem)
       this.displayMedia(firstMediaItem)
 
-      console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.cyclingStarted)
+      console.log('Media cycling started')
       eventBus.emit(CYCLING_EVENTS.STARTED, {
         currentMedia: firstMediaItem,
       })
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.cyclingStartError, error)
+      console.error('Error starting media cycling:', error)
       eventBus.emit(CYCLING_EVENTS.ERROR, { error })
     }
   }
@@ -716,12 +710,12 @@ class PlaybackEngine {
         ? PLAYBACK_STATES.ACTIVE
         : PLAYBACK_STATES.INACTIVE
 
-      console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.cyclingStopped)
+      console.log('Media cycling stopped')
       eventBus.emit(CYCLING_EVENTS.STOPPED, {
         finalMedia: this.currentMediaItem,
       })
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.playbackEngine.cleanupError, error)
+      console.error('PlaybackEngine cleanup error:', error)
     }
   }
 
@@ -737,9 +731,9 @@ class PlaybackEngine {
       if (usableMedia.length > 0) {
         this.isPlaybackActive = true
         this.startCycling() // Start cycling instead of displaying single item
-        console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.autoPlaybackStarted)
+        console.log('Auto playback started')
       } else {
-        console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.metadataOnlyPoolMessage)
+        console.log('Auto playback started but no usable media - showing metadata-only message')
         // Don't start playback, but could show a message to user about re-adding files
       }
     }
@@ -753,7 +747,7 @@ class PlaybackEngine {
       this.isPlaybackActive = false
       this.stopCycling()
       this.clearCurrentMedia()
-      console.log(STRINGS.SYSTEM_MESSAGES.playbackEngine.autoPlaybackStopped)
+      console.log('Auto playback stopped')
     }
   }
 }

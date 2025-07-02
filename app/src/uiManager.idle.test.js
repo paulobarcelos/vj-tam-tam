@@ -67,33 +67,6 @@ vi.mock('./toastManager.js', () => ({
 
 vi.mock('./constants/strings.js', () => ({
   STRINGS: {
-    SYSTEM_MESSAGES: {
-      uiManager: {
-        requiredElementsNotFound: 'Required elements not found',
-        advancedControlsAlreadyInit: 'Already initialized',
-        advancedControlsInitStart: 'Init start',
-        segmentSettingsFromState: 'Segment settings from state',
-        domUpdatedWithSegmentSettings: 'DOM updated',
-        uiSettingsFromState: 'UI settings from state',
-        advancedControlsVisible: 'Advanced controls visible',
-        advancedControlsHidden: 'Advanced controls hidden',
-        advancedControlsInitComplete: 'Init complete',
-        idleStateEntered: 'UI entered idle state',
-        idleStateExited: 'UI exited idle state',
-        activityDetectionInitialized: 'Activity detection initialized',
-        segmentControlsUpdateCalled: 'Update called',
-        settingMinDuration: 'Setting min duration',
-        settingMaxDuration: 'Setting max duration',
-        settingSkipStart: 'Setting skip start',
-        settingSkipEnd: 'Setting skip end',
-        finalDOMValues: 'Final DOM values',
-        bulkRestoreAttempt: 'Bulk restore attempt',
-        bulkRestoreFailed: 'Bulk restore failed',
-        bulkRestoreError: 'Bulk restore error',
-        bulkRestoreSuccess: 'Bulk restore success',
-        bulkFileRestoreError: 'Bulk file restore error',
-      },
-    },
     USER_MESSAGES: {
       notifications: {
         info: {

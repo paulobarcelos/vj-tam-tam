@@ -3,8 +3,6 @@
  * Provides publish/subscribe functionality for component coordination.
  */
 
-import { t } from './constants/strings.js'
-
 /**
  * @typedef {Object} EventBus
  * @property {function} on - Subscribe to an event
@@ -62,7 +60,7 @@ class EventBus {
       try {
         callback(data)
       } catch (error) {
-        console.error(t.get('SYSTEM_MESSAGES.eventBus.listenerError', { event }), error)
+        console.error(`EventBus listener error for event "${event}":`, error)
       }
     })
   }
