@@ -138,7 +138,7 @@ class UIManager {
       !this.textFrequencySlider ||
       !this.frequencyControlSection
     ) {
-      console.error(STRINGS.SYSTEM_MESSAGES.uiManager.requiredElementsNotFound)
+      console.error('Required UI elements not found')
       return false
     }
 
@@ -308,7 +308,7 @@ class UIManager {
         await mediaProcessor.processFiles(files)
       }
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.mediaProcessor.droppedItemsError, error)
+      console.error('Error processing dropped items:', error)
     }
   }
 
@@ -1817,7 +1817,7 @@ class UIManager {
   enterIdleState() {
     this.isUIIdle = true
     document.body.classList.add('ui-idle')
-    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.idleStateEntered)
+    console.log('UI entering idle state')
 
     // Emit idle state change for projection manager (AC 3.7)
     eventBus.emit('ui.idleStateChanged', { isIdle: true })
@@ -1830,7 +1830,7 @@ class UIManager {
     if (this.isUIIdle) {
       this.isUIIdle = false
       document.body.classList.remove('ui-idle')
-      console.log(STRINGS.SYSTEM_MESSAGES.uiManager.idleStateExited)
+      console.log('UI exiting idle state')
 
       // Emit idle state change for projection manager (AC 3.7)
       eventBus.emit('ui.idleStateChanged', { isIdle: false })
@@ -1877,7 +1877,7 @@ class UIManager {
 
     // Start with active state
     this.resetIdleTimer()
-    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.activityDetectionInitialized)
+    console.log('Activity detection initialized for idle state management')
   }
 
   /**
@@ -1991,28 +1991,26 @@ class UIManager {
    * Available as window.debugMediaPool() for console debugging
    */
   debugMediaPoolState() {
-    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.debugMediaPoolHeader)
+    console.log('=== Media Pool Debug Information ===')
     const mediaItems = eventBus.getData('mediaPool') || []
-    console.log(t.get('SYSTEM_MESSAGES.uiManager.debugTotalItems', { count: mediaItems.length }))
+    console.log(`Total media items: ${mediaItems.length}`)
 
     let permissionCount = 0
     let temporaryCount = 0
     let usableCount = 0
 
     mediaItems.forEach((item, index) => {
-      console.log(t.get('SYSTEM_MESSAGES.uiManager.debugItemDetails', { index: index + 1 }), item)
+      console.log(`Item ${index + 1}:`, item)
 
       if (item.needsPermission) permissionCount++
       if (item.isTemporary) temporaryCount++
       if (!item.needsPermission && !item.isTemporary) usableCount++
     })
 
-    console.log(
-      t.get('SYSTEM_MESSAGES.uiManager.debugFilesNeedingPermission', { count: permissionCount })
-    )
-    console.log(t.get('SYSTEM_MESSAGES.uiManager.debugTemporaryFiles', { count: temporaryCount }))
-    console.log(t.get('SYSTEM_MESSAGES.uiManager.debugUsableFiles', { count: usableCount }))
-    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.debugFooter)
+    console.log(`Files needing permission: ${permissionCount}`)
+    console.log(`Temporary files: ${temporaryCount}`)
+    console.log(`Usable files: ${usableCount}`)
+    console.log('=== End Debug Information ===')
   }
 }
 
