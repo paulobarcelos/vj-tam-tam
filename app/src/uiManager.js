@@ -968,7 +968,7 @@ class UIManager {
   async handleBrowseFilesClick() {
     // Prevent concurrent file picker calls
     if (this.isFilePickerActive) {
-      console.log(STRINGS.USER_MESSAGES.notifications.info.filePickerActive)
+      console.log('File picker already active, ignoring click')
       return
     }
 
@@ -989,7 +989,7 @@ class UIManager {
   async handleBrowseFoldersClick() {
     // Prevent concurrent file picker calls
     if (this.isFilePickerActive) {
-      console.log(STRINGS.USER_MESSAGES.notifications.info.filePickerActive)
+      console.log('File picker already active, ignoring click')
       return
     }
 

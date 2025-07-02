@@ -1,45 +1,48 @@
 /**
- * Storage Facade for localStorage operations
- * Provides error handling and fallback for storage operations
+ * Storage facade for localStorage operations
+ * Handles persistence and retrieval of application state
  */
 
-import { toastManager } from '../toastManager.js'
 import { STRINGS } from '../constants/strings.js'
+import { toastManager } from '../toastManager.js'
 
-const STORAGE_KEY = 'vj-tam-tam-state'
-
-export const storageFacade = {
+class StorageFacade {
   /**
-   * Save application state to localStorage
-   * @param {Object} state - State object to persist
+   * Save state to localStorage with error handling
+   * @param {string} key - Storage key
+   * @param {any} data - Data to store
+   * @returns {boolean} Success status
    */
-  saveState(state) {
+  save(key, data) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+      localStorage.setItem(key, JSON.stringify(data))
+      return true
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.storageFacade.localStorageSaveError, error)
-      // Per error handling strategy: show toast but continue
+      console.error('Error saving state to localStorage:', error)
       toastManager.error(STRINGS.USER_MESSAGES.notifications.error.settingsSaveFailed)
+      return false
     }
-  },
+  }
 
   /**
-   * Load application state from localStorage
-   * @returns {Object|null} Parsed state or null if not found/invalid
+   * Load state from localStorage with error handling
+   * @param {string} key - Storage key
+   * @returns {any|null} Parsed data or null if not found/error
    */
-  loadState() {
+  load(key) {
     try {
-      console.log(STRINGS.SYSTEM_MESSAGES.storageFacade.loadingFromLocalStorage)
-      const stored = localStorage.getItem(STORAGE_KEY)
-      console.log(STRINGS.SYSTEM_MESSAGES.storageFacade.rawLocalStorageValue, stored)
-
-      const parsed = stored ? JSON.parse(stored) : null
-      console.log(STRINGS.SYSTEM_MESSAGES.storageFacade.parsedState, parsed)
-
+      console.log('Loading from localStorage')
+      const stored = localStorage.getItem(key)
+      console.log('Raw localStorage value', stored)
+      if (!stored) return null
+      const parsed = JSON.parse(stored)
+      console.log('Parsed state', parsed)
       return parsed
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.storageFacade.localStorageLoadError, error)
+      console.error('Error loading state from localStorage:', error)
       return null
     }
-  },
+  }
 }
+
+export default new StorageFacade()

@@ -6,8 +6,7 @@
 import { eventBus } from './eventBus.js'
 import { stateManager } from './stateManager.js'
 import { toastManager } from './toastManager.js'
-import { STRINGS } from './constants/strings.js'
-import { t } from './constants/strings.js'
+import { STRINGS, t } from './constants/strings.js'
 import { isFileSupported, getMediaType, getSupportedTypes } from './utils/mediaUtils.js'
 import { MEDIA_EVENTS } from './constants/events.js'
 
@@ -49,14 +48,10 @@ class MediaProcessor {
     const isMetadataOnly = !existingFile.file || !existingFile.url
 
     if (isMetadataOnly) {
-      console.log(
-        t.get('SYSTEM_MESSAGES.mediaProcessor.fileMetadataUpgrade', { fileName: file.name })
-      )
+      console.log(`File ${file.name} exists as metadata-only, will attempt upgrade`)
       return false // Allow processing to trigger upgrade
     } else {
-      console.log(
-        t.get('SYSTEM_MESSAGES.mediaProcessor.fileDuplicateSkip', { fileName: file.name })
-      )
+      console.log(`File ${file.name} already exists with full data, skipping`)
       return true // Real duplicate, skip
     }
   }
@@ -113,7 +108,7 @@ class MediaProcessor {
           toastManager.success(t.filesAdded(mediaItems.length))
         }
       } catch (error) {
-        console.error(STRINGS.SYSTEM_MESSAGES.mediaProcessor.fileProcessingError, error)
+        console.error('Error processing files:', error)
         toastManager.error(STRINGS.USER_MESSAGES.notifications.error.fileProcessingFailed)
       }
     }
@@ -175,57 +170,73 @@ class MediaProcessor {
         }
       } catch (error) {
         // Duration detection failed, continue without duration
-        console.warn(
-          t.get('SYSTEM_MESSAGES.mediaProcessor.videoDurationDetectionFailed', {
-            fileName: file.name,
-          }),
-          error
-        )
+        console.warn(`Failed to detect duration for ${file.name}:`, error)
       }
     }
 
     // Log handle availability for debugging
     if (file.handle) {
-      console.log(
-        t.get('SYSTEM_MESSAGES.mediaProcessor.fileHandleAvailable', { fileName: file.name })
-      )
+      console.log(`File handle available for ${file.name} - will be stored for persistence`)
     } else {
-      console.log(
-        t.get('SYSTEM_MESSAGES.mediaProcessor.fileHandleUnavailable', { fileName: file.name })
-      )
+      console.log(`No file handle for ${file.name} - drag-and-drop file, metadata-only persistence`)
     }
 
     return mediaItem
   }
 
   /**
-   * Get all media items from the pool
-   * @returns {MediaItem[]} - Array of media items
+   * Process files from dropped items (may include directory entries)
+   * @param {DataTransferItemList} items - Dropped items from drag event
+   */
+  async processDroppedItems(items) {
+    const files = []
+
+    try {
+      // Extract files from items (may include directories)
+      for (const item of items) {
+        if (item.kind === 'file') {
+          const file = item.getAsFile()
+          if (file) {
+            files.push(file)
+          }
+        }
+      }
+
+      if (files.length > 0) {
+        await this.processFiles(files)
+      }
+    } catch (error) {
+      console.error('Error processing dropped items:', error)
+      toastManager.error(STRINGS.USER_MESSAGES.notifications.error.fileProcessingFailed)
+    }
+  }
+
+  /**
+   * Get all media from the pool
+   * @returns {Array} Array of media items
    */
   getAllMedia() {
     return stateManager.getMediaPool()
   }
 
   /**
-   * Remove media item from pool
+   * Remove a media item from the pool
    * @param {string} id - Media item ID
    */
   removeFromPool(id) {
     stateManager.removeMediaFromPool(id)
-    eventBus.emit(MEDIA_EVENTS.FILE_REMOVED, { id })
   }
 
   /**
-   * Clear all media from pool
+   * Clear all media from the pool
    */
   clearPool() {
     stateManager.clearMediaPool()
-    eventBus.emit(MEDIA_EVENTS.POOL_CLEARED)
   }
 
   /**
-   * Get supported file types for user display
-   * @returns {string} - Formatted string of supported types
+   * Get supported types as a formatted string
+   * @returns {string} Comma-separated list of supported types
    */
   getSupportedTypesString() {
     return getSupportedTypes()

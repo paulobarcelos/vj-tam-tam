@@ -5,8 +5,7 @@
 
 import { eventBus } from './eventBus.js'
 import { storageFacade } from './facades/storageFacade.js'
-import { fileSystemAccessFacade } from './facades/fileSystemAccessFacade.js'
-import { STRINGS, t } from './constants/strings.js'
+import fileSystemAccessFacade from './facades/fileSystemAccessFacade.js'
 import { filterRestorableMedia } from './utils/mediaUtils.js'
 import { STATE_EVENTS, TEXT_POOL_EVENTS } from './constants/events.js'
 
@@ -69,7 +68,10 @@ class StateManager {
     try {
       await fileSystemAccessFacade.init()
     } catch (error) {
-      console.warn(STRINGS.SYSTEM_MESSAGES.stateManager.initError, error)
+      console.warn(
+        'FileSystemAccessAPI initialization failed, continuing with localStorage only:',
+        error
+      )
     }
 
     // Load persisted state
@@ -87,19 +89,17 @@ class StateManager {
   async restoreFromPersistence() {
     try {
       // Load persisted state first, always
-      const persistedState = storageFacade.loadState()
-      console.log(STRINGS.SYSTEM_MESSAGES.stateManager.persistedStateLoaded, persistedState)
+      const persistedState = storageFacade.load('vj-tam-tam-state')
+      console.log('Persisted state loaded from storage', persistedState)
 
       // First, try to restore files from FileSystemAccessAPI if supported
       if (fileSystemAccessFacade.isSupported) {
-        console.log(STRINGS.SYSTEM_MESSAGES.stateManager.restorationAttempt)
+        console.log('Attempting to restore files from FileSystemAccessAPI...')
         const restoredFiles = await fileSystemAccessFacade.getAllFiles()
 
         if (restoredFiles.length > 0) {
           console.log(
-            t.get('SYSTEM_MESSAGES.stateManager.restorationSuccess', {
-              count: restoredFiles.length,
-            })
+            `Successfully restored ${restoredFiles.length} files from FileSystemAccessAPI`
           )
 
           // Ensure all restored files have proper Date objects for addedAt
@@ -132,561 +132,410 @@ class StateManager {
       }
 
       // Always restore segment settings from localStorage with fallback to defaults
-      console.log(
-        STRINGS.SYSTEM_MESSAGES.stateManager.aboutToRestoreSegmentSettings,
-        persistedState?.segmentSettings
-      )
+      console.log('About to restore segment settings', persistedState?.segmentSettings)
       if (persistedState?.segmentSettings) {
-        console.log(
-          STRINGS.SYSTEM_MESSAGES.stateManager.segmentSettingsPreRestore,
-          this.state.segmentSettings
-        )
+        console.log('Current state before segment settings restoration', this.state.segmentSettings)
         this.state.segmentSettings = {
           ...this.state.segmentSettings, // Start with defaults
           ...persistedState.segmentSettings, // Override with persisted values
         }
-        console.log(
-          STRINGS.SYSTEM_MESSAGES.stateManager.segmentSettingsPostRestore,
-          this.state.segmentSettings
-        )
-        console.log(STRINGS.SYSTEM_MESSAGES.stateManager.segmentSettingsRestored)
+        console.log('State after segment settings restoration', this.state.segmentSettings)
+        console.log('Segment settings restored from localStorage')
       } else {
         console.log(
-          STRINGS.SYSTEM_MESSAGES.stateManager.noSegmentSettings,
+          'No segment settings in persistedState, keeping defaults',
           this.state.segmentSettings
         )
       }
 
       // Always restore UI settings from localStorage with fallback to defaults
-      console.log(
-        STRINGS.SYSTEM_MESSAGES.stateManager.aboutToRestoreUISettings,
-        persistedState?.uiSettings
-      )
+      console.log('About to restore UI settings', persistedState?.uiSettings)
       if (persistedState?.uiSettings) {
-        console.log(
-          STRINGS.SYSTEM_MESSAGES.stateManager.uiSettingsPreRestore,
-          this.state.uiSettings
-        )
+        console.log('Current UI settings before restoration', this.state.uiSettings)
         this.state.uiSettings = {
           ...this.state.uiSettings, // Start with defaults
           ...persistedState.uiSettings, // Override with persisted values
         }
-        console.log(
-          STRINGS.SYSTEM_MESSAGES.stateManager.uiSettingsPostRestore,
-          this.state.uiSettings
-        )
-        console.log(STRINGS.SYSTEM_MESSAGES.stateManager.uiSettingsRestored)
+        console.log('State after UI settings restoration', this.state.uiSettings)
+        console.log('UI settings restored from localStorage')
       } else {
-        console.log(STRINGS.SYSTEM_MESSAGES.stateManager.noUISettings, this.state.uiSettings)
+        console.log('No UI settings in persistedState, keeping defaults', this.state.uiSettings)
       }
 
       // Always restore projection mode from localStorage with fallback to defaults
-      console.log(
-        STRINGS.SYSTEM_MESSAGES.stateManager.aboutToRestoreProjectionMode,
-        persistedState?.projectionMode
-      )
+      console.log('About to restore projection mode', persistedState?.projectionMode)
       if (persistedState?.projectionMode) {
         this.state.projectionMode = {
           ...this.state.projectionMode, // Start with defaults
           ...persistedState.projectionMode, // Override with persisted values
         }
-        console.log(STRINGS.SYSTEM_MESSAGES.stateManager.projectionModeRestored)
+        console.log('Projection mode settings restored from localStorage')
       } else {
         console.log(
-          STRINGS.SYSTEM_MESSAGES.stateManager.noProjectionMode,
+          'No projection mode in persistedState, keeping defaults',
           this.state.projectionMode
         )
       }
 
-      // Always restore text pool from localStorage with fallback to defaults
-      console.log(
-        STRINGS.SYSTEM_MESSAGES.stateManager.aboutToRestoreTextPool,
-        persistedState?.textPool
-      )
-      if (Array.isArray(persistedState?.textPool)) {
-        // Validate and clean text pool entries
+      // Always restore text pool from localStorage with fallback to empty
+      console.log('About to restore text pool')
+      if (persistedState?.textPool && Array.isArray(persistedState.textPool)) {
         this.state.textPool = persistedState.textPool
-          .filter((text) => typeof text === 'string' && text.trim().length > 0)
-          .map((text) => text.trim())
-          .slice(0, this.textPoolMaxSize) // Enforce size limit
-
-        // Rebuild index
         this.rebuildTextPoolIndex()
-
         console.log(
-          STRINGS.SYSTEM_MESSAGES.stateManager.textPoolRestored,
-          this.state.textPool.length
+          `Text pool restored from localStorage with ${this.state.textPool.length} entries`
         )
       } else {
-        console.log(STRINGS.SYSTEM_MESSAGES.stateManager.noTextPool)
+        console.log('No text pool in persistedState, keeping empty pool')
       }
 
       // Always restore text frequency from localStorage with fallback to default
-      if (typeof persistedState?.textFrequency === 'number') {
-        this.state.textFrequency = Math.max(0, Math.min(1, persistedState.textFrequency))
-        console.log(
-          t.get('SYSTEM_MESSAGES.stateManager.textFrequencyRestored', {
-            frequency: this.state.textFrequency,
-          })
-        )
+      if (persistedState?.textFrequency !== undefined) {
+        console.log(`Text frequency restored: ${persistedState.textFrequency}`)
+        this.state.textFrequency = persistedState.textFrequency
       } else {
-        console.log(
-          t.get('SYSTEM_MESSAGES.stateManager.textFrequencyDefault', {
-            frequency: this.state.textFrequency,
-          })
-        )
+        console.log(`No text frequency found, using default: ${this.state.textFrequency}`)
       }
 
-      // Always restore FileSystem API working state from localStorage with fallback to null (unknown)
-      if (typeof persistedState?.fileSystemAPIWorking === 'boolean') {
+      // Always restore FileSystem API working state from localStorage with fallback to null
+      if (persistedState?.fileSystemAPIWorking !== undefined) {
+        console.log('FileSystem API working state restored:', persistedState.fileSystemAPIWorking)
         this.state.fileSystemAPIWorking = persistedState.fileSystemAPIWorking
-        console.log(
-          STRINGS.SYSTEM_MESSAGES.stateManager.fileSystemAPIWorkingStateRestored,
-          this.state.fileSystemAPIWorking
-        )
       } else {
-        console.log(STRINGS.SYSTEM_MESSAGES.stateManager.fileSystemAPIWorkingStateDefault)
+        console.log('No FileSystem API working state found, using default: null')
       }
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.stateManager.restorationError, error)
+      console.error('Error during persistence restoration:', error)
     }
   }
 
   /**
-   * Restore media from localStorage metadata
-   * @param {Object} persistedState - The persisted state from localStorage
-   * @private
+   * Restore media from localStorage fallback when FileSystemAccessAPI is not available
+   * @param {Object} persistedState - Persisted state from localStorage
    */
   restoreMediaFromLocalStorage(persistedState) {
-    if (persistedState?.mediaPool?.length > 0) {
-      // Filter out drag & drop files since they cannot be truly restored
-      // Only keep files that were originally from FileSystemAccessAPI
-      const restorableItems = filterRestorableMedia(persistedState.mediaPool)
-      const removedDragDropCount = persistedState.mediaPool.length - restorableItems.length
+    if (persistedState?.mediaPool && Array.isArray(persistedState.mediaPool)) {
+      // Filter out temporary files that can't be restored (drag & drop)
+      const restorableMedia = filterRestorableMedia(persistedState.mediaPool)
 
+      // Log cleanup information
+      const removedDragDropCount = persistedState.mediaPool.length - restorableMedia.length
       if (removedDragDropCount > 0) {
         console.log(
-          t.get('SYSTEM_MESSAGES.stateManager.cleanedUp', { count: removedDragDropCount })
+          `Cleaned up ${removedDragDropCount} temporary drag & drop files that cannot be restored`
         )
       }
 
-      if (restorableItems.length > 0) {
-        // Create placeholder MediaItems without File objects for FileSystemAccessAPI files only
-        const restoredItems = restorableItems.map((item) => ({
+      // Only process media items from FileSystemAccessAPI (with handles)
+      const restoredItems = restorableMedia.filter((item) => item.fromFileSystemAPI)
+
+      if (restoredItems.length > 0) {
+        // Ensure all restored items have proper Date objects for addedAt
+        const normalizedItems = restoredItems.map((item) => ({
           ...item,
-          addedAt: new Date(item.addedAt), // Always convert to Date object
-          file: null, // Cannot restore File objects from localStorage
-          url: null, // Will need to be recreated or show placeholder
+          addedAt: item.addedAt instanceof Date ? item.addedAt : new Date(item.addedAt),
+          // Mark as needing permission since they're metadata-only
+          needsPermission: true,
         }))
 
-        this.state.mediaPool = restoredItems
+        this.state.mediaPool = normalizedItems
+        console.log(
+          `Restored ${restoredItems.length} FileSystemAccessAPI items from localStorage (metadata only).`
+        )
 
-        // Emit an event indicating state was restored from persistence
-        // Use a different event name to avoid triggering auto-save immediately
+        // Emit restoration event
         eventBus.emit(STATE_EVENTS.MEDIA_POOL_RESTORED, {
           mediaPool: this.getMediaPool(),
           totalCount: restoredItems.length,
-          source: 'localStorage-metadata',
+          source: 'localStorage',
+          needsPermission: true,
         })
-
-        console.log(t.get('SYSTEM_MESSAGES.stateManager.restored', { count: restoredItems.length }))
       } else {
-        console.log(STRINGS.SYSTEM_MESSAGES.stateManager.restorationNone)
+        console.log('No persistent files found after cleanup.')
       }
     } else {
-      console.log(STRINGS.SYSTEM_MESSAGES.stateManager.restorationEmpty)
+      console.log('No persisted state found or media pool is empty.')
     }
   }
 
   /**
-   * Save the current state to localStorage and optionally to FileSystemAccessAPI.
+   * Save current state to localStorage
    */
   saveCurrentState() {
     try {
-      // Only persist necessary data (exclude File objects and URLs)
-      const stateToPersist = {
-        mediaPool: this.state.mediaPool.map((item) => ({
-          id: item.id,
-          name: item.name,
-          type: item.type,
-          mimeType: item.mimeType,
-          size: item.size,
-          // Safely convert addedAt to ISO string, handling both Date objects and strings
-          addedAt: item.addedAt instanceof Date ? item.addedAt.toISOString() : item.addedAt,
-          // Persist video duration if available
-          ...(item.duration && { duration: item.duration }),
-        })),
-        // Persist text pool
-        textPool: this.state.textPool || [],
-
-        // Persist segment settings
-        segmentSettings: this.state.segmentSettings,
-        // Persist UI settings
-        uiSettings: this.state.uiSettings,
-        // Persist projection mode settings (Story 6.3)
-        projectionMode: this.state.projectionMode,
-        // Persist text frequency
-        textFrequency: this.state.textFrequency,
-        // Persist FileSystem API working state
-        fileSystemAPIWorking: this.state.fileSystemAPIWorking,
-        // Persist other relevant state properties if they exist (e.g., autoPlaybackEnabled)
-        // autoPlaybackEnabled: this.state.autoPlaybackEnabled,
-        // lastPlaybackState: this.state.lastPlaybackState,
-      }
-      storageFacade.saveState(stateToPersist)
-      console.log(STRINGS.SYSTEM_MESSAGES.stateManager.stateSaved)
+      storageFacade.save('vj-tam-tam-state', this.state)
+      console.log('Current state saved to localStorage.')
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.stateManager.stateSaveError, error)
+      console.error('Error saving current state:', error)
     }
   }
 
   /**
-   * Get the current media pool
-   * @returns {MediaItem[]} - Array of media items
+   * Return current media pool
+   * @returns {MediaItem[]} Current media pool
    */
   getMediaPool() {
-    return [...this.state.mediaPool] // Return a copy to prevent external mutation
+    return this.state.mediaPool
   }
 
   /**
-   * Add media items to the existing media pool (additive behavior)
-   * Also store file handles if FileSystemAccessAPI is supported
-   * @param {MediaItem[]} newMediaItems - Array of new media items to add
+   * Add new media items to the pool (additive behavior)
+   * @param {MediaItem[]} newMediaItems - Array of media items to add
    */
   addMediaToPool(newMediaItems) {
     if (!Array.isArray(newMediaItems)) {
-      console.warn(STRINGS.SYSTEM_MESSAGES.stateManager.invalidInput)
+      console.warn('StateManager.addMediaToPool: newMediaItems must be an array')
       return
     }
 
-    const existingItems = this.state.mediaPool
-    const upgradedItems = []
-    const actuallyNewItems = []
+    let upgradedItems = []
 
-    // Process each new item to check for duplicates and metadata-only upgrades
     newMediaItems.forEach((newItem) => {
-      const existingIndex = existingItems.findIndex(
-        (existingItem) => existingItem.name === newItem.name && existingItem.size === newItem.size
+      const existingIndex = this.state.mediaPool.findIndex(
+        (item) => item.name === newItem.name && item.size === newItem.size
       )
 
       if (existingIndex !== -1) {
-        const existingItem = existingItems[existingIndex]
+        // Check if this is a metadata-only upgrade
+        const existingItem = this.state.mediaPool[existingIndex]
+        const isUpgrade = !existingItem.file || !existingItem.url
 
-        // Check if existing item is metadata-only (no file or url) and new item has actual file
-        if ((!existingItem.file || !existingItem.url) && newItem.file && newItem.url) {
-          console.log(t.get('SYSTEM_MESSAGES.stateManager.fileUpgrade', { fileName: newItem.name }))
-
-          // Upgrade the existing item with the actual File object and URL
-          const upgradedItem = {
-            ...existingItem, // Keep existing metadata (id, addedAt, etc.)
-            file: newItem.file,
-            url: newItem.url,
-            // Update any other properties that might have changed
-            mimeType: newItem.mimeType,
-            type: newItem.type,
-          }
-
-          // Replace the existing item in the pool
-          this.state.mediaPool[existingIndex] = upgradedItem
-          upgradedItems.push(upgradedItem)
+        if (isUpgrade) {
+          console.log(`Upgrading metadata-only file: ${newItem.name}`)
+          // Replace existing item with full data
+          this.state.mediaPool[existingIndex] = newItem
+          upgradedItems.push(newItem)
         } else {
-          // True duplicate - skip
-          console.log(
-            t.get('SYSTEM_MESSAGES.stateManager.fileDuplicate', { fileName: newItem.name })
-          )
+          console.log(`File already in media pool (skipped): ${newItem.name}`)
         }
       } else {
-        // Truly new item
-        actuallyNewItems.push(newItem)
+        // New item, add to pool
+        this.state.mediaPool.push(newItem)
       }
     })
 
-    // Add truly new items to the pool
-    if (actuallyNewItems.length > 0) {
-      this.state.mediaPool = [...this.state.mediaPool, ...actuallyNewItems]
-    }
+    // Store file handles for FileSystemAccessAPI files (async but doesn't block)
+    this.storeFileHandlesAsync(newMediaItems)
 
-    // Store file handles for new and upgraded items
-    if (actuallyNewItems.length > 0) {
-      this.storeFileHandlesAsync(actuallyNewItems)
-    }
-    if (upgradedItems.length > 0) {
-      this.storeFileHandlesAsync(upgradedItems)
-    }
-
-    // Emit state change notification if anything was added or upgraded
-    if (actuallyNewItems.length > 0 || upgradedItems.length > 0) {
-      eventBus.emit(STATE_EVENTS.MEDIA_POOL_UPDATED, {
-        mediaPool: this.getMediaPool(),
-        addedItems: actuallyNewItems,
-        upgradedItems: upgradedItems,
-        totalCount: this.state.mediaPool.length,
-      })
-    }
+    // Emit event with upgrade information
+    eventBus.emit(STATE_EVENTS.MEDIA_POOL_UPDATED, {
+      mediaPool: this.getMediaPool(),
+      addedItems: newMediaItems,
+      upgradedItems,
+    })
   }
 
   /**
-   * Store file handles for media items asynchronously
-   * @param {MediaItem[]} mediaItems - Items to store handles for
+   * Store file handles for FileSystemAccessAPI files (async operation)
+   * @param {MediaItem[]} mediaItems - Media items to store handles for
    */
   async storeFileHandlesAsync(mediaItems) {
-    if (!fileSystemAccessFacade.isSupported) {
-      return
-    }
-
     for (const item of mediaItems) {
-      // Only store handles for items that have a valid File object
-      if (item.file && typeof item.file.handle !== 'undefined') {
+      if (item.file && item.file.handle && item.fromFileSystemAPI) {
         try {
-          const metadata = {
+          const success = await fileSystemAccessFacade.storeFileHandle(item.id, item.file.handle, {
             id: item.id,
             name: item.name,
             type: item.type,
             mimeType: item.mimeType,
             size: item.size,
-            // Safely convert addedAt to ISO string, handling both Date objects and strings
-            addedAt: item.addedAt instanceof Date ? item.addedAt.toISOString() : item.addedAt,
-            // Persist video duration if available
-            ...(item.duration && { duration: item.duration }),
-          }
+            addedAt: item.addedAt,
+            fromFileSystemAPI: item.fromFileSystemAPI,
+          })
 
-          await fileSystemAccessFacade.storeFileHandle(item.id, item.file.handle, metadata)
+          if (!success) {
+            console.warn(`Failed to store file handle for ${item.name}:`, 'Storage failed')
+          }
         } catch (error) {
-          console.warn(
-            t.get('SYSTEM_MESSAGES.stateManager.handleStoreFailed', { fileName: item.name }),
-            error
-          )
+          console.warn(`Failed to store file handle for ${item.name}:`, error)
         }
       }
     }
   }
 
   /**
-   * Remove a media item from the pool by ID
-   * Also removes the associated file handle if stored
+   * Remove a media item from the pool
    * @param {string} id - Media item ID to remove
    */
   removeMediaFromPool(id) {
-    const itemIndex = this.state.mediaPool.findIndex((item) => item.id === id)
+    const initialLength = this.state.mediaPool.length
+    this.state.mediaPool = this.state.mediaPool.filter((item) => item.id !== id)
 
-    if (itemIndex !== -1) {
-      const removedItem = this.state.mediaPool[itemIndex]
-
-      // Revoke object URL to free memory
-      if (removedItem.url) {
-        URL.revokeObjectURL(removedItem.url)
-      }
-
-      // Remove file handle if it exists
+    if (this.state.mediaPool.length < initialLength) {
+      // Remove file handle from storage (async but doesn't block)
       this.removeFileHandleAsync(id)
 
-      this.state.mediaPool.splice(itemIndex, 1)
-
-      // Emit state change notification
       eventBus.emit(STATE_EVENTS.MEDIA_POOL_UPDATED, {
         mediaPool: this.getMediaPool(),
-        removedItem: removedItem,
-        totalCount: this.state.mediaPool.length,
+        removedItem: id,
       })
     }
   }
 
   /**
-   * Remove file handle asynchronously
-   * @param {string} id - Media item ID
+   * Remove file handle from storage (async operation)
+   * @param {string} id - File ID to remove handle for
    */
   async removeFileHandleAsync(id) {
-    if (fileSystemAccessFacade.isSupported) {
-      try {
-        await fileSystemAccessFacade.removeFileHandle(id)
-      } catch (error) {
-        console.warn(t.get('SYSTEM_MESSAGES.stateManager.handleRemoveFailed', { id }), error)
-      }
+    try {
+      await fileSystemAccessFacade.removeFileHandle(id)
+    } catch (error) {
+      console.warn(`Failed to remove file handle for ID ${id}:`, error)
     }
   }
 
   /**
-   * Clear all media from the pool (aligned with text pool pattern)
-   * Also clears all stored file handles
-   * @returns {boolean} - True if media pool was cleared, false if already empty
+   * Clear all media from the pool
+   * @returns {boolean} Success status
    */
   clearMediaPool() {
     if (this.state.mediaPool.length === 0) {
-      console.warn(STRINGS.SYSTEM_MESSAGES.stateManager.mediaPoolAlreadyEmpty)
+      console.warn('Media pool is already empty')
       return false
     }
 
-    const previousCount = this.state.mediaPool.length
+    // Get count before clearing
+    const removedCount = this.state.mediaPool.length
 
-    // Revoke all object URLs
-    this.state.mediaPool.forEach((item) => {
-      if (item.url) {
-        URL.revokeObjectURL(item.url)
-      }
-    })
-
-    // Clear file handles
-    this.clearFileHandlesAsync()
-
+    // Clear the pool
     this.state.mediaPool = []
 
-    // Save state
-    this.saveCurrentState()
+    // Clear file handles from storage (async but doesn't block)
+    this.clearFileHandlesAsync()
 
-    // Emit state change notification
+    // Emit event
     eventBus.emit(STATE_EVENTS.MEDIA_POOL_UPDATED, {
-      mediaPool: this.getMediaPool(),
-      totalCount: 0,
-      previousCount: previousCount,
-      cleared: true,
+      mediaPool: [],
+      clearedCount: removedCount,
     })
 
     return true
   }
 
   /**
-   * Clear all file handles asynchronously
+   * Clear all file handles from storage (async operation)
    */
   async clearFileHandlesAsync() {
-    if (fileSystemAccessFacade.isSupported) {
-      try {
-        await fileSystemAccessFacade.clearAllFiles()
-      } catch (error) {
-        console.warn(STRINGS.SYSTEM_MESSAGES.stateManager.handlesClearFailed, error)
-      }
+    try {
+      await fileSystemAccessFacade.clearAllFiles()
+    } catch (error) {
+      console.warn('Failed to clear file handles:', error)
     }
   }
 
   /**
-   * Get a specific media item by ID
+   * Get a media item by ID
    * @param {string} id - Media item ID
-   * @returns {MediaItem|null} - The media item or null if not found
+   * @returns {MediaItem|undefined} Media item or undefined if not found
    */
   getMediaById(id) {
-    return this.state.mediaPool.find((item) => item.id === id) || null
+    return this.state.mediaPool.find((item) => item.id === id)
   }
 
   /**
-   * Get the total count of media items
-   * @returns {number} - Total number of media items
+   * Get the current count of media items
+   * @returns {number} Number of media items
    */
   getMediaCount() {
     return this.state.mediaPool.length
   }
 
   /**
-   * Check if the media pool is empty
-   * @returns {boolean} - True if media pool is empty
+   * Check if media pool is empty
+   * @returns {boolean} True if empty
    */
   isMediaPoolEmpty() {
     return this.state.mediaPool.length === 0
   }
 
   /**
-   * Get the current segment settings
-   * @returns {Object} - Segment settings configuration
+   * Get current segment settings
+   * @returns {Object} Current segment settings
    */
   getSegmentSettings() {
-    return { ...this.state.segmentSettings } // Return a copy to prevent external mutation
+    return { ...this.state.segmentSettings }
   }
 
   /**
    * Update segment settings
-   * @param {Object} newSettings - New segment settings (partial update supported)
+   * @param {Object} newSettings - New segment settings to merge
    */
   updateSegmentSettings(newSettings) {
-    if (typeof newSettings !== 'object' || newSettings === null) {
-      console.warn(STRINGS.SYSTEM_MESSAGES.stateManager.invalidSegmentSettings)
+    if (!this.validateSegmentSettings(newSettings)) {
+      console.warn('Invalid segment settings provided - must be a valid object')
       return
     }
 
-    // Validate settings before applying
-    const validatedSettings = this.validateSegmentSettings(newSettings)
-
+    // Merge with current settings
     this.state.segmentSettings = {
       ...this.state.segmentSettings,
-      ...validatedSettings,
+      ...newSettings,
     }
 
-    // Save to localStorage
-    this.saveCurrentState()
-
-    // Emit event for settings change
+    // Emit event for listeners
     eventBus.emit(STATE_EVENTS.SEGMENT_SETTINGS_UPDATED, {
       segmentSettings: this.getSegmentSettings(),
     })
+
+    // Save to persistence
+    this.saveCurrentState()
   }
 
   /**
-   * Validate segment settings values
+   * Validate segment settings object
    * @param {Object} settings - Settings to validate
-   * @returns {Object} - Validated settings
-   * @private
+   * @returns {boolean} True if valid
    */
   validateSegmentSettings(settings) {
-    const validated = {}
-
-    // Validate minDuration (1-30 seconds)
-    if (
-      typeof settings.minDuration === 'number' &&
-      settings.minDuration >= 1 &&
-      settings.minDuration <= 30
-    ) {
-      validated.minDuration = settings.minDuration
+    if (!settings || typeof settings !== 'object') {
+      return false
     }
 
-    // Validate maxDuration (1-30 seconds)
-    if (
-      typeof settings.maxDuration === 'number' &&
-      settings.maxDuration >= 1 &&
-      settings.maxDuration <= 30
-    ) {
-      validated.maxDuration = settings.maxDuration
-    }
+    // Check individual properties if they exist
+    const validations = [
+      !('minDuration' in settings) ||
+        (typeof settings.minDuration === 'number' && settings.minDuration >= 0),
+      !('maxDuration' in settings) ||
+        (typeof settings.maxDuration === 'number' && settings.maxDuration >= 0),
+      !('skipStart' in settings) ||
+        (typeof settings.skipStart === 'number' && settings.skipStart >= 0),
+      !('skipEnd' in settings) || (typeof settings.skipEnd === 'number' && settings.skipEnd >= 0),
+    ]
 
-    // Validate skipStart (0+ seconds)
-    if (typeof settings.skipStart === 'number' && settings.skipStart >= 0) {
-      validated.skipStart = settings.skipStart
-    }
-
-    // Validate skipEnd (0+ seconds)
-    if (typeof settings.skipEnd === 'number' && settings.skipEnd >= 0) {
-      validated.skipEnd = settings.skipEnd
-    }
-
-    return validated
+    return validations.every(Boolean)
   }
 
   /**
-   * Get the current UI settings
-   * @returns {Object} - UI settings configuration
+   * Get current UI settings
+   * @returns {Object} Current UI settings
    */
   getUISettings() {
-    return { ...this.state.uiSettings } // Return a copy to prevent external mutation
+    return { ...this.state.uiSettings }
   }
 
   /**
    * Update UI settings
-   * @param {Object} newSettings - New UI settings (partial update supported)
+   * @param {Object} newSettings - New UI settings to merge
    */
   updateUISettings(newSettings) {
-    if (typeof newSettings !== 'object' || newSettings === null) {
-      console.warn(STRINGS.SYSTEM_MESSAGES.stateManager.invalidUISettings)
+    if (!newSettings || typeof newSettings !== 'object') {
+      console.warn('Invalid UI settings provided - must be a valid object')
       return
     }
 
+    // Merge with current settings
     this.state.uiSettings = {
       ...this.state.uiSettings,
       ...newSettings,
     }
 
-    // Save to localStorage
-    this.saveCurrentState()
-
-    // Emit event for UI settings change
+    // Emit event for listeners
     eventBus.emit(STATE_EVENTS.UI_SETTINGS_UPDATED, {
       uiSettings: this.getUISettings(),
     })
+
+    // Save to persistence
+    this.saveCurrentState()
   }
 
   /**
@@ -698,237 +547,208 @@ class StateManager {
   }
 
   /**
-   * Update projection mode settings and persist automatically
-   * @param {Object} newSettings - Partial projection mode settings to update
+   * Update projection mode settings
+   * @param {Object} newSettings - New projection mode settings to merge
    */
   updateProjectionMode(newSettings) {
-    if (typeof newSettings !== 'object' || newSettings === null) {
-      console.warn(STRINGS.SYSTEM_MESSAGES.stateManager.invalidProjectionModeSettings)
+    if (!newSettings || typeof newSettings !== 'object') {
+      console.warn('Invalid projection mode settings provided - must be a valid object')
       return
     }
 
-    const previousSettings = { ...this.state.projectionMode }
-
+    // Merge with current settings
     this.state.projectionMode = {
       ...this.state.projectionMode,
       ...newSettings,
     }
 
-    // Save to localStorage
-    this.saveCurrentState()
-
-    // Emit event for projection mode settings change
+    // Emit event for listeners
     eventBus.emit(STATE_EVENTS.PROJECTION_MODE_UPDATED, {
-      previousSettings,
       projectionMode: this.getProjectionMode(),
-      timestamp: Date.now(),
     })
+
+    // Save to persistence
+    this.saveCurrentState()
   }
 
-  // ============================================================================
-  // TEXT POOL MANAGEMENT METHODS
-  // ============================================================================
-
   /**
-   * Add text to the text pool with validation and duplicate prevention
-   * @param {string} text - Text to add to the pool
-   * @returns {boolean} - True if text was added, false if rejected
+   * Add text to the text pool with deduplication and management
+   * @param {string} text - Text to add
+   * @returns {boolean} True if text was added, false if duplicate or invalid
    */
   addText(text) {
+    // Basic validation
+    if (!text || typeof text !== 'string') {
+      return false
+    }
+
     const trimmedText = text.trim()
+    if (!trimmedText) {
+      return false
+    }
 
-    // Comprehensive validation
-    if (!trimmedText) return false
-    if (trimmedText.length > 200) return false
-    if (this.state.textPool.length >= this.textPoolMaxSize) return false
+    // Check for duplicates using fast Set lookup
+    if (this.textPoolIndex.has(trimmedText)) {
+      this.textPoolStats.duplicatesRejected++
+      return false
+    }
 
-    // Additive operation - preserve existing entries
+    // Check pool size limit
+    if (this.state.textPool.length >= this.textPoolMaxSize) {
+      // Remove oldest text to make room
+      const removedText = this.state.textPool.shift()
+      this.textPoolIndex.delete(removedText)
+    }
+
+    // Add new text
     this.state.textPool.push(trimmedText)
+    this.textPoolIndex.add(trimmedText)
 
     // Update statistics
     this.textPoolStats.totalAdditions++
     this.updateAverageTextLength()
 
-    // Performance monitoring
-    if (this.state.textPool.length > 500) {
-      eventBus.emit(TEXT_POOL_EVENTS.PERFORMANCE_WARNING, {
-        poolSize: this.state.textPool.length,
-        suggestion: 'Consider implementing text pool management features',
-      })
-    }
-
-    this.saveCurrentState()
-
-    // Comprehensive event emission
-    eventBus.emit(TEXT_POOL_EVENTS.UPDATED, {
-      action: 'added',
+    // Emit event
+    eventBus.emit(TEXT_POOL_EVENTS.TEXT_ADDED, {
       text: trimmedText,
-      textPool: [...this.state.textPool],
       poolSize: this.state.textPool.length,
-      timestamp: Date.now(),
     })
 
-    eventBus.emit(TEXT_POOL_EVENTS.SIZE_CHANGED, {
-      newSize: this.state.textPool.length,
-      previousSize: this.state.textPool.length - 1,
-    })
+    // Save to persistence
+    this.saveCurrentState()
 
     return true
   }
 
   /**
-   * Get a copy of the text pool array
-   * @returns {string[]} - Copy of text pool array
+   * Get the current text pool
+   * @returns {string[]} Array of text strings
    */
   getTextPool() {
-    return [...this.state.textPool] // Always return copy to prevent external mutation
+    return [...this.state.textPool]
   }
 
   /**
-   * Get the current size of the text pool
-   * @returns {number} - Number of text entries in the pool
+   * Get current text pool size
+   * @returns {number} Number of text entries
    */
   getTextPoolSize() {
     return this.state.textPool.length
   }
 
   /**
-   * Check if a text string already exists in the pool
-   * @param {string} text - Text to check for existence
-   * @returns {boolean} - True if text exists in pool
+   * Check if text exists in the pool
+   * @param {string} text - Text to check
+   * @returns {boolean} True if text exists
    */
   hasText(text) {
-    return this.state.textPool.includes(text.trim())
+    return this.textPoolIndex.has(text?.trim())
   }
 
   /**
    * Get a random text from the pool
-   * @returns {string|null} - Random text from pool or null if empty
+   * @returns {string|null} Random text or null if pool is empty
    */
   getRandomText() {
-    if (this.state.textPool.length === 0) return null
+    if (this.state.textPool.length === 0) {
+      return null
+    }
     const randomIndex = Math.floor(Math.random() * this.state.textPool.length)
     return this.state.textPool[randomIndex]
   }
 
   /**
-   * Remove text from the text pool
-   * @param {string} text - Text to remove from the pool
-   * @returns {boolean} - True if text was removed, false if not found
+   * Remove text from the pool
+   * @param {string} text - Text to remove
+   * @returns {boolean} True if text was removed
    */
   removeText(text) {
-    const trimmedText = text.trim()
-    const index = this.state.textPool.indexOf(trimmedText)
+    const trimmedText = text?.trim()
+    if (!trimmedText) {
+      return false
+    }
 
-    if (index === -1) {
-      console.warn(STRINGS.SYSTEM_MESSAGES.stateManager.textNotFoundInPool, trimmedText)
+    if (!this.textPoolIndex.has(trimmedText)) {
+      console.warn('Text not found in pool:', trimmedText)
       return false
     }
 
     // Remove from array
-    this.state.textPool.splice(index, 1)
-
-    // Remove from index set
-    if (this.textPoolIndex) {
-      this.textPoolIndex.delete(trimmedText)
+    const index = this.state.textPool.indexOf(trimmedText)
+    if (index > -1) {
+      this.state.textPool.splice(index, 1)
     }
 
+    // Remove from index
+    this.textPoolIndex.delete(trimmedText)
+
     // Update statistics
-    this.textPoolStats.totalRemovals = (this.textPoolStats.totalRemovals || 0) + 1
     this.updateAverageTextLength()
 
-    // Save state
-    this.saveCurrentState()
-
-    // Emit events
-    eventBus.emit(TEXT_POOL_EVENTS.UPDATED, {
-      action: 'removed',
+    // Emit event
+    eventBus.emit(TEXT_POOL_EVENTS.TEXT_REMOVED, {
       text: trimmedText,
-      textPool: [...this.state.textPool],
       poolSize: this.state.textPool.length,
-      timestamp: Date.now(),
     })
 
-    eventBus.emit(TEXT_POOL_EVENTS.SIZE_CHANGED, {
-      newSize: this.state.textPool.length,
-      previousSize: this.state.textPool.length + 1,
-      isAtLimit: false,
-    })
+    // Save to persistence
+    this.saveCurrentState()
 
     return true
   }
 
   /**
-   * Clear all text from the text pool
-   * @returns {boolean} - True if text pool was cleared, false if already empty
+   * Clear all text from the pool
+   * @returns {boolean} True if pool was cleared
    */
   clearTextPool() {
     if (this.state.textPool.length === 0) {
-      console.warn(STRINGS.SYSTEM_MESSAGES.stateManager.textPoolAlreadyEmpty)
+      console.warn('Text pool is already empty')
       return false
     }
 
-    const previousSize = this.state.textPool.length
-    const clearedTexts = [...this.state.textPool] // Keep copy for potential undo
+    const clearedCount = this.state.textPool.length
 
-    // Clear text pool array
+    // Clear the arrays
     this.state.textPool = []
+    this.textPoolIndex.clear()
 
-    // Clear text pool index
-    if (this.textPoolIndex) {
-      this.textPoolIndex.clear()
-    }
+    // Reset statistics
+    this.textPoolStats.averageTextLength = 0
 
-    // Update statistics
-    this.textPoolStats.totalClears = (this.textPoolStats.totalClears || 0) + 1
-    this.textPoolStats.lastClearSize = previousSize
-    this.textPoolStats.lastClearTimestamp = Date.now()
-    this.updateAverageTextLength()
+    // Emit event
+    eventBus.emit(TEXT_POOL_EVENTS.POOL_CLEARED, {
+      clearedCount,
+    })
 
-    // Save state
+    // Save to persistence
     this.saveCurrentState()
-
-    // Emit events
-    eventBus.emit(TEXT_POOL_EVENTS.UPDATED, {
-      action: 'cleared',
-      textPool: [],
-      poolSize: 0,
-      previousSize: previousSize,
-      clearedTexts: clearedTexts,
-      timestamp: Date.now(),
-    })
-
-    eventBus.emit(TEXT_POOL_EVENTS.SIZE_CHANGED, {
-      newSize: 0,
-      previousSize: previousSize,
-      isAtLimit: false,
-    })
 
     return true
   }
 
   /**
-   * Get enhanced text pool statistics including removal and clear operations
-   * @returns {Object} - Complete text pool statistics
+   * Get text pool statistics
+   * @returns {Object} Statistics about the text pool
    */
   getTextPoolStats() {
     return {
       ...this.textPoolStats,
-      totalEntries: this.state.textPool.length,
-      totalAdditions: this.textPoolStats.totalAdditions || 0,
-      totalRemovals: this.textPoolStats.totalRemovals || 0,
-      totalClears: this.textPoolStats.totalClears || 0,
-      lastClearSize: this.textPoolStats.lastClearSize || 0,
-      lastClearTimestamp: this.textPoolStats.lastClearTimestamp || null,
+      currentSize: this.state.textPool.length,
+      maxSize: this.textPoolMaxSize,
+      utilizationPercent: Math.round((this.state.textPool.length / this.textPoolMaxSize) * 100),
     }
   }
 
   /**
-   * Rebuild the text pool index for fast duplicate lookup
+   * Rebuild the text pool index (used during restoration)
    * @private
    */
   rebuildTextPoolIndex() {
-    this.textPoolIndex = new Set(this.state.textPool)
+    this.textPoolIndex.clear()
+    this.state.textPool.forEach((text) => {
+      this.textPoolIndex.add(text)
+    })
   }
 
   /**
@@ -946,41 +766,48 @@ class StateManager {
   }
 
   /**
-   * Get the current text frequency setting
-   * @returns {number} - Text frequency value (0-1 normalized)
+   * Get current text frequency setting
+   * @returns {number} Frequency value (0-1)
    */
   getTextFrequency() {
     return this.state.textFrequency
   }
 
   /**
-   * Set the text frequency setting
-   * @param {number} frequency - Text frequency value (0-1 normalized)
+   * Set text frequency
+   * @param {number} frequency - Frequency value (0-1)
    */
   setTextFrequency(frequency) {
-    this.state.textFrequency = Math.max(0, Math.min(1, frequency))
-    this.saveCurrentState()
-    eventBus.emit(TEXT_POOL_EVENTS.FREQUENCY_CHANGED, {
+    if (typeof frequency !== 'number' || frequency < 0 || frequency > 1) {
+      return
+    }
+
+    this.state.textFrequency = frequency
+
+    // Emit event
+    eventBus.emit(TEXT_POOL_EVENTS.FREQUENCY_UPDATED, {
       frequency: this.state.textFrequency,
-      timestamp: Date.now(),
     })
+
+    // Save to persistence
+    this.saveCurrentState()
   }
 
   /**
-   * Get FileSystem Access API working state
-   * @returns {boolean|null} - true if working, false if not working, null if unknown
+   * Get FileSystem API working state
+   * @returns {boolean|null} Working state or null if unknown
    */
   getFileSystemAPIWorking() {
     return this.state.fileSystemAPIWorking
   }
 
   /**
-   * Set FileSystem Access API working state and persist it
+   * Set FileSystem API working state
    * @param {boolean} isWorking - Whether the API is working
    */
   setFileSystemAPIWorking(isWorking) {
     if (typeof isWorking !== 'boolean') {
-      console.warn(STRINGS.SYSTEM_MESSAGES.stateManager.fileSystemAPIWorkingStateInvalid, isWorking)
+      console.warn('FileSystem API working state must be boolean', isWorking)
       return
     }
 
@@ -989,6 +816,5 @@ class StateManager {
   }
 }
 
-// Export both the class and singleton instance
-export { StateManager }
+// Export singleton instance
 export const stateManager = new StateManager()
