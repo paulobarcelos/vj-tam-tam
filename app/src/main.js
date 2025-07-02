@@ -8,47 +8,44 @@ import { toastManager } from './toastManager.js'
 import { stateManager } from './stateManager.js'
 import { playbackEngine } from './playbackEngine.js'
 import { textDisplayManager } from './textDisplayManager.js'
-import { STRINGS, t } from './constants/strings.js'
+import { STRINGS } from './constants/strings.js'
 
 /**
  * Initialize the application
  */
 async function init() {
   try {
-    console.log(STRINGS.SYSTEM_MESSAGES.application.initializationStart)
+    console.log('Application initialization started')
 
     // Update DOM strings from centralized constants
     uiManager.updateDOMStrings()
 
     // Initialize UI Manager first so it can listen to events
-    console.log(STRINGS.SYSTEM_MESSAGES.application.uiManagerInitializing)
+    console.log('Initializing UI Manager')
     uiManager.init()
 
     // Initialize PlaybackEngine before StateManager so it can listen to restoration events
-    console.log(STRINGS.SYSTEM_MESSAGES.application.playbackEngineInitializing)
+    console.log('Initializing Playback Engine')
     playbackEngine.init()
 
     // Initialize Text Display Manager
-    console.log(STRINGS.SYSTEM_MESSAGES.application.textDisplayManagerInitializing)
+    console.log('Initializing Text Display Manager')
     if (textDisplayManager.init()) {
-      console.log(STRINGS.SYSTEM_MESSAGES.textDisplayManager.initialized)
+      console.log('Text Display Manager initialized successfully')
     } else {
-      console.error(STRINGS.SYSTEM_MESSAGES.textDisplayManager.initializationFailed)
+      console.error('Text Display Manager initialization failed')
     }
 
     // Initialize StateManager last to load persisted state and emit events
-    console.log(STRINGS.SYSTEM_MESSAGES.application.stateManagerInitializing)
+    console.log('Initializing State Manager')
     await stateManager.init()
 
-    console.log(STRINGS.SYSTEM_MESSAGES.application.stateManagerComplete)
-    console.log(
-      STRINGS.SYSTEM_MESSAGES.application.segmentSettingsStatus,
-      stateManager.getSegmentSettings()
-    )
-    console.log(STRINGS.SYSTEM_MESSAGES.application.uiSettingsStatus, stateManager.getUISettings())
+    console.log('State Manager initialization complete')
+    console.log('Segment settings status:', stateManager.getSegmentSettings())
+    console.log('UI settings status:', stateManager.getUISettings())
 
     // Initialize Advanced Controls after state is fully restored
-    console.log(STRINGS.SYSTEM_MESSAGES.application.advancedControlsInitializing)
+    console.log('Initializing Advanced Controls')
     uiManager.initializeAdvancedControlsFromRestoredState()
 
     // Initialize Text Pool display after state is fully restored
@@ -57,16 +54,13 @@ async function init() {
     // Initialize Frequency Control after state is fully restored
     uiManager.initializeFrequencyControl()
 
-    console.log(STRINGS.SYSTEM_MESSAGES.application.initializationComplete)
-    console.log(
-      t.get('SYSTEM_MESSAGES.application.initializationSuccess', {
-        count: stateManager.getMediaCount(),
-      })
-    )
+    console.log('Application initialization complete')
+    const mediaCount = stateManager.getMediaCount()
+    console.log(`Application initialized successfully with ${mediaCount} media files loaded`)
 
-    console.log(STRINGS.SYSTEM_MESSAGES.application.initialized)
+    console.log('Application ready')
   } catch (error) {
-    console.error(STRINGS.SYSTEM_MESSAGES.application.initializationError, error)
+    console.error('Application initialization error:', error)
     toastManager.error(STRINGS.USER_MESSAGES.notifications.error.appInitFailed)
   }
 }

@@ -5,7 +5,7 @@
 
 import { eventBus } from './eventBus.js'
 import { storageFacade } from './facades/storageFacade.js'
-import fileSystemAccessFacade from './facades/fileSystemAccessFacade.js'
+import { fileSystemAccessFacade } from './facades/fileSystemAccessFacade.js'
 import { filterRestorableMedia } from './utils/mediaUtils.js'
 import { STATE_EVENTS, TEXT_POOL_EVENTS } from './constants/events.js'
 

@@ -45,4 +45,4 @@ class StorageFacade {
   }
 }
 
-export default new StorageFacade()
+export const storageFacade = new StorageFacade()
