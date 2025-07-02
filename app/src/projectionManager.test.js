@@ -50,7 +50,29 @@ describe('ProjectionManager - Story 6.3: Projection Setup Mode Toggle', () => {
       <button id="projection-toggle-btn">
         <span class="button-text">Enter Projection Setup</span>
       </button>
-      <div id="projection-mode-controls" style="display: none;"></div>
+      <div id="projection-mode-controls" style="display: none;">
+        <div class="aspect-ratio-section">
+          <label class="control-label">Projection Surface Aspect Ratio</label>
+          
+          <!-- Preset buttons -->
+          <div class="aspect-preset-buttons">
+            <button class="aspect-preset-btn" data-ratio="16:9" data-value="1.777">16:9</button>
+            <button class="aspect-preset-btn" data-ratio="4:3" data-value="1.333">4:3</button>
+            <button class="aspect-preset-btn" data-ratio="1:1" data-value="1.000">1:1</button>
+          </div>
+          
+          <!-- Aspect ratio inputs -->
+          <div class="custom-aspect-controls">
+            <label>Set Aspect Ratio</label>
+            <div class="aspect-input-group">
+              <input type="number" id="aspect-width" placeholder="Width" min="1" step="0.1" value="16">
+              <span class="aspect-separator">:</span>
+              <input type="number" id="aspect-height" placeholder="Height" min="1" step="0.1" value="9">
+            </div>
+            <button id="match-screen-btn" class="secondary-button">Match Current Screen</button>
+          </div>
+        </div>
+      </div>
     `
 
     // Reset all mocks
