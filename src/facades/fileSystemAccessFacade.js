@@ -3,8 +3,6 @@
  * Handles persistent file access using FileSystemAccessAPI and IndexedDB
  */
 
-import { STRINGS, t } from '../constants/strings.js'
-
 const DB_NAME = 'vj-tam-tam-files'
 const DB_VERSION = 1
 const STORE_NAME = 'fileHandles'
@@ -29,7 +27,7 @@ class FileSystemAccessFacade {
    */
   async init() {
     if (!this.isSupported) {
-      console.log(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.notSupported)
+      console.log('FileSystemAccessAPI not supported, falling back to metadata-only persistence')
       return false
     }
 
@@ -38,13 +36,13 @@ class FileSystemAccessFacade {
         const request = globalThis.indexedDB.open(DB_NAME, DB_VERSION)
 
         request.onerror = () => {
-          console.error(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.dbOpenError, request.error)
+          console.error('Failed to open IndexedDB:', request.error)
           reject(request.error)
         }
 
         request.onsuccess = () => {
           this.db = request.result
-          console.log(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.initialized)
+          console.log('FileSystemAccessAPI facade initialized successfully')
           resolve(true)
         }
 
@@ -57,7 +55,7 @@ class FileSystemAccessFacade {
         }
       })
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.initError, error)
+      console.error('Error initializing FileSystemAccessAPI facade:', error)
       return false
     }
   }
@@ -89,19 +87,17 @@ class FileSystemAccessFacade {
         const request = store.put(data)
 
         request.onsuccess = () => {
-          console.log(
-            t.get('SYSTEM_MESSAGES.fileSystemAccess.handleStored', { fileName: metadata.name })
-          )
+          console.log(`File handle stored for ${metadata.name}`)
           resolve(true)
         }
 
         request.onerror = () => {
-          console.error(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.handleStoreFailed, request.error)
+          console.error('Failed to store file handle:', request.error)
           resolve(false)
         }
       })
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.handleStoreError, error)
+      console.error('Error storing file handle:', error)
       return false
     }
   }
@@ -138,11 +134,7 @@ class FileSystemAccessFacade {
               // Try to request permission
               const newPermission = await result.fileHandle.requestPermission({ mode: 'read' })
               if (newPermission !== 'granted') {
-                console.warn(
-                  t.get('SYSTEM_MESSAGES.fileSystemAccess.permissionDenied', {
-                    fileName: result.metadata.name,
-                  })
-                )
+                console.warn(`Permission denied for file: ${result.metadata.name}`)
                 resolve(null)
                 return
               }
@@ -164,23 +156,18 @@ class FileSystemAccessFacade {
               fromFileSystemAPI: true,
             })
           } catch (error) {
-            console.warn(
-              t.get('SYSTEM_MESSAGES.fileSystemAccess.fileAccessFailed', {
-                fileName: result.metadata.name,
-              }),
-              error
-            )
+            console.warn(`Failed to access file handle for ${result.metadata.name}:`, error)
             resolve(null)
           }
         }
 
         request.onerror = () => {
-          console.error(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.fileRetrieveFailed, request.error)
+          console.error('Failed to retrieve file handle:', request.error)
           resolve(null)
         }
       })
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.fileAccessError, error)
+      console.error('Error retrieving file handle:', error)
       return null
     }
   }
@@ -193,36 +180,29 @@ class FileSystemAccessFacade {
     try {
       // Check if user activation API is available
       if (!navigator.userActivation) {
-        console.log(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.userActivationUnavailable)
+        console.log('User activation API not available, assuming no activation')
         return false
       }
 
       // During page load, user activation can be inconsistent
-      // We're more conservative and assume no activation unless we're sure
       const isActive = navigator.userActivation.isActive
       const hasBeenActive = navigator.userActivation.hasBeenActive
-
-      // Only consider it active if both isActive is true AND hasBeenActive is true
-      // This reduces false positives during page load
-      const hasActivation = isActive && hasBeenActive
+      const result = isActive || hasBeenActive
 
       console.log(
-        t.get('SYSTEM_MESSAGES.fileSystemAccess.userActivationCheck', {
-          isActive,
-          hasBeenActive,
-          result: hasActivation,
-        })
+        `User activation check: isActive=${isActive}, hasBeenActive=${hasBeenActive}, result=${result}`
       )
-      return hasActivation
+
+      return result
     } catch (error) {
-      console.warn(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.userActivationError, error)
+      console.warn('Error checking user activation:', error)
       return false
     }
   }
 
   /**
-   * Get all stored file handles with improved user activation handling
-   * @returns {Promise<Array>} Array of file data or empty array
+   * Get all stored files (metadata only, no file data)
+   * @returns {Promise<Array>} Array of file metadata
    */
   async getAllFiles() {
     if (!this.isSupported || !this.db) {
@@ -236,65 +216,73 @@ class FileSystemAccessFacade {
       return new Promise((resolve) => {
         const request = store.getAll()
 
-        request.onsuccess = async () => {
-          try {
-            const results = request.result || []
+        request.onsuccess = () => {
+          const results = request.result
 
-            if (results.length === 0) {
-              console.log(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.noHandlesFound)
-              resolve([])
-              return
-            }
+          if (results.length === 0) {
+            console.log('No file handles found in storage')
+            return resolve([])
+          }
 
-            console.log(
-              t.get('SYSTEM_MESSAGES.fileSystemAccess.handlesFound', { count: results.length })
-            )
+          console.log(`Found ${results.length} stored file handles`)
 
-            // Always return metadata-only files initially to avoid race conditions
-            // The user activation will be properly handled via the permission overlay
-            console.log(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.metadataOnlyReturn)
-            const metadataOnlyFiles = results.map((result) => ({
+          // Check if we have user activation for permission requests
+          if (!this.hasUserActivation()) {
+            console.log('Returning metadata-only files to avoid user activation race conditions')
+            // Return metadata-only items to avoid triggering permission dialogs during app init
+            const metadataFiles = results.map((result) => ({
               ...result.metadata,
               // Ensure addedAt is a proper Date object
               addedAt:
                 result.metadata.addedAt instanceof Date
                   ? result.metadata.addedAt
                   : new Date(result.metadata.addedAt),
-              file: null,
-              url: null,
               fromFileSystemAPI: true,
               needsPermission: true,
             }))
-            resolve(metadataOnlyFiles)
-          } catch (error) {
-            console.error(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.fileProcessingError, error)
-            resolve([])
+            resolve(metadataFiles)
+            return
           }
+
+          // If we have user activation, we could try to access files here,
+          // but it's safer to return metadata-only and let the UI request access explicitly
+          const metadataFiles = results.map((result) => ({
+            ...result.metadata,
+            addedAt:
+              result.metadata.addedAt instanceof Date
+                ? result.metadata.addedAt
+                : new Date(result.metadata.addedAt),
+            fromFileSystemAPI: true,
+            needsPermission: true,
+          }))
+
+          resolve(metadataFiles)
         }
 
         request.onerror = () => {
-          console.error(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.fileRetrieveError, request.error)
+          console.error('Error processing file handles:', request.error)
           resolve([])
         }
       })
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.fileRetrieveError, error)
+      console.error('Error retrieving all files:', error)
       return []
     }
   }
 
   /**
-   * Request access to stored files (requires user activation)
-   * @returns {Promise<Array>} Array of accessible files
+   * Request access to stored files with user activation
+   * @returns {Promise<Array>} Array of accessible files with URLs
    */
   async requestStoredFilesAccess() {
     if (!this.isSupported || !this.db) {
-      console.log(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.accessUnavailable)
+      console.log('FileSystemAccessAPI not supported or database not available')
       return []
     }
 
+    console.log('Requesting access to stored files with user activation...')
+
     try {
-      console.log(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.accessRequested)
       const transaction = this.db.transaction([STORE_NAME], 'readonly')
       const store = transaction.objectStore(STORE_NAME)
 
@@ -302,61 +290,64 @@ class FileSystemAccessFacade {
         const request = store.getAll()
 
         request.onsuccess = async () => {
-          try {
-            const results = request.result || []
-            console.log(
-              t.get('SYSTEM_MESSAGES.fileSystemAccess.handlesFoundForAccess', {
-                count: results.length,
-              })
-            )
+          const results = request.result
+          console.log(`Found ${results.length} stored file handles for access request`)
 
-            if (results.length === 0) {
-              resolve([])
-              return
-            }
+          const accessibleFiles = []
 
-            const filePromises = results.map(async (result) => {
-              try {
-                return await this.getFileFromHandle(result.id)
-              } catch (error) {
-                console.warn(
-                  t.get('SYSTEM_MESSAGES.fileSystemAccess.fileAccessFailed', {
-                    fileName: result.metadata.name,
-                  }),
-                  error
-                )
-                return null
+          for (const result of results) {
+            try {
+              // Check permission first
+              const permissionStatus = await result.fileHandle.queryPermission({ mode: 'read' })
+
+              if (permissionStatus !== 'granted') {
+                // Request permission with user activation
+                const newPermission = await result.fileHandle.requestPermission({ mode: 'read' })
+                if (newPermission !== 'granted') {
+                  console.warn(`Permission denied for file: ${result.metadata.name}`)
+                  continue
+                }
               }
-            })
 
-            const files = await Promise.all(filePromises)
-            const validFiles = files.filter((file) => file !== null)
-            console.log(
-              t.get('SYSTEM_MESSAGES.fileSystemAccess.accessSuccess', {
-                validCount: validFiles.length,
-                totalCount: results.length,
+              // Get file data
+              const file = await result.fileHandle.getFile()
+              const url = URL.createObjectURL(file)
+
+              accessibleFiles.push({
+                ...result.metadata,
+                addedAt:
+                  result.metadata.addedAt instanceof Date
+                    ? result.metadata.addedAt
+                    : new Date(result.metadata.addedAt),
+                file,
+                url,
+                fromFileSystemAPI: true,
               })
-            )
-            resolve(validFiles)
-          } catch (error) {
-            console.error(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.fileProcessingError, error)
-            resolve([])
+            } catch (error) {
+              console.error('Error processing file handle:', error)
+              continue
+            }
           }
+
+          console.log(
+            `Successfully accessed ${accessibleFiles.length} of ${results.length} stored files`
+          )
+          resolve(accessibleFiles)
         }
 
         request.onerror = () => {
-          console.error(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.accessFailed, request.error)
+          console.error('Failed to retrieve file handles for user activation:', request.error)
           resolve([])
         }
       })
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.accessError, error)
+      console.error('Error requesting stored files access:', error)
       return []
     }
   }
 
   /**
-   * Remove a stored file handle
+   * Remove a file handle from storage
    * @param {string} id - File identifier
    * @returns {Promise<boolean>} Success status
    */
@@ -373,17 +364,17 @@ class FileSystemAccessFacade {
         const request = store.delete(id)
 
         request.onsuccess = () => {
-          console.log(t.get('SYSTEM_MESSAGES.fileSystemAccess.handleRemoved', { id }))
+          console.log(`File handle removed for ID: ${id}`)
           resolve(true)
         }
 
         request.onerror = () => {
-          console.error(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.handleRemoveFailed, request.error)
+          console.error('Failed to remove file handle:', request.error)
           resolve(false)
         }
       })
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.handleRemoveError, error)
+      console.error('Error removing file handle:', error)
       return false
     }
   }
@@ -405,21 +396,20 @@ class FileSystemAccessFacade {
         const request = store.clear()
 
         request.onsuccess = () => {
-          console.log(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.handlesCleared)
+          console.log('All file handles cleared')
           resolve(true)
         }
 
         request.onerror = () => {
-          console.error(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.handlesClearFailed, request.error)
+          console.error('Failed to clear file handles:', request.error)
           resolve(false)
         }
       })
     } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.fileSystemAccess.handlesClearError, error)
+      console.error('Error clearing file handles:', error)
       return false
     }
   }
 }
 
-// Export singleton instance
-export const fileSystemAccessFacade = new FileSystemAccessFacade()
+export default new FileSystemAccessFacade()

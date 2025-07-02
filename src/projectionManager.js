@@ -214,8 +214,8 @@ class ProjectionManager {
 
       console.log(t.get('SYSTEM_MESSAGES.projectionManager.modeEntered'))
     } catch (error) {
-      console.error(t.get('SYSTEM_MESSAGES.projectionManager.enterModeError'), error)
-      toastManager.show(t.get('SYSTEM_MESSAGES.projectionManager.enterModeFailed'), 'error')
+      console.error('Error entering projection mode:', error)
+      toastManager.error(t.projectionModeEnterFailed())
     }
   }
 
@@ -252,8 +252,8 @@ class ProjectionManager {
 
       console.log(t.get('SYSTEM_MESSAGES.projectionManager.modeExited'))
     } catch (error) {
-      console.error(t.get('SYSTEM_MESSAGES.projectionManager.exitModeError'), error)
-      toastManager.show(t.get('SYSTEM_MESSAGES.projectionManager.exitModeFailed'), 'error')
+      console.error('Error exiting projection mode:', error)
+      toastManager.error(t.projectionModeExitFailed())
     }
   }
 
@@ -805,13 +805,7 @@ class ProjectionManager {
     // Save settings
     this.saveAspectRatio()
 
-    toastManager.show(
-      t.get('SYSTEM_MESSAGES.projectionManager.screenDimensionsApplied', {
-        width: screenWidth,
-        height: screenHeight,
-      }),
-      'success'
-    )
+    toastManager.success(t.projectionDimensionsUpdated(screenWidth, screenHeight))
   }
 
   /**
