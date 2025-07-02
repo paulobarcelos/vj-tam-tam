@@ -15,16 +15,6 @@ vi.mock('./stateManager.js')
 vi.mock('./toastManager.js')
 vi.mock('./constants/strings.js', () => ({
   STRINGS: {
-    SYSTEM_MESSAGES: {
-      playbackEngine: {
-        videoMetadataLoaded: 'Video metadata loaded for {fileName}',
-        videoLoadError: 'Video load error for {fileName}',
-        videoCreationError: 'Video creation error',
-        currentMediaClearError: 'Current media clear error',
-        cyclingTransitionError: 'Cycling transition error',
-        randomMediaSelectionError: 'Random media selection error',
-      },
-    },
     USER_MESSAGES: {
       notifications: {
         error: {

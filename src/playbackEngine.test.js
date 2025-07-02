@@ -6,7 +6,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { playbackEngine } from './playbackEngine.js'
 import { SUPPORTED_IMAGE_MIMES, SUPPORTED_VIDEO_MIMES } from './constants/mediaTypes.js'
-import { STRINGS } from './constants/strings.js'
 
 // Mock dependencies
 vi.mock('./eventBus.js', () => ({
@@ -292,9 +291,7 @@ describe('PlaybackEngine', () => {
       expect(stateManagerMock.getMediaPool).toHaveBeenCalled()
       expect(playbackEngine.isPlaybackActive).toBe(true)
       expect(startCyclingSpy).toHaveBeenCalled()
-      expect(console.log).toHaveBeenCalledWith(
-        STRINGS.SYSTEM_MESSAGES.playbackEngine.autoPlaybackStarted
-      )
+      expect(console.log).toHaveBeenCalledWith('Auto playback started')
     })
 
     it('startAutoPlayback should not start playback if media pool is empty', () => {
@@ -308,9 +305,7 @@ describe('PlaybackEngine', () => {
       expect(stateManagerMock.getMediaPool).toHaveBeenCalled()
       expect(playbackEngine.isPlaybackActive).toBe(false)
       expect(displayMediaSpy).not.toHaveBeenCalled()
-      expect(console.log).not.toHaveBeenCalledWith(
-        STRINGS.SYSTEM_MESSAGES.playbackEngine.autoPlaybackStarted
-      )
+      expect(console.log).not.toHaveBeenCalledWith('Auto playback started')
     })
 
     it('startAutoPlayback should not start playback if already active', () => {
@@ -325,9 +320,7 @@ describe('PlaybackEngine', () => {
       expect(stateManagerMock.getMediaPool).toHaveBeenCalled()
       expect(playbackEngine.isPlaybackActive).toBe(true)
       expect(displayMediaSpy).not.toHaveBeenCalled()
-      expect(console.log).not.toHaveBeenCalledWith(
-        STRINGS.SYSTEM_MESSAGES.playbackEngine.autoPlaybackStarted
-      )
+      expect(console.log).not.toHaveBeenCalledWith('Auto playback started')
     })
 
     it('startAutoPlayback should not start playback if auto playback is disabled', () => {
@@ -342,9 +335,7 @@ describe('PlaybackEngine', () => {
       expect(stateManagerMock.getMediaPool).toHaveBeenCalled()
       expect(playbackEngine.isPlaybackActive).toBe(false)
       expect(displayMediaSpy).not.toHaveBeenCalled()
-      expect(console.log).not.toHaveBeenCalledWith(
-        STRINGS.SYSTEM_MESSAGES.playbackEngine.autoPlaybackStarted
-      )
+      expect(console.log).not.toHaveBeenCalledWith('Auto playback started')
     })
 
     it('stopAutoPlayback should stop playback if active', () => {
@@ -357,9 +348,7 @@ describe('PlaybackEngine', () => {
       expect(playbackEngine.isPlaybackActive).toBe(false)
       expect(stopCyclingSpy).toHaveBeenCalled()
       expect(clearMediaSpy).toHaveBeenCalled()
-      expect(console.log).toHaveBeenCalledWith(
-        STRINGS.SYSTEM_MESSAGES.playbackEngine.autoPlaybackStopped
-      )
+      expect(console.log).toHaveBeenCalledWith('Auto playback stopped')
     })
 
     it('stopAutoPlayback should do nothing if not active', () => {
@@ -370,9 +359,7 @@ describe('PlaybackEngine', () => {
 
       expect(playbackEngine.isPlaybackActive).toBe(false)
       expect(clearMediaSpy).not.toHaveBeenCalled()
-      expect(console.log).not.toHaveBeenCalledWith(
-        STRINGS.SYSTEM_MESSAGES.playbackEngine.autoPlaybackStopped
-      )
+      expect(console.log).not.toHaveBeenCalledWith('Auto playback stopped')
     })
   })
 
@@ -418,10 +405,7 @@ describe('PlaybackEngine', () => {
       const imageElement = playbackEngine.createImageElement(mockImageItem)
 
       expect(imageElement).toBeNull()
-      expect(console.error).toHaveBeenCalledWith(
-        STRINGS.SYSTEM_MESSAGES.playbackEngine.imageCreationError,
-        expect.any(Error)
-      )
+      expect(console.error).toHaveBeenCalledWith('Image element creation error:', expect.any(Error))
     })
 
     it('should handle video creation errors gracefully', () => {
@@ -432,10 +416,7 @@ describe('PlaybackEngine', () => {
       const videoElement = playbackEngine.createVideoElement(mockVideoItem)
 
       expect(videoElement).toBeNull()
-      expect(console.error).toHaveBeenCalledWith(
-        STRINGS.SYSTEM_MESSAGES.playbackEngine.videoCreationError,
-        expect.any(Error)
-      )
+      expect(console.error).toHaveBeenCalledWith('Video creation error:', expect.any(Error))
     })
 
     it('should handle unsupported media types', () => {
@@ -485,9 +466,7 @@ describe('PlaybackEngine', () => {
       playbackEngine.displayMedia(null)
 
       expect(mockStageElement.appendChild).not.toHaveBeenCalled()
-      expect(console.warn).toHaveBeenCalledWith(
-        STRINGS.SYSTEM_MESSAGES.playbackEngine.invalidMediaItem
-      )
+      expect(console.warn).toHaveBeenCalledWith('Invalid media item provided for display')
     })
 
     it('should handle media items without URL gracefully', () => {
@@ -496,9 +475,7 @@ describe('PlaybackEngine', () => {
       playbackEngine.displayMedia(invalidItem)
 
       expect(mockStageElement.appendChild).not.toHaveBeenCalled()
-      expect(console.warn).toHaveBeenCalledWith(
-        STRINGS.SYSTEM_MESSAGES.playbackEngine.invalidMediaItem
-      )
+      expect(console.warn).toHaveBeenCalledWith('Invalid media item provided for display')
     })
 
     it('should handle unsupported media types', () => {
@@ -578,9 +555,7 @@ describe('PlaybackEngine', () => {
 
       // Verify displayMedia was called with the expected media item
       expect(playbackEngine.displayMedia).toHaveBeenCalledWith(mockMediaPool[0])
-      expect(console.log).toHaveBeenCalledWith(
-        STRINGS.SYSTEM_MESSAGES.playbackEngine.autoPlaybackStarted
-      )
+      expect(console.log).toHaveBeenCalledWith('Auto playback started')
     })
 
     it('should not start playback if media pool becomes populated but auto playback is disabled', () => {
@@ -663,9 +638,7 @@ describe('PlaybackEngine', () => {
 
       // Verify stopAutoPlayback is called
       expect(stopPlaybackSpy).toHaveBeenCalled()
-      expect(console.log).toHaveBeenCalledWith(
-        STRINGS.SYSTEM_MESSAGES.playbackEngine.cleanupCompleted
-      )
+      expect(console.log).toHaveBeenCalledWith('PlaybackEngine cleanup completed')
     })
   })
 
@@ -679,28 +652,28 @@ describe('PlaybackEngine', () => {
 
       playbackEngine.handleWindowResize()
 
-      expect(console.log).toHaveBeenCalledWith(STRINGS.SYSTEM_MESSAGES.playbackEngine.windowResized)
+      expect(console.log).toHaveBeenCalledWith('Window resized - adjusting media display')
     })
 
     it('should handle window resize when no media is displayed', () => {
       playbackEngine.currentMediaElement = null
 
-      expect(() => playbackEngine.handleWindowResize()).not.toThrow()
+      playbackEngine.handleWindowResize()
+
+      // Should not log resize message when no media is displayed
+      expect(console.log).not.toHaveBeenCalledWith('Window resized - adjusting media display')
     })
 
     it('should handle resize errors gracefully', () => {
-      // Mock console.log to throw error
-      console.log = vi.fn(() => {
-        throw new Error('Console error')
+      playbackEngine.currentMediaElement = document.createElement('img')
+      // Mock getBoundingClientRect to throw an error
+      playbackEngine.currentMediaElement.getBoundingClientRect = vi.fn(() => {
+        throw new Error('DOM access error')
       })
 
-      playbackEngine.currentMediaElement = document.createElement('img')
+      playbackEngine.handleWindowResize()
 
-      expect(() => playbackEngine.handleWindowResize()).not.toThrow()
-      expect(console.error).toHaveBeenCalledWith(
-        STRINGS.SYSTEM_MESSAGES.playbackEngine.windowResizeError,
-        expect.any(Error)
-      )
+      expect(console.error).toHaveBeenCalledWith('Window resize handling error:', expect.any(Error))
     })
   })
 
@@ -734,6 +707,8 @@ describe('PlaybackEngine', () => {
 
     it('should handle clearCurrentMedia errors gracefully', () => {
       const mockElement = {
+        tagName: 'VIDEO',
+        _segmentState: { isMonitoring: true, seekTarget: 10 },
         parentNode: {
           removeChild: vi.fn(() => {
             throw new Error('DOM removal error')
@@ -742,11 +717,9 @@ describe('PlaybackEngine', () => {
       }
       playbackEngine.currentMediaElement = mockElement
 
-      expect(() => playbackEngine.clearCurrentMedia()).not.toThrow()
-      expect(console.error).toHaveBeenCalledWith(
-        STRINGS.SYSTEM_MESSAGES.playbackEngine.currentMediaClearError,
-        expect.any(Error)
-      )
+      playbackEngine.clearCurrentMedia()
+
+      expect(console.error).toHaveBeenCalledWith('Error clearing current media:', expect.any(Error))
     })
   })
 
@@ -819,7 +792,7 @@ describe('PlaybackEngine', () => {
         playbackEngine.startCycling()
 
         expect(console.error).toHaveBeenCalledWith(
-          STRINGS.SYSTEM_MESSAGES.playbackEngine.randomMediaSelectionError,
+          'Random media selection error:',
           expect.any(Error)
         )
         expect(playbackEngine.isCyclingActive).toBe(false)
@@ -946,7 +919,7 @@ describe('PlaybackEngine', () => {
         playbackEngine.startCycling()
 
         expect(console.error).toHaveBeenCalledWith(
-          STRINGS.SYSTEM_MESSAGES.playbackEngine.randomMediaSelectionError,
+          'Random media selection error:',
           expect.any(Error)
         )
         expect(playbackEngine.isCyclingActive).toBe(false)
@@ -1027,7 +1000,7 @@ describe('PlaybackEngine', () => {
         playbackEngine.transitionToNextMedia()
 
         expect(console.error).toHaveBeenCalledWith(
-          STRINGS.SYSTEM_MESSAGES.playbackEngine.randomMediaSelectionError,
+          'Random media selection error:',
           expect.any(Error)
         )
       })

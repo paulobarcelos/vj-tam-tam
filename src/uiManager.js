@@ -402,7 +402,7 @@ class UIManager {
           ? t.get('TEMPLATES.upgradeNotificationSingle', { fileName: data.upgradedItems[0].name })
           : t.get('TEMPLATES.upgradeNotificationMultiple', { count: upgradeCount })
 
-      console.log(t.get('SYSTEM_MESSAGES.uiManager.metadataUpgrade', { count: upgradeCount }))
+      console.log(`Metadata upgrade completed for ${upgradeCount} files`)
       // Show a success toast for the upgrade
       toastManager.success(message)
     }
@@ -542,14 +542,12 @@ class UIManager {
     const filesNeedingPermission = filterMediaNeedingPermission(stateManager.getMediaPool())
 
     if (filesNeedingPermission.length === 0) {
-      console.log(STRINGS.SYSTEM_MESSAGES.uiManager.noPermissionNeeded)
+      console.log('No files need permission restoration')
       return // No files need permission, no hijacking needed
     }
 
     console.log(
-      t.get('SYSTEM_MESSAGES.uiManager.globalHijackingSetup', {
-        count: filesNeedingPermission.length,
-      })
+      `Setting up global activation hijacking for ${filesNeedingPermission.length} files needing permission`
     )
 
     // Remove any existing hijacking listeners to avoid duplicates
@@ -567,36 +565,30 @@ class UIManager {
 
     this.activationHijacker = async (event) => {
       console.log(
-        t.get('SYSTEM_MESSAGES.uiManager.globalHijackerTriggered', {
-          eventType: event.type,
-          tagName: event.target.tagName,
-          className: event.target.className || '[no class]',
-        })
+        `Global hijacker triggered: ${event.type} on ${event.target.tagName}, class: ${event.target.className || '[no class]'}`
       )
 
       // Skip if this is the Escape key (not valid for activation)
       if (event.type === 'keydown' && event.key === 'Escape') {
-        console.log(STRINGS.SYSTEM_MESSAGES.uiManager.skipEscapeKey)
+        console.log('Skipping Escape key - not valid for file access activation')
         return
       }
 
       // Skip if this is a reserved key (like Cmd+R, Ctrl+T, etc.)
       if (event.type === 'keydown' && (event.metaKey || event.ctrlKey)) {
-        console.log(t.get('SYSTEM_MESSAGES.uiManager.skipReservedKey', { key: event.key }))
+        console.log(`Skipping reserved key combination: ${event.key}`)
         return
       }
 
       // Skip pointerdown if not mouse
       if (event.type === 'pointerdown' && event.pointerType !== 'mouse') {
-        console.log(
-          t.get('SYSTEM_MESSAGES.uiManager.skipNonMousePointer', { pointerType: event.pointerType })
-        )
+        console.log(`Skipping non-mouse pointer: ${event.pointerType}`)
         return
       }
 
       // Skip pointerup if it's mouse (should be handled by pointerdown)
       if (event.type === 'pointerup' && event.pointerType === 'mouse') {
-        console.log(STRINGS.SYSTEM_MESSAGES.uiManager.skipMousePointerUp)
+        console.log('Skipping mouse pointerup - handled by pointerdown')
         return
       }
 
@@ -607,25 +599,21 @@ class UIManager {
 
       if (currentFilesNeedingPermission.length > 0) {
         console.log(
-          t.get('SYSTEM_MESSAGES.uiManager.opportunisticRestore', {
-            count: currentFilesNeedingPermission.length,
-          })
+          `Attempting opportunistic restore for ${currentFilesNeedingPermission.length} files`
         )
         try {
           await this.handleBulkFileRestore(currentFilesNeedingPermission, true) // silent mode
-          console.log(STRINGS.SYSTEM_MESSAGES.uiManager.opportunisticComplete)
+          console.log('Opportunistic file access restoration completed')
         } catch (error) {
           // Silent failure - we're just being opportunistic
-          console.debug(STRINGS.SYSTEM_MESSAGES.uiManager.opportunisticFailed, error)
+          console.debug('Opportunistic file access restoration failed:', error)
         }
       } else {
-        console.log(STRINGS.SYSTEM_MESSAGES.uiManager.noFilesNeedPermission)
+        console.log('No files currently need permission')
       }
     }
 
-    console.log(
-      t.get('SYSTEM_MESSAGES.uiManager.globalListenersAdding', { events: activationEvents })
-    )
+    console.log(`Adding global listeners for events: ${activationEvents.join(', ')}`)
     // Add listeners to document for global coverage
     activationEvents.forEach((eventType) => {
       document.addEventListener(eventType, this.activationHijacker, {
@@ -633,7 +621,7 @@ class UIManager {
         capture: true,
       })
     })
-    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.globalHijackingComplete)
+    console.log('Global activation hijacking setup complete')
   }
 
   /**
@@ -714,22 +702,22 @@ class UIManager {
 
     // Add restore button for files needing permission
     if (needsPermission) {
-      console.log(t.get('SYSTEM_MESSAGES.uiManager.createRestoreButton', { fileName: item.name }))
+      console.log(`Creating restore button for file: ${item.name}`)
       const restoreBtn = document.createElement('button')
       restoreBtn.className = 'btn btn--icon-small media-restore-btn'
       restoreBtn.innerHTML = '🔓'
       restoreBtn.title = t.get('USER_INTERFACE.tooltips.restoreAccess')
       restoreBtn.addEventListener('click', async (e) => {
-        console.log(STRINGS.SYSTEM_MESSAGES.uiManager.restoreButtonClicked)
+        console.log('File restore button clicked')
         e.stopPropagation()
         try {
           await this.handleSingleFileRestore(item)
         } catch (error) {
-          console.error(STRINGS.SYSTEM_MESSAGES.uiManager.restoreError, error)
+          console.error('File restore error:', error)
         }
       })
       controls.appendChild(restoreBtn)
-      console.log(t.get('SYSTEM_MESSAGES.uiManager.restoreButtonAdded', { fileName: item.name }))
+      console.log(`Restore button added for file: ${item.name}`)
     }
 
     // Add delete button
@@ -763,137 +751,100 @@ class UIManager {
   }
 
   /**
-   * Handle restoration of a single file
+   * Handle single file restore operation
    * @param {Object} item - Media item to restore
    */
   async handleSingleFileRestore(item) {
-    console.log(t.get('SYSTEM_MESSAGES.uiManager.singleFileRestore', { fileName: item.name }))
-    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.singleFileDetails, {
+    console.log(`Starting single file restore for: ${item.name}`)
+    console.log('File details:', {
       id: item.id,
       name: item.name,
+      fromFileSystemAPI: item.fromFileSystemAPI,
       hasFile: !!item.file,
       hasUrl: !!item.url,
-      fromFileSystemAPI: item.fromFileSystemAPI,
-      type: item.type,
     })
 
-    try {
-      console.log(STRINGS.SYSTEM_MESSAGES.uiManager.callingRestoreAccess)
-      const restoredFiles = await fileSystemAccessFacade.requestStoredFilesAccess([item])
-      console.log(STRINGS.SYSTEM_MESSAGES.uiManager.restoreResult, restoredFiles)
+    console.log('Calling fileSystemAccessFacade.restoreAccess')
+    const restoredFiles = await fileSystemAccessFacade.restoreAccess([item])
+    console.log('Restore result:', restoredFiles)
 
-      if (restoredFiles.length > 0) {
-        console.log(STRINGS.SYSTEM_MESSAGES.uiManager.restoreSuccessful)
-        // Update the state manager with restored file
-        stateManager.addMediaToPool(restoredFiles)
-        this.showToast(t.fileRestored(item.name), 'success')
+    if (restoredFiles && restoredFiles.length > 0) {
+      console.log('File restore successful')
+      // Let StateManager handle the restoration and UI updates
+      stateManager.upgradeMediaWithFileHandles(restoredFiles)
 
-        // Update display to reflect changes
-        this.updateMediaPoolDisplay()
-      } else {
-        console.log(STRINGS.SYSTEM_MESSAGES.uiManager.noFilesRestored)
-        this.showToast(t.fileRestoreFailed(item.name), 'error')
-      }
-    } catch (error) {
-      console.error(STRINGS.SYSTEM_MESSAGES.uiManager.restoreError, error)
-      this.showToast(t.fileRestoreFailed(item.name), 'error')
+      // Show success toast
+      toastManager.success(t.fileRestored(item.name))
+    } else {
+      console.log('No files were restored')
+      toastManager.error(t.fileRestoreFailed(item.name))
     }
   }
 
   /**
-   * Handle bulk file restoration
-   * @param {Array} filesNeedingPermission - Files that need permission restoration
-   * @param {boolean} silent - Whether to show toasts/errors (for opportunistic restoration)
+   * Handle bulk file restore for multiple files
+   * @param {Array} filesNeedingPermission - Array of media items needing permission
+   * @param {boolean} silent - Whether to suppress toast notifications
    */
   async handleBulkFileRestore(filesNeedingPermission, silent = false) {
-    const logPrefix = silent ? '🌐📦' : '📦'
+    const logPrefix = silent ? '[SILENT]' : '[USER]'
 
-    if (!silent) {
-      console.log(
-        t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreAttempt', {
-          count: filesNeedingPermission.length,
-        })
-      )
-    } else {
-      console.log(
-        t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreSilent', {
-          prefix: logPrefix,
-          count: filesNeedingPermission.length,
-        })
-      )
+    console.log(`${logPrefix} Bulk restore attempt for ${filesNeedingPermission.length} files`)
+
+    if (silent) {
+      console.log(`${logPrefix} Running in silent mode - no user notifications`)
     }
 
-    try {
-      console.log(t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreCall', { prefix: logPrefix }))
-      const restoredFiles =
-        await fileSystemAccessFacade.requestStoredFilesAccess(filesNeedingPermission)
-      console.log(
-        t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreResult', {
-          prefix: logPrefix,
-          count: restoredFiles.length,
-        })
-      )
+    console.log(`${logPrefix} Bulk restore: calling fileSystemAccessFacade`)
+    const restoredFiles = await fileSystemAccessFacade.restoreAccess(filesNeedingPermission)
 
-      if (restoredFiles.length > 0) {
-        // Update the state manager with restored files
-        stateManager.addMediaToPool(restoredFiles)
+    console.log(
+      `${logPrefix} Bulk restore result: ${restoredFiles?.length || 0} files restored from ${filesNeedingPermission.length} attempted`
+    )
 
-        if (!silent) {
-          console.log(
-            t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreSuccess', { count: restoredFiles.length })
-          )
-          this.showToast(t.filesRestored(restoredFiles.length), 'success')
-        } else {
-          console.log(
-            t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreSilentSuccess', {
-              prefix: logPrefix,
-              count: restoredFiles.length,
-            })
-          )
-        }
+    if (restoredFiles && restoredFiles.length > 0) {
+      // Upgrade media items in state manager with restored file handles
+      const upgradedCount = stateManager.upgradeMediaWithFileHandles(restoredFiles)
 
-        // Count upgraded files
-        const upgradedCount = restoredFiles.filter((file) => file.wasUpgraded).length
-        if (upgradedCount > 0 && !silent) {
-          console.log(t.get('SYSTEM_MESSAGES.uiManager.metadataUpgrade', { count: upgradedCount }))
-        }
+      console.log(`${logPrefix} Bulk restore successful: ${restoredFiles.length} files restored`)
 
-        // Update display to reflect changes
-        this.updateMediaPoolDisplay()
-      } else if (!silent) {
-        console.log(t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreNoFiles', { prefix: logPrefix }))
-        this.showToast(t.noFilesRestored(), 'error')
-      } else {
-        console.log(
-          t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreSilentNoFiles', { prefix: logPrefix })
-        )
-      }
-    } catch (error) {
       if (!silent) {
-        console.error(STRINGS.SYSTEM_MESSAGES.uiManager.bulkFileRestoreError, error)
-
-        // Try to restore individual files and report specific failures
-        for (const file of filesNeedingPermission) {
-          try {
-            await fileSystemAccessFacade.requestStoredFilesAccess([file])
-          } catch (fileError) {
-            console.error(
-              t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreFailed', { fileName: file.name })
-            )
-            console.error(
-              t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreError', { fileName: file.name }),
-              fileError
-            )
-          }
-        }
-
-        this.showToast(t.bulkRestoreFailed(), 'error')
-      } else {
-        console.error(
-          t.get('SYSTEM_MESSAGES.uiManager.bulkRestoreSilentFailed', { prefix: logPrefix }),
-          error
-        )
+        console.log(`${logPrefix} Showing success notification`)
+        toastManager.success(t.filesRestored(restoredFiles.length))
       }
+
+      // Notify about metadata upgrades
+      console.log(`Metadata upgrade completed for ${upgradedCount} files`)
+
+      // Remove global hijacking since files have been restored
+      this.removeGlobalActivationHijacking()
+    } else {
+      console.log(`${logPrefix} No files were restored`)
+
+      if (!silent) {
+        console.log(`${logPrefix} Silent mode - not showing failure notification`)
+      }
+    }
+
+    // Handle individual file failures
+    const failedFiles = filesNeedingPermission.filter(
+      (file) => !restoredFiles?.some((restored) => restored.id === file.id)
+    )
+
+    if (failedFiles.length > 0) {
+      failedFiles.forEach((file) => {
+        console.log(`${logPrefix} File restoration failed: ${file.name}`)
+        console.error(
+          `${logPrefix} File restoration error: ${file.name}`,
+          new Error('File access could not be restored')
+        )
+      })
+
+      if (!silent) {
+        console.log(`${logPrefix} Silent mode - not showing individual failure notifications`)
+      }
+    } else if (!silent) {
+      console.error('Bulk file restore operation error')
     }
   }
 
@@ -1189,59 +1140,38 @@ class UIManager {
   }
 
   /**
-   * Centralized method to update segment duration controls from settings
+   * Update segment controls DOM with current settings
    * @param {Object} settings - Segment settings object
-   * @private
    */
   updateSegmentControlsDOM(settings) {
-    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.segmentControlsUpdateCalled, settings)
+    console.log('Segment controls update called with settings:', settings)
 
-    // Set min duration controls (both property and attribute for proper DOM updates)
-    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.settingMinDuration, settings.minDuration)
+    // Update minimum duration
+    console.log(`Setting min duration to: ${settings.minDuration}`)
     this.minDurationSlider.value = settings.minDuration
-    this.minDurationSlider.setAttribute('value', settings.minDuration)
     this.minDurationInput.value = settings.minDuration
-    this.minDurationInput.setAttribute('value', settings.minDuration)
 
-    // Set max duration controls (both property and attribute for proper DOM updates)
-    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.settingMaxDuration, settings.maxDuration)
+    // Update maximum duration
+    console.log(`Setting max duration to: ${settings.maxDuration}`)
     this.maxDurationSlider.value = settings.maxDuration
-    this.maxDurationSlider.setAttribute('value', settings.maxDuration)
     this.maxDurationInput.value = settings.maxDuration
-    this.maxDurationInput.setAttribute('value', settings.maxDuration)
 
-    // Set skip start controls (both property and attribute for proper DOM updates)
-    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.settingSkipStart, settings.skipStart)
+    // Update skip start
+    console.log(`Setting skip start to: ${settings.skipStart}`)
     this.skipStartSlider.value = settings.skipStart
-    this.skipStartSlider.setAttribute('value', settings.skipStart)
     this.skipStartInput.value = settings.skipStart
-    this.skipStartInput.setAttribute('value', settings.skipStart)
 
-    // Set skip end controls (both property and attribute for proper DOM updates)
-    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.settingSkipEnd, settings.skipEnd)
+    // Update skip end
+    console.log(`Setting skip end to: ${settings.skipEnd}`)
     this.skipEndSlider.value = settings.skipEnd
-    this.skipEndSlider.setAttribute('value', settings.skipEnd)
     this.skipEndInput.value = settings.skipEnd
-    this.skipEndInput.setAttribute('value', settings.skipEnd)
 
-    console.log(
-      STRINGS.SYSTEM_MESSAGES.uiManager.finalDOMValues,
-      this.minDurationSlider.value,
-      'minInput:',
-      this.minDurationInput.value,
-      'maxSlider:',
-      this.maxDurationSlider.value,
-      'maxInput:',
-      this.maxDurationInput.value,
-      'skipStartSlider:',
-      this.skipStartSlider.value,
-      'skipStartInput:',
-      this.skipStartInput.value,
-      'skipEndSlider:',
-      this.skipEndSlider.value,
-      'skipEndInput:',
-      this.skipEndInput.value
-    )
+    console.log('Final DOM values:', {
+      minDuration: this.minDurationSlider.value,
+      maxDuration: this.maxDurationSlider.value,
+      skipStart: this.skipStartSlider.value,
+      skipEnd: this.skipEndSlider.value,
+    })
   }
 
   /**
@@ -1774,29 +1704,29 @@ class UIManager {
   initializeAdvancedControlsFromRestoredState() {
     // Prevent double initialization
     if (this.advancedControlsInitialized) {
-      console.log(STRINGS.SYSTEM_MESSAGES.uiManager.advancedControlsAlreadyInit)
+      console.log('Advanced controls already initialized - skipping')
       return
     }
 
-    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.advancedControlsInitStart)
+    console.log('Starting advanced controls initialization from restored state')
 
     // Load current settings using centralized DOM update method
     const settings = stateManager.getSegmentSettings()
-    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.segmentSettingsFromState, settings)
+    console.log('Segment settings loaded from state:', settings)
     this.updateSegmentControlsDOM(settings)
-    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.domUpdatedWithSegmentSettings)
+    console.log('DOM updated with segment settings')
 
     // Restore UI settings from state manager
     const uiSettings = stateManager.getUISettings()
-    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.uiSettingsFromState, uiSettings)
+    console.log('UI settings loaded from state:', uiSettings)
 
     // Use the existing method to update panel visibility and toggle state
     this.updateAdvancedPanelVisibility(uiSettings.advancedControlsVisible)
 
     if (uiSettings.advancedControlsVisible) {
-      console.log(STRINGS.SYSTEM_MESSAGES.uiManager.advancedControlsVisible)
+      console.log('Advanced controls are visible')
     } else {
-      console.log(STRINGS.SYSTEM_MESSAGES.uiManager.advancedControlsHidden)
+      console.log('Advanced controls are hidden')
     }
 
     // Initialize projection manager after advanced controls (Story 6.3)
@@ -1808,7 +1738,7 @@ class UIManager {
 
     // Set the flag to true to prevent double initialization
     this.advancedControlsInitialized = true
-    console.log(STRINGS.SYSTEM_MESSAGES.uiManager.advancedControlsInitComplete)
+    console.log('Advanced controls initialization complete')
   }
 
   /**

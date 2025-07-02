@@ -9,7 +9,6 @@ import { eventBus } from './eventBus.js'
 import { stateManager } from './stateManager.js'
 import { toastManager } from './toastManager.js'
 import { STATE_EVENTS, PROJECTION_EVENTS } from './constants/events.js'
-import { t } from './constants/strings.js'
 
 class ProjectionManager {
   constructor() {
@@ -104,7 +103,7 @@ class ProjectionManager {
       !this.toggleButton ||
       !this.projectionModeControls
     ) {
-      console.error(t.get('SYSTEM_MESSAGES.projectionManager.requiredElementsNotFound'))
+      console.error('Required DOM elements not found for projection manager initialization')
       return false
     }
 
@@ -115,7 +114,9 @@ class ProjectionManager {
       !this.aspectHeightInput ||
       !this.matchScreenButton
     ) {
-      console.error(t.get('SYSTEM_MESSAGES.projectionManager.requiredAspectElementsNotFound'))
+      console.error(
+        'Required aspect ratio DOM elements not found for projection manager initialization'
+      )
       return false
     }
 
@@ -129,7 +130,7 @@ class ProjectionManager {
     this.loadPersistedState()
 
     this.isInitialized = true
-    console.log(t.get('SYSTEM_MESSAGES.projectionManager.initialized'))
+    console.log('ProjectionManager initialized successfully')
     return true
   }
 
@@ -181,9 +182,10 @@ class ProjectionManager {
   /**
    * Enter Projection Setup Mode (AC 3.2)
    */
-  enterProjectionMode() {
+  async enterProjectionMode() {
+    console.log('Entering projection mode')
     try {
-      console.log(t.get('SYSTEM_MESSAGES.projectionManager.enteringMode'))
+      console.log('Entering projection mode')
 
       // Step 1: Update internal state first (needed for applyAspectRatioToStage)
       this.isActive = true
@@ -212,19 +214,20 @@ class ProjectionManager {
         timestamp: Date.now(),
       })
 
-      console.log(t.get('SYSTEM_MESSAGES.projectionManager.modeEntered'))
+      console.log('Projection mode entered successfully')
     } catch (error) {
       console.error('Error entering projection mode:', error)
-      toastManager.error(t.projectionModeEnterFailed())
+      toastManager.error('Projection mode enter failed')
     }
   }
 
   /**
    * Exit Projection Setup Mode (AC 3.3)
    */
-  exitProjectionMode() {
+  async exitProjectionMode() {
+    console.log('Exiting projection mode')
     try {
-      console.log(t.get('SYSTEM_MESSAGES.projectionManager.exitingMode'))
+      console.log('Exiting projection mode')
 
       // Remove our custom corner handles
       this.removeCornerHandles()
@@ -250,10 +253,10 @@ class ProjectionManager {
         timestamp: Date.now(),
       })
 
-      console.log(t.get('SYSTEM_MESSAGES.projectionManager.modeExited'))
+      console.log('Projection mode exited successfully')
     } catch (error) {
       console.error('Error exiting projection mode:', error)
-      toastManager.error(t.projectionModeExitFailed())
+      toastManager.error('Projection mode exit failed')
     }
   }
 
@@ -512,11 +515,11 @@ class ProjectionManager {
           targetPoints: targetPoints,
         },
       ]
-      console.log(t.get('SYSTEM_MESSAGES.projectionManager.maptasticLayoutUpdated'), layout)
+      console.log('Maptastic layout updated', layout)
 
       this.maptasticInstance.setLayout(layout)
     } catch (error) {
-      console.error(t.get('SYSTEM_MESSAGES.projectionManager.maptasticLayoutUpdateError'), error)
+      console.error('Maptastic layout update error:', error)
     }
   }
 
@@ -532,9 +535,9 @@ class ProjectionManager {
         },
       })
 
-      console.log(t.get('SYSTEM_MESSAGES.projectionManager.maptasticLayoutSaved'))
+      console.log('Maptastic layout saved')
     } catch (error) {
-      console.error(t.get('SYSTEM_MESSAGES.projectionManager.maptasticLayoutSaveError'), error)
+      console.error('Maptastic layout save error:', error)
     }
   }
 
@@ -551,14 +554,14 @@ class ProjectionManager {
         // Update Maptastic with loaded layout
         this.updateMaptasticLayout()
 
-        console.log(t.get('SYSTEM_MESSAGES.projectionManager.maptasticLayoutLoaded'))
+        console.log('Maptastic layout loaded')
       } else {
         // Initialize with default corner positions (stage corners)
         this.initializeDefaultCornerPositions()
-        console.log(t.get('SYSTEM_MESSAGES.projectionManager.noSavedLayout'))
+        console.log('No saved maptastic layout found')
       }
     } catch (error) {
-      console.error(t.get('SYSTEM_MESSAGES.projectionManager.maptasticLayoutLoadError'), error)
+      console.error('Maptastic layout load error:', error)
       // Fallback to default positions
       this.initializeDefaultCornerPositions()
     }
@@ -598,7 +601,7 @@ class ProjectionManager {
       }
     })
 
-    console.log(t.get('SYSTEM_MESSAGES.projectionManager.handlesPositioned'))
+    console.log('Handles positioned')
   }
 
   /**
@@ -645,7 +648,7 @@ class ProjectionManager {
 
     // In projection mode, corner handles are fixed and don't move with window resize
     // The window resize just changes how the scene is cropped, not where the handles are
-    console.log(t.get('SYSTEM_MESSAGES.projectionManager.windowResizeInProjection'))
+    console.log('Window resize detected during projection mode')
   }
 
   /**
@@ -667,11 +670,9 @@ class ProjectionManager {
         }
       })
 
-      console.log(
-        t.get('SYSTEM_MESSAGES.projectionManager.handlesVisibilityUpdated', { isIdle: data.isIdle })
-      )
+      console.log(`Projection handles visibility updated - idle state: ${data.isIdle}`)
     } catch (error) {
-      console.error(t.get('SYSTEM_MESSAGES.projectionManager.handlesVisibilityError'), error)
+      console.error('Projection handles visibility update error:', error)
     }
   }
 
@@ -694,7 +695,7 @@ class ProjectionManager {
         this.updateToggleButton()
       }
     } catch (error) {
-      console.error(t.get('SYSTEM_MESSAGES.projectionManager.stateUpdateError'), error)
+      console.error('Projection state update error:', error)
     }
   }
 
@@ -704,14 +705,14 @@ class ProjectionManager {
   loadPersistedState() {
     try {
       const savedState = stateManager.getProjectionMode()
-      console.log(t.get('SYSTEM_MESSAGES.projectionManager.stateLoaded', { state: savedState }))
+      console.log('Projection state loaded', savedState)
 
       if (savedState && savedState.active) {
         // Restore active projection mode
         this.enterProjectionMode()
       }
     } catch (error) {
-      console.error(t.get('SYSTEM_MESSAGES.projectionManager.stateLoadError'), error)
+      console.error('Projection state load error:', error)
     }
   }
 
@@ -805,7 +806,7 @@ class ProjectionManager {
     // Save settings
     this.saveAspectRatio()
 
-    toastManager.success(t.projectionDimensionsUpdated(screenWidth, screenHeight))
+    toastManager.success('Projection dimensions updated')
   }
 
   /**
@@ -862,13 +863,11 @@ class ProjectionManager {
     this.stageElement.classList.add('projection-mode')
     this.stageElement.classList.remove('responsive-mode')
 
-    console.log(
-      t.get('SYSTEM_MESSAGES.projectionManager.stageResized', {
-        width: stageWidth,
-        height: stageHeight,
-        ratio: this.currentAspectRatio.toFixed(3),
-      })
-    )
+    console.log('Stage resized', {
+      width: stageWidth,
+      height: stageHeight,
+      ratio: this.currentAspectRatio.toFixed(3),
+    })
 
     // Notify Maptastic of stage changes after applying
     this.notifyMaptasticOfStageChange()
@@ -920,13 +919,11 @@ class ProjectionManager {
       // Update UI controls to reflect loaded state
       this.updateUIControls()
 
-      console.log(
-        t.get('SYSTEM_MESSAGES.projectionManager.aspectRatioLoaded', {
-          ratio: this.currentAspectRatio.toFixed(3),
-        })
-      )
+      console.log('Aspect ratio loaded', {
+        ratio: this.currentAspectRatio.toFixed(3),
+      })
     } catch (error) {
-      console.error(t.get('SYSTEM_MESSAGES.projectionManager.aspectRatioLoadError'), error)
+      console.error('Aspect ratio load error:', error)
       // Fallback to screen dimensions
       this.aspectRatioWidth = window.innerWidth
       this.aspectRatioHeight = window.innerHeight
@@ -946,11 +943,9 @@ class ProjectionManager {
         },
       })
     } catch (error) {
-      console.error(t.get('SYSTEM_MESSAGES.projectionManager.aspectRatioSaveError'), error)
+      console.error('Aspect ratio save error:', error)
     }
   }
-
-  // updateAspectRatioDisplay method removed - no longer displaying current aspect ratio
 
   /**
    * Notify Maptastic of stage dimension changes (Story 6.4)
@@ -981,6 +976,7 @@ class ProjectionManager {
    */
   cleanup() {
     try {
+      console.log('Projection manager cleanup completed')
       // Exit projection mode if active
       if (this.isActive) {
         this.exitProjectionMode()
@@ -1027,9 +1023,9 @@ class ProjectionManager {
 
       this.isInitialized = false
 
-      console.log(t.get('SYSTEM_MESSAGES.projectionManager.cleanupCompleted'))
+      console.log('Projection manager cleanup completed')
     } catch (error) {
-      console.error(t.get('SYSTEM_MESSAGES.projectionManager.cleanupError'), error)
+      console.error('Projection manager cleanup error:', error)
     }
   }
 }
