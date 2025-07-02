@@ -9,6 +9,7 @@ import { eventBus } from './eventBus.js'
 import { stateManager } from './stateManager.js'
 import { toastManager } from './toastManager.js'
 import { STATE_EVENTS, PROJECTION_EVENTS } from './constants/events.js'
+import { t } from './constants/strings.js'
 
 class ProjectionManager {
   constructor() {
@@ -34,6 +35,16 @@ class ProjectionManager {
       { x: 0, y: window.innerHeight }, // bottom-left
     ]
 
+    // Aspect ratio management (Story 6.4) - store width/height, calculate ratio on demand
+    this.aspectRatioWidth = 16
+    this.aspectRatioHeight = 9
+
+    // UI element references for aspect ratio controls
+    this.aspectPresetButtons = null
+    this.aspectWidthInput = null
+    this.aspectHeightInput = null
+    this.matchScreenButton = null
+
     // Projection surface configuration
     this.projectionSurface = {
       aspectRatio: null, // Will be calculated or loaded
@@ -54,6 +65,19 @@ class ProjectionManager {
     this.handleTouchStart = this.handleTouchStart.bind(this)
     this.handleTouchMove = this.handleTouchMove.bind(this)
     this.handleTouchEnd = this.handleTouchEnd.bind(this)
+
+    // Aspect ratio control handlers (Story 6.4)
+    this.handleAspectPresetClick = this.handleAspectPresetClick.bind(this)
+    this.handleAspectInputChange = this.handleAspectInputChange.bind(this)
+    this.handleMatchScreenClick = this.handleMatchScreenClick.bind(this)
+  }
+
+  /**
+   * Get the current aspect ratio (computed from width/height)
+   * @returns {number} - The aspect ratio (width/height)
+   */
+  get currentAspectRatio() {
+    return this.aspectRatioWidth / this.aspectRatioHeight
   }
 
   /**
@@ -67,6 +91,12 @@ class ProjectionManager {
     this.toggleButton = document.getElementById('projection-toggle-btn')
     this.projectionModeControls = document.getElementById('projection-mode-controls')
 
+    // Initialize aspect ratio control elements (Story 6.4)
+    this.aspectPresetButtons = document.querySelectorAll('.aspect-preset-btn')
+    this.aspectWidthInput = document.getElementById('aspect-width')
+    this.aspectHeightInput = document.getElementById('aspect-height')
+    this.matchScreenButton = document.getElementById('match-screen-btn')
+
     // Check for required DOM elements
     if (
       !this.stageElement ||
@@ -74,18 +104,32 @@ class ProjectionManager {
       !this.toggleButton ||
       !this.projectionModeControls
     ) {
-      console.error('Required projection elements not found')
+      console.error(t.get('SYSTEM_MESSAGES.projectionManager.requiredElementsNotFound'))
+      return false
+    }
+
+    // Check for aspect ratio control elements (Story 6.4)
+    if (
+      !this.aspectPresetButtons.length ||
+      !this.aspectWidthInput ||
+      !this.aspectHeightInput ||
+      !this.matchScreenButton
+    ) {
+      console.error(t.get('SYSTEM_MESSAGES.projectionManager.requiredAspectElementsNotFound'))
       return false
     }
 
     // Set up event listeners
     this.setupEventListeners()
 
+    // Set up aspect ratio control event listeners (Story 6.4)
+    this.setupAspectRatioEventListeners()
+
     // Load persisted state
     this.loadPersistedState()
 
     this.isInitialized = true
-    console.log('ProjectionManager initialized')
+    console.log(t.get('SYSTEM_MESSAGES.projectionManager.initialized'))
     return true
   }
 
@@ -107,6 +151,23 @@ class ProjectionManager {
   }
 
   /**
+   * Set up aspect ratio control event listeners (Story 6.4)
+   */
+  setupAspectRatioEventListeners() {
+    // Preset button listeners
+    this.aspectPresetButtons.forEach((button) => {
+      button.addEventListener('click', this.handleAspectPresetClick)
+    })
+
+    // Aspect ratio input listeners
+    this.aspectWidthInput.addEventListener('input', this.handleAspectInputChange)
+    this.aspectHeightInput.addEventListener('input', this.handleAspectInputChange)
+
+    // Match screen button listener
+    this.matchScreenButton.addEventListener('click', this.handleMatchScreenClick)
+  }
+
+  /**
    * Handle projection toggle button click
    */
   handleToggleClick() {
@@ -122,36 +183,39 @@ class ProjectionManager {
    */
   enterProjectionMode() {
     try {
-      console.log('Entering projection mode')
+      console.log(t.get('SYSTEM_MESSAGES.projectionManager.enteringMode'))
 
-      // Step 1: Configure projection surface and fix stage size
-      this.configureProjectionSurface()
-
-      // Step 2: Initialize Maptastic engine (without UI controls)
-      this.initializeMaptastic()
-
-      // Step 3: Create our custom corner handles
-      this.createCornerHandles()
-
-      // Step 4: Update internal state
+      // Step 1: Update internal state first (needed for applyAspectRatioToStage)
       this.isActive = true
 
-      // Step 5: Update UI state
+      // Step 2: Load saved aspect ratio settings (Story 6.4)
+      this.loadSavedAspectRatio()
+
+      // Step 3: Apply aspect ratio to stage (Story 6.4)
+      this.applyAspectRatioToStage()
+
+      // Step 4: Initialize Maptastic engine (without UI controls)
+      this.initializeMaptastic()
+
+      // Step 5: Create our custom corner handles
+      this.createCornerHandles()
+
+      // Step 6: Update UI state
       this.updateToggleButton()
       this.showProjectionControls()
 
-      // Step 6: Update state manager
+      // Step 7: Update state manager
       stateManager.updateProjectionMode({ active: true })
 
-      // Step 7: Emit projection mode enabled event
+      // Step 8: Emit projection mode enabled event
       eventBus.emit(PROJECTION_EVENTS.MODE_ENABLED, {
         timestamp: Date.now(),
       })
 
-      console.log('Projection mode entered')
+      console.log(t.get('SYSTEM_MESSAGES.projectionManager.modeEntered'))
     } catch (error) {
-      console.error('Error entering projection mode:', error)
-      toastManager.show('Failed to enter projection mode', 'error')
+      console.error(t.get('SYSTEM_MESSAGES.projectionManager.enterModeError'), error)
+      toastManager.show(t.get('SYSTEM_MESSAGES.projectionManager.enterModeFailed'), 'error')
     }
   }
 
@@ -160,7 +224,7 @@ class ProjectionManager {
    */
   exitProjectionMode() {
     try {
-      console.log('Exiting projection mode')
+      console.log(t.get('SYSTEM_MESSAGES.projectionManager.exitingMode'))
 
       // Remove our custom corner handles
       this.removeCornerHandles()
@@ -168,7 +232,7 @@ class ProjectionManager {
       // Save current layout before disabling
       this.saveMaptasticLayout()
 
-      // Restore responsive stage styling
+      // Restore responsive stage styling (Story 6.4 AC 4.5)
       this.restoreResponsiveStage()
 
       // Update internal state
@@ -186,72 +250,15 @@ class ProjectionManager {
         timestamp: Date.now(),
       })
 
-      console.log('Projection mode exited')
+      console.log(t.get('SYSTEM_MESSAGES.projectionManager.modeExited'))
     } catch (error) {
-      console.error('Error exiting projection mode:', error)
-      toastManager.show('Failed to exit projection mode', 'error')
+      console.error(t.get('SYSTEM_MESSAGES.projectionManager.exitModeError'), error)
+      toastManager.show(t.get('SYSTEM_MESSAGES.projectionManager.exitModeFailed'), 'error')
     }
   }
 
   /**
-   * Configure projection surface and fix stage dimensions
-   */
-  configureProjectionSurface() {
-    try {
-      console.log('Configuring projection surface')
-
-      // Step 1-3: Remove responsive styling and position stage at top-left
-      this.stageElement.style.width = 'auto'
-      this.stageElement.style.height = 'auto'
-      this.stageElement.style.position = 'fixed'
-      this.stageElement.style.top = '0px'
-      this.stageElement.style.left = '0px'
-
-      // Step 4: Measure and store screen dimensions
-      this.projectionSurface.screenWidth = window.innerWidth
-      this.projectionSurface.screenHeight = window.innerHeight
-
-      // Step 5: Set stage width to screen width
-      this.stageElement.style.width = `${this.projectionSurface.screenWidth}px`
-
-      // Step 6: Check for stored projection surface aspect ratio
-      const savedState = stateManager.getProjectionMode()
-      if (savedState && savedState.projectionSurfaceAspectRatio) {
-        this.projectionSurface.aspectRatio = savedState.projectionSurfaceAspectRatio
-        console.log(
-          'Using saved projection surface aspect ratio:',
-          this.projectionSurface.aspectRatio
-        )
-      } else {
-        // Calculate screen aspect ratio as default
-        this.projectionSurface.aspectRatio =
-          this.projectionSurface.screenWidth / this.projectionSurface.screenHeight
-        console.log(
-          'Calculated projection surface aspect ratio from screen:',
-          this.projectionSurface.aspectRatio
-        )
-
-        // Save the calculated aspect ratio
-        stateManager.updateProjectionMode({
-          projectionSurfaceAspectRatio: this.projectionSurface.aspectRatio,
-        })
-      }
-
-      // Step 7: Calculate and set stage height based on aspect ratio
-      const stageHeight = this.projectionSurface.screenWidth / this.projectionSurface.aspectRatio
-      this.stageElement.style.height = `${stageHeight}px`
-
-      console.log(
-        `Stage configured: ${this.projectionSurface.screenWidth}x${stageHeight} (aspect: ${this.projectionSurface.aspectRatio})`
-      )
-    } catch (error) {
-      console.error('Error configuring projection surface:', error)
-      throw error
-    }
-  }
-
-  /**
-   * Restore responsive stage styling when exiting projection mode
+   * Restore responsive stage styling when exiting projection mode (Story 6.4 AC 4.5)
    */
   restoreResponsiveStage() {
     try {
@@ -268,12 +275,16 @@ class ProjectionManager {
       this.stageElement.style.transform = ''
       this.stageElement.style.transformOrigin = ''
 
-      // Remove fixed positioning and sizing
+      // Remove fixed positioning and sizing - return to responsive (AC 4.5)
       this.stageElement.style.position = ''
       this.stageElement.style.top = ''
       this.stageElement.style.left = ''
       this.stageElement.style.width = ''
       this.stageElement.style.height = ''
+
+      // Update stage classes for responsive mode (AC 4.5)
+      this.stageElement.classList.remove('projection-mode')
+      this.stageElement.classList.add('responsive-mode')
 
       console.log('Responsive stage styling restored')
     } catch (error) {
@@ -478,12 +489,16 @@ class ProjectionManager {
     if (!this.maptasticInstance || !this.stageElement) return
 
     try {
+      // Get current stage dimensions
+      const stageWidth = this.stageElement.offsetWidth
+      const stageHeight = this.stageElement.offsetHeight
+
       // Source points: original corners of element in natural state (stage dimensions)
       const sourcePoints = [
         [0, 0], // top-left
-        [this.projectionSurface.screenWidth, 0], // top-right
-        [this.projectionSurface.screenWidth, this.projectionSurface.screenHeight], // bottom-right
-        [0, this.projectionSurface.screenHeight], // bottom-left
+        [stageWidth, 0], // top-right
+        [stageWidth, stageHeight], // bottom-right
+        [0, stageHeight], // bottom-left
       ]
 
       // Target points: where those corners should be mapped to (pixel coordinates from user dragging)
@@ -497,11 +512,11 @@ class ProjectionManager {
           targetPoints: targetPoints,
         },
       ]
-      console.log('layout', layout)
+      console.log(t.get('SYSTEM_MESSAGES.projectionManager.maptasticLayoutUpdated'), layout)
 
       this.maptasticInstance.setLayout(layout)
     } catch (error) {
-      console.error('Error updating Maptastic layout:', error)
+      console.error(t.get('SYSTEM_MESSAGES.projectionManager.maptasticLayoutUpdateError'), error)
     }
   }
 
@@ -517,9 +532,9 @@ class ProjectionManager {
         },
       })
 
-      console.log('Maptastic layout saved')
+      console.log(t.get('SYSTEM_MESSAGES.projectionManager.maptasticLayoutSaved'))
     } catch (error) {
-      console.error('Failed to save Maptastic layout:', error)
+      console.error(t.get('SYSTEM_MESSAGES.projectionManager.maptasticLayoutSaveError'), error)
     }
   }
 
@@ -536,13 +551,34 @@ class ProjectionManager {
         // Update Maptastic with loaded layout
         this.updateMaptasticLayout()
 
-        console.log('Maptastic layout loaded')
+        console.log(t.get('SYSTEM_MESSAGES.projectionManager.maptasticLayoutLoaded'))
       } else {
-        console.log('No saved Maptastic layout found')
+        // Initialize with default corner positions (stage corners)
+        this.initializeDefaultCornerPositions()
+        console.log(t.get('SYSTEM_MESSAGES.projectionManager.noSavedLayout'))
       }
     } catch (error) {
-      console.error('Error loading saved Maptastic layout:', error)
+      console.error(t.get('SYSTEM_MESSAGES.projectionManager.maptasticLayoutLoadError'), error)
+      // Fallback to default positions
+      this.initializeDefaultCornerPositions()
     }
+  }
+
+  /**
+   * Initialize corner positions to stage corners (default state)
+   */
+  initializeDefaultCornerPositions() {
+    const stageRect = this.stageElement.getBoundingClientRect()
+
+    this.cornerPositions = [
+      { x: stageRect.left, y: stageRect.top }, // Top-left
+      { x: stageRect.right, y: stageRect.top }, // Top-right
+      { x: stageRect.right, y: stageRect.bottom }, // Bottom-right
+      { x: stageRect.left, y: stageRect.bottom }, // Bottom-left
+    ]
+
+    // Update Maptastic with default layout (stage corners map to stage corners = no distortion)
+    this.updateMaptasticLayout()
   }
 
   /**
@@ -562,7 +598,7 @@ class ProjectionManager {
       }
     })
 
-    console.log('Corner handles positioned using pixel coordinates')
+    console.log(t.get('SYSTEM_MESSAGES.projectionManager.handlesPositioned'))
   }
 
   /**
@@ -609,7 +645,7 @@ class ProjectionManager {
 
     // In projection mode, corner handles are fixed and don't move with window resize
     // The window resize just changes how the scene is cropped, not where the handles are
-    console.log('Window resized in projection mode - handles remain fixed')
+    console.log(t.get('SYSTEM_MESSAGES.projectionManager.windowResizeInProjection'))
   }
 
   /**
@@ -631,9 +667,11 @@ class ProjectionManager {
         }
       })
 
-      console.log('Corner handles visibility updated for idle state:', data.isIdle)
+      console.log(
+        t.get('SYSTEM_MESSAGES.projectionManager.handlesVisibilityUpdated', { isIdle: data.isIdle })
+      )
     } catch (error) {
-      console.error('Error handling idle state change:', error)
+      console.error(t.get('SYSTEM_MESSAGES.projectionManager.handlesVisibilityError'), error)
     }
   }
 
@@ -656,7 +694,7 @@ class ProjectionManager {
         this.updateToggleButton()
       }
     } catch (error) {
-      console.error('Error handling projection mode update:', error)
+      console.error(t.get('SYSTEM_MESSAGES.projectionManager.stateUpdateError'), error)
     }
   }
 
@@ -666,14 +704,14 @@ class ProjectionManager {
   loadPersistedState() {
     try {
       const savedState = stateManager.getProjectionMode()
-      console.log('Projection mode state loaded:', savedState)
+      console.log(t.get('SYSTEM_MESSAGES.projectionManager.stateLoaded', { state: savedState }))
 
       if (savedState && savedState.active) {
         // Restore active projection mode
         this.enterProjectionMode()
       }
     } catch (error) {
-      console.error('Error loading persisted projection state:', error)
+      console.error(t.get('SYSTEM_MESSAGES.projectionManager.stateLoadError'), error)
     }
   }
 
@@ -683,6 +721,265 @@ class ProjectionManager {
    */
   isProjectionModeActive() {
     return this.isActive
+  }
+
+  /**
+   * Handle aspect ratio preset button clicks (Story 6.4)
+   * @param {Event} event - Click event
+   */
+  handleAspectPresetClick(event) {
+    const ratioName = event.target.dataset.ratio
+    const [width, height] = ratioName.split(':').map(Number)
+
+    // Update state
+    this.aspectRatioWidth = width
+    this.aspectRatioHeight = height
+
+    // Update the input fields
+    this.aspectWidthInput.value = width
+    this.aspectHeightInput.value = height
+
+    // Update UI
+    this.updateUIControls()
+
+    // Apply to stage if in projection mode
+    if (this.isActive) {
+      this.applyAspectRatioToStage()
+    }
+
+    // Save settings
+    this.saveAspectRatio()
+  }
+
+  /**
+   * Handle aspect ratio input changes (Story 6.4)
+   */
+  handleAspectInputChange() {
+    const width = parseFloat(this.aspectWidthInput.value)
+    const height = parseFloat(this.aspectHeightInput.value)
+
+    // Validate inputs
+    if (isNaN(width) || isNaN(height) || width <= 0 || height <= 0) {
+      return // Invalid input, don't update
+    }
+
+    // Update state
+    this.aspectRatioWidth = width
+    this.aspectRatioHeight = height
+
+    // Update UI (clear preset selections)
+    this.updateUIControls()
+
+    // Apply to stage if in projection mode
+    if (this.isActive) {
+      this.applyAspectRatioToStage()
+    }
+
+    // Save settings
+    this.saveAspectRatio()
+  }
+
+  /**
+   * Handle "Match Current Screen" button click (Story 6.4)
+   */
+  handleMatchScreenClick() {
+    const screenWidth = window.innerWidth
+    const screenHeight = window.innerHeight
+
+    // Update state
+    this.aspectRatioWidth = screenWidth
+    this.aspectRatioHeight = screenHeight
+
+    // Update the input fields
+    this.aspectWidthInput.value = screenWidth
+    this.aspectHeightInput.value = screenHeight
+
+    // Update UI (clear preset selections)
+    this.updateUIControls()
+
+    // Apply to stage if in projection mode
+    if (this.isActive) {
+      this.applyAspectRatioToStage()
+    }
+
+    // Save settings
+    this.saveAspectRatio()
+
+    toastManager.show(
+      t.get('SYSTEM_MESSAGES.projectionManager.screenDimensionsApplied', {
+        width: screenWidth,
+        height: screenHeight,
+      }),
+      'success'
+    )
+  }
+
+  /**
+   * Update UI controls to reflect current aspect ratio state (Story 6.4)
+   */
+  updateUIControls() {
+    // Clear all preset button active states
+    this.aspectPresetButtons.forEach((button) => {
+      button.classList.remove('active')
+    })
+
+    // Check if current dimensions match any preset and activate it
+    const currentRatio = this.aspectRatioWidth / this.aspectRatioHeight
+    this.aspectPresetButtons.forEach((button) => {
+      const [presetWidth, presetHeight] = button.dataset.ratio.split(':').map(Number)
+      const presetRatio = presetWidth / presetHeight
+      if (Math.abs(currentRatio - presetRatio) < 0.01) {
+        button.classList.add('active')
+      }
+    })
+
+    // Update input fields to reflect current state
+    this.aspectWidthInput.value = this.aspectRatioWidth
+    this.aspectHeightInput.value = this.aspectRatioHeight
+  }
+
+  /**
+   * Apply current aspect ratio to stage dimensions (Story 6.4 AC 4.4)
+   */
+  applyAspectRatioToStage() {
+    if (!this.isActive) return
+
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+
+    // Always start with screen width, then calculate height from aspect ratio
+    let stageWidth = viewportWidth
+    let stageHeight = stageWidth / this.currentAspectRatio
+
+    // If calculated height exceeds screen height, constrain by height instead
+    if (stageHeight > viewportHeight) {
+      stageHeight = viewportHeight
+      stageWidth = stageHeight * this.currentAspectRatio
+    }
+
+    // Apply dimensions and top-left positioning (AC 4.1, AC 4.4)
+    this.stageElement.style.width = `${stageWidth}px`
+    this.stageElement.style.height = `${stageHeight}px`
+    this.stageElement.style.position = 'fixed'
+    this.stageElement.style.top = '0px'
+    this.stageElement.style.left = '0px'
+
+    // Update stage class for styling
+    this.stageElement.classList.add('projection-mode')
+    this.stageElement.classList.remove('responsive-mode')
+
+    console.log(
+      t.get('SYSTEM_MESSAGES.projectionManager.stageResized', {
+        width: stageWidth,
+        height: stageHeight,
+        ratio: this.currentAspectRatio.toFixed(3),
+      })
+    )
+
+    // Notify Maptastic of stage changes after applying
+    this.notifyMaptasticOfStageChange()
+  }
+
+  /**
+   * Load saved aspect ratio from state (Story 6.4)
+   */
+  loadSavedAspectRatio() {
+    try {
+      const savedState = stateManager.getProjectionMode()
+
+      if (savedState && savedState.aspectRatio) {
+        const aspectRatio = savedState.aspectRatio
+
+        // New format: width/height object
+        if (aspectRatio.width && aspectRatio.height) {
+          this.aspectRatioWidth = aspectRatio.width
+          this.aspectRatioHeight = aspectRatio.height
+        }
+        // Backward compatibility: simple ratio number
+        else if (typeof aspectRatio === 'number') {
+          const targetRatio = aspectRatio
+
+          if (Math.abs(targetRatio - 16 / 9) < 0.01) {
+            // Close to 16:9
+            this.aspectRatioWidth = 16
+            this.aspectRatioHeight = 9
+          } else if (Math.abs(targetRatio - 4 / 3) < 0.01) {
+            // Close to 4:3
+            this.aspectRatioWidth = 4
+            this.aspectRatioHeight = 3
+          } else if (Math.abs(targetRatio - 1) < 0.01) {
+            // Close to 1:1
+            this.aspectRatioWidth = 1
+            this.aspectRatioHeight = 1
+          } else {
+            // Custom ratio - scale up to reasonable numbers
+            this.aspectRatioWidth = Math.round(targetRatio * 100)
+            this.aspectRatioHeight = 100
+          }
+        }
+      } else {
+        // Default to current screen dimensions (AC 4.3a)
+        this.aspectRatioWidth = window.innerWidth
+        this.aspectRatioHeight = window.innerHeight
+      }
+
+      // Update UI controls to reflect loaded state
+      this.updateUIControls()
+
+      console.log(
+        t.get('SYSTEM_MESSAGES.projectionManager.aspectRatioLoaded', {
+          ratio: this.currentAspectRatio.toFixed(3),
+        })
+      )
+    } catch (error) {
+      console.error(t.get('SYSTEM_MESSAGES.projectionManager.aspectRatioLoadError'), error)
+      // Fallback to screen dimensions
+      this.aspectRatioWidth = window.innerWidth
+      this.aspectRatioHeight = window.innerHeight
+      this.updateUIControls()
+    }
+  }
+
+  /**
+   * Save current aspect ratio to state (Story 6.4)
+   */
+  saveAspectRatio() {
+    try {
+      stateManager.updateProjectionMode({
+        aspectRatio: {
+          width: this.aspectRatioWidth,
+          height: this.aspectRatioHeight,
+        },
+      })
+    } catch (error) {
+      console.error(t.get('SYSTEM_MESSAGES.projectionManager.aspectRatioSaveError'), error)
+    }
+  }
+
+  // updateAspectRatioDisplay method removed - no longer displaying current aspect ratio
+
+  /**
+   * Notify Maptastic of stage dimension changes (Story 6.4)
+   */
+  notifyMaptasticOfStageChange() {
+    // Trigger Maptastic to recalculate based on new stage dimensions
+    eventBus.emit('projection.stageResized', {
+      width: this.stageElement.offsetWidth,
+      height: this.stageElement.offsetHeight,
+      aspectRatio: {
+        width: this.aspectRatioWidth,
+        height: this.aspectRatioHeight,
+      },
+    })
+
+    // DON'T reset corner positions - preserve user's projection mapping
+    // Corner positions should only be reset when explicitly loading saved layout
+    // or when entering projection mode for the first time
+
+    // Update Maptastic layout if it exists to account for stage size changes
+    if (this.maptasticInstance) {
+      this.updateMaptasticLayout()
+    }
   }
 
   /**
@@ -703,6 +1000,22 @@ class ProjectionManager {
         this.toggleButton.removeEventListener('click', this.handleToggleClick)
       }
 
+      // Remove aspect ratio control event listeners (Story 6.4)
+      if (this.aspectPresetButtons) {
+        this.aspectPresetButtons.forEach((button) => {
+          button.removeEventListener('click', this.handleAspectPresetClick)
+        })
+      }
+      if (this.aspectWidthInput) {
+        this.aspectWidthInput.removeEventListener('input', this.handleAspectInputChange)
+      }
+      if (this.aspectHeightInput) {
+        this.aspectHeightInput.removeEventListener('input', this.handleAspectInputChange)
+      }
+      if (this.matchScreenButton) {
+        this.matchScreenButton.removeEventListener('click', this.handleMatchScreenClick)
+      }
+
       eventBus.off('ui.idleStateChanged', this.handleIdleStateChange)
       eventBus.off(STATE_EVENTS.PROJECTION_MODE_UPDATED, this.handleProjectionModeUpdate)
       window.removeEventListener('resize', this.handleWindowResize)
@@ -720,9 +1033,9 @@ class ProjectionManager {
 
       this.isInitialized = false
 
-      console.log('ProjectionManager cleaned up')
+      console.log(t.get('SYSTEM_MESSAGES.projectionManager.cleanupCompleted'))
     } catch (error) {
-      console.error('Error during ProjectionManager cleanup:', error)
+      console.error(t.get('SYSTEM_MESSAGES.projectionManager.cleanupError'), error)
     }
   }
 }

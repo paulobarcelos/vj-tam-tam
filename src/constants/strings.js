@@ -480,6 +480,51 @@ export const STRINGS = {
       textDisplayResumed: 'Text display resumed',
     },
 
+    // Projection Manager messages
+    projectionManager: {
+      initialized: 'ProjectionManager initialized',
+      initError: 'Error initializing ProjectionManager:',
+      requiredElementsNotFound: 'Required projection elements not found',
+      requiredAspectElementsNotFound: 'Required aspect ratio control elements not found',
+
+      enteringMode: 'Entering projection mode',
+      modeEntered: 'Projection mode entered',
+      enterModeError: 'Error entering projection mode:',
+      enterModeFailed: 'Failed to enter projection mode',
+
+      exitingMode: 'Exiting projection mode',
+      modeExited: 'Projection mode exited',
+      exitModeError: 'Error exiting projection mode:',
+      exitModeFailed: 'Failed to exit projection mode',
+
+      maptasticLayoutUpdated: 'Maptastic layout updated:',
+      maptasticLayoutUpdateError: 'Error updating Maptastic layout:',
+      maptasticLayoutSaved: 'Maptastic layout saved',
+      maptasticLayoutSaveError: 'Failed to save Maptastic layout:',
+      maptasticLayoutLoaded: 'Maptastic layout loaded',
+      maptasticLayoutLoadError: 'Error loading saved Maptastic layout:',
+      noSavedLayout: 'No saved Maptastic layout found, initialized default positions',
+
+      handlesPositioned: 'Corner handles positioned using pixel coordinates',
+      handlesVisibilityUpdated: 'Corner handles visibility updated for idle state: {{isIdle}}',
+      handlesVisibilityError: 'Error handling idle state change:',
+      windowResizeInProjection: 'Window resized in projection mode - handles remain fixed',
+
+      stateLoaded: 'Projection mode state loaded: {{state}}',
+      stateLoadError: 'Error loading persisted projection state:',
+      stateUpdateError: 'Error handling projection mode update:',
+
+      aspectRatioSet: 'Aspect ratio set to {{ratio}}',
+      aspectRatioLoaded: 'Aspect ratio loaded: {{ratio}}',
+      aspectRatioLoadError: 'Failed to load aspect ratio:',
+      aspectRatioSaveError: 'Failed to save aspect ratio:',
+      stageResized: 'Stage sized to {{width}}x{{height}} for aspect ratio {{ratio}}',
+      screenDimensionsApplied: 'Screen dimensions applied: {{width}}×{{height}}',
+
+      cleanupCompleted: 'ProjectionManager cleaned up',
+      cleanupError: 'Error during ProjectionManager cleanup:',
+    },
+
     // Application initialization messages
     application: {
       initialized: 'VJ Tam Tam application ready',

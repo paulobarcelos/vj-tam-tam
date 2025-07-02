@@ -996,6 +996,162 @@ body {
   border-radius: 4px;
 }
 
+/* Aspect Ratio Controls */
+.aspect-ratio-section {
+  margin-bottom: 1rem;
+}
+
+.control-label {
+  display: block;
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+  color: #fff;
+}
+
+/* Current aspect ratio display */
+.current-aspect-ratio {
+  background: #2a2a2a;
+  border: 2px solid #555;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.aspect-ratio-label {
+  display: block;
+  font-size: 0.9rem;
+  color: #ccc;
+  margin-bottom: 0.5rem;
+}
+
+.aspect-ratio-value {
+  display: block;
+  font-size: 2rem;
+  font-weight: bold;
+  color: #4CAF50;
+  font-family: 'Courier New', monospace;
+}
+
+.aspect-preset-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.aspect-preset-btn {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  color: white;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  flex: 1;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.aspect-preset-btn:hover {
+  background: #3a3a3a;
+  border-color: #555;
+}
+
+.aspect-preset-btn.active {
+  background: #4CAF50;
+  border-color: #4CAF50;
+  color: white;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.aspect-preset-btn:focus {
+  outline: 2px solid #007acc;
+  outline-offset: 2px;
+}
+
+.custom-aspect-controls label {
+  display: block;
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+  color: #ccc;
+}
+
+.aspect-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.aspect-input-group input {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  color: white;
+  padding: 0.5rem;
+  width: 80px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.aspect-input-group input:focus {
+  outline: none;
+  border-color: #007acc;
+  background: #333;
+}
+
+.aspect-separator {
+  color: #ccc;
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.secondary-button {
+  background: #333;
+  border: 1px solid #555;
+  color: white;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  white-space: nowrap;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.secondary-button:hover {
+  background: #444;
+  border-color: #666;
+}
+
+.secondary-button:focus {
+  outline: 2px solid #007acc;
+  outline-offset: 2px;
+}
+
+.custom-aspect-controls > .secondary-button {
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+/* Stage positioning in projection mode */
+.stage.projection-mode {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* Width and height set dynamically by JavaScript */
+}
+
+.stage.responsive-mode {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
 /* Maptastic handles visibility based on UI state (AC 3.7) */
 .ui-idle canvas[data-maptastic] {
   opacity: 0;
