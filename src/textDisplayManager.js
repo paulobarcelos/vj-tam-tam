@@ -6,7 +6,6 @@
 
 import { eventBus } from './eventBus.js'
 import { stateManager } from './stateManager.js'
-import { STRINGS } from './constants/strings.js'
 import {
   TEXT_OVERLAY_EVENTS,
   TEXT_POOL_EVENTS,
@@ -35,7 +34,7 @@ class TextDisplayManager {
     this.overlayElement = document.getElementById('text-overlay')
 
     if (!this.overlayContainer || !this.overlayElement) {
-      console.error(STRINGS.SYSTEM_MESSAGES.textDisplayManager.elementsNotFound)
+      console.error('Required text display elements not found')
       return false
     }
 

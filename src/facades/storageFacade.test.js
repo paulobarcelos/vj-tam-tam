@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { storageFacade } from './storageFacade'
+import { storageFacade } from './storageFacade.js'
 import { STRINGS } from '../constants/strings.js'
 
 // Mock the toastManager module

@@ -412,4 +412,4 @@ class FileSystemAccessFacade {
   }
 }
 
-export default new FileSystemAccessFacade()
+export const fileSystemAccessFacade = new FileSystemAccessFacade()
