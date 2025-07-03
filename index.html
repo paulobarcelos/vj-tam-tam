@@ -204,6 +204,46 @@
               <span class="duration-unit">sec</span>
             </div>
           </div>
+          
+          <!-- Color Correction Controls -->
+          <div id="color-correction-controls" class="color-controls-section">
+            <label class="control-label">Color Correction</label>
+            
+            <!-- Brightness Control -->
+            <div class="color-control-group">
+              <label class="color-label">Brightness</label>
+              <div class="control-with-reset">
+                <input type="range" id="brightness-slider" min="0.0" max="2.0" step="0.05" value="1.0" class="color-slider">
+                <span id="brightness-value" class="value-display">100%</span>
+                <button id="reset-brightness-btn" class="reset-button">Reset</button>
+              </div>
+            </div>
+            
+            <!-- Contrast Control -->
+            <div class="color-control-group">
+              <label class="color-label">Contrast</label>
+              <div class="control-with-reset">
+                <input type="range" id="contrast-slider" min="0.0" max="2.0" step="0.05" value="1.0" class="color-slider">
+                <span id="contrast-value" class="value-display">100%</span>
+                <button id="reset-contrast-btn" class="reset-button">Reset</button>
+              </div>
+            </div>
+            
+            <!-- Saturation Control -->
+            <div class="color-control-group">
+              <label class="color-label">Saturation</label>
+              <div class="control-with-reset">
+                <input type="range" id="saturation-slider" min="0" max="2" step="0.05" value="1.0" class="color-slider">
+                <span id="saturation-value" class="value-display">100%</span>
+                <button id="reset-saturation-btn" class="reset-button">Reset</button>
+              </div>
+            </div>
+            
+            <!-- Master Reset -->
+            <div class="master-reset-section">
+              <button id="reset-all-colors-btn" class="master-reset-button">Reset All Colors</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
