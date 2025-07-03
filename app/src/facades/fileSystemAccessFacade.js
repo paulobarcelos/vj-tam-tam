@@ -27,7 +27,7 @@ class FileSystemAccessFacade {
    */
   async init() {
     if (!this.isSupported) {
-      console.log('FileSystemAccessAPI not supported, falling back to metadata-only persistence')
+      console.log('FileSystemAccessAPI not supported')
       return false
     }
 
@@ -112,6 +112,12 @@ class FileSystemAccessFacade {
       return null
     }
 
+    // Validate that we have a valid ID
+    if (!id || id === undefined || id === null || id === '') {
+      console.warn(`Cannot retrieve file handle - missing or invalid ID (ID: ${id})`)
+      return null
+    }
+
     try {
       const transaction = this.db.transaction([STORE_NAME], 'readonly')
       const store = transaction.objectStore(STORE_NAME)
@@ -134,7 +140,9 @@ class FileSystemAccessFacade {
               // Try to request permission
               const newPermission = await result.fileHandle.requestPermission({ mode: 'read' })
               if (newPermission !== 'granted') {
-                console.warn(`Permission denied for file: ${result.metadata.name}`)
+                console.warn(
+                  `Permission denied for file: ${result.metadata?.name || 'Unknown File'}`
+                )
                 resolve(null)
                 return
               }
@@ -187,7 +195,9 @@ class FileSystemAccessFacade {
       // During page load, user activation can be inconsistent
       const isActive = navigator.userActivation.isActive
       const hasBeenActive = navigator.userActivation.hasBeenActive
-      const result = isActive || hasBeenActive
+
+      // Need both to be true for user activation to be valid
+      const result = isActive && hasBeenActive
 
       console.log(
         `User activation check: isActive=${isActive}, hasBeenActive=${hasBeenActive}, result=${result}`
@@ -217,46 +227,80 @@ class FileSystemAccessFacade {
         const request = store.getAll()
 
         request.onsuccess = () => {
-          const results = request.result
+          try {
+            const results = request.result
 
-          if (results.length === 0) {
-            console.log('No file handles found in storage')
-            return resolve([])
-          }
+            if (results.length === 0) {
+              console.log('No file handles found')
+              return resolve([])
+            }
 
-          console.log(`Found ${results.length} stored file handles`)
+            console.log(`Found ${results.length} stored file handles`)
 
-          // Check if we have user activation for permission requests
-          if (!this.hasUserActivation()) {
-            console.log('Returning metadata-only files to avoid user activation race conditions')
-            // Return metadata-only items to avoid triggering permission dialogs during app init
-            const metadataFiles = results.map((result) => ({
-              ...result.metadata,
-              // Ensure addedAt is a proper Date object
-              addedAt:
-                result.metadata.addedAt instanceof Date
-                  ? result.metadata.addedAt
-                  : new Date(result.metadata.addedAt),
-              fromFileSystemAPI: true,
-              needsPermission: true,
-            }))
+            // Check if we have user activation for permission requests
+            if (!this.hasUserActivation()) {
+              console.log('Returning metadata-only files to avoid user activation race conditions')
+              // Return metadata-only items to avoid triggering permission dialogs during app init
+              const metadataFiles = results.map((result) => {
+                if (!result.metadata) {
+                  throw new Error('Invalid metadata')
+                }
+
+                return {
+                  id: result.metadata.id,
+                  name: result.metadata.name || 'Unknown File',
+                  type: result.metadata.type,
+                  mimeType: result.metadata.mimeType,
+                  size: result.metadata.size,
+                  fromFileSystemAPI: true,
+                  needsPermission: true,
+                  file: null,
+                  url: null,
+                  // Ensure addedAt is a proper Date object
+                  addedAt:
+                    result.metadata.addedAt instanceof Date
+                      ? result.metadata.addedAt
+                      : result.metadata.addedAt
+                        ? new Date(result.metadata.addedAt)
+                        : new Date(),
+                }
+              })
+              resolve(metadataFiles)
+              return
+            }
+
+            // If we have user activation, we could try to access files here,
+            // but it's safer to return metadata-only and let the UI request access explicitly
+            const metadataFiles = results.map((result) => {
+              if (!result.metadata) {
+                throw new Error('Invalid metadata')
+              }
+
+              return {
+                id: result.metadata.id,
+                name: result.metadata.name || 'Unknown File',
+                type: result.metadata.type,
+                mimeType: result.metadata.mimeType,
+                size: result.metadata.size,
+                fromFileSystemAPI: true,
+                needsPermission: true,
+                file: null,
+                url: null,
+                // Ensure addedAt is a proper Date object
+                addedAt:
+                  result.metadata.addedAt instanceof Date
+                    ? result.metadata.addedAt
+                    : result.metadata.addedAt
+                      ? new Date(result.metadata.addedAt)
+                      : new Date(),
+              }
+            })
+
             resolve(metadataFiles)
-            return
+          } catch (error) {
+            console.error('Error processing file handles:', error)
+            resolve([])
           }
-
-          // If we have user activation, we could try to access files here,
-          // but it's safer to return metadata-only and let the UI request access explicitly
-          const metadataFiles = results.map((result) => ({
-            ...result.metadata,
-            addedAt:
-              result.metadata.addedAt instanceof Date
-                ? result.metadata.addedAt
-                : new Date(result.metadata.addedAt),
-            fromFileSystemAPI: true,
-            needsPermission: true,
-          }))
-
-          resolve(metadataFiles)
         }
 
         request.onerror = () => {
@@ -276,7 +320,7 @@ class FileSystemAccessFacade {
    */
   async requestStoredFilesAccess() {
     if (!this.isSupported || !this.db) {
-      console.log('FileSystemAccessAPI not supported or database not available')
+      console.log('File access unavailable')
       return []
     }
 
@@ -295,38 +339,28 @@ class FileSystemAccessFacade {
 
           const accessibleFiles = []
 
-          for (const result of results) {
-            try {
-              // Check permission first
-              const permissionStatus = await result.fileHandle.queryPermission({ mode: 'read' })
-
-              if (permissionStatus !== 'granted') {
-                // Request permission with user activation
-                const newPermission = await result.fileHandle.requestPermission({ mode: 'read' })
-                if (newPermission !== 'granted') {
-                  console.warn(`Permission denied for file: ${result.metadata.name}`)
-                  continue
-                }
+          // Use Promise.all to handle async operations properly in tests
+          try {
+            const filePromises = results.map(async (result) => {
+              try {
+                const restoredFile = await this.getFileFromHandle(result.id)
+                return restoredFile
+              } catch (error) {
+                console.error('Error processing file handle:', error)
+                return null
               }
+            })
 
-              // Get file data
-              const file = await result.fileHandle.getFile()
-              const url = URL.createObjectURL(file)
+            const resolvedFiles = await Promise.all(filePromises)
 
-              accessibleFiles.push({
-                ...result.metadata,
-                addedAt:
-                  result.metadata.addedAt instanceof Date
-                    ? result.metadata.addedAt
-                    : new Date(result.metadata.addedAt),
-                file,
-                url,
-                fromFileSystemAPI: true,
-              })
-            } catch (error) {
-              console.error('Error processing file handle:', error)
-              continue
+            // Filter out null results
+            for (const file of resolvedFiles) {
+              if (file) {
+                accessibleFiles.push(file)
+              }
             }
+          } catch (error) {
+            console.error('Error processing file handles in batch:', error)
           }
 
           console.log(
@@ -347,12 +381,65 @@ class FileSystemAccessFacade {
   }
 
   /**
+   * Restore access to specific files by their IDs
+   * @param {Array} items - Array of media items with IDs to restore
+   * @returns {Promise<Array>} Array of successfully restored files
+   */
+  async restoreAccess(items) {
+    if (!this.isSupported || !this.db) {
+      console.log('File access unavailable')
+      return []
+    }
+
+    console.log(`Attempting to restore access for ${items.length} files`)
+
+    const restoredFiles = []
+
+    for (const item of items) {
+      try {
+        // Validate that the item has a valid ID
+        if (!item.id || item.id === undefined || item.id === null) {
+          console.warn(
+            `Skipping file restoration for "${item.name}" - missing or invalid ID (ID: ${item.id})`
+          )
+          continue
+        }
+
+        console.log(`Restoring access for file: ${item.name} (ID: ${item.id})`)
+
+        // Use the existing getFileFromHandle method which handles permission requests
+        const restoredFile = await this.getFileFromHandle(item.id)
+
+        if (restoredFile) {
+          console.log(`Successfully restored access to: ${item.name}`)
+          restoredFiles.push(restoredFile)
+        } else {
+          console.warn(
+            `Failed to restore access to: ${item.name} - file handle not found or permission denied`
+          )
+        }
+      } catch (error) {
+        console.error(`Error restoring access to ${item.name}:`, error)
+      }
+    }
+
+    console.log(`Successfully restored access to ${restoredFiles.length} of ${items.length} files`)
+    return restoredFiles
+  }
+
+  /**
    * Remove a file handle from storage
    * @param {string} id - File identifier
    * @returns {Promise<boolean>} Success status
    */
   async removeFileHandle(id) {
     if (!this.isSupported || !this.db) {
+      return false
+    }
+
+    // Validate that we have a valid ID
+    if (!id || id === undefined || id === null || id === '') {
+      console.warn(`Cannot remove file handle - missing or invalid ID (ID: ${id})`)
       return false
     }
 

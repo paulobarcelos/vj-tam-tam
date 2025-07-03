@@ -8,6 +8,7 @@ import { toastManager } from './toastManager.js'
 import { stateManager } from './stateManager.js'
 import { playbackEngine } from './playbackEngine.js'
 import { textDisplayManager } from './textDisplayManager.js'
+import { colorCorrectionManager } from './colorCorrectionManager.js'
 import { STRINGS } from './constants/strings.js'
 
 /**
@@ -47,6 +48,14 @@ async function init() {
     // Initialize Advanced Controls after state is fully restored
     console.log('Initializing Advanced Controls')
     uiManager.initializeAdvancedControlsFromRestoredState()
+
+    // Initialize Color Correction Manager after advanced controls
+    console.log('Initializing Color Correction Manager')
+    if (colorCorrectionManager.init()) {
+      console.log('Color Correction Manager initialized successfully')
+    } else {
+      console.error('Color Correction Manager initialization failed')
+    }
 
     // Initialize Text Pool display after state is fully restored
     uiManager.initializeTextPoolDisplay()

@@ -46,6 +46,12 @@ class StateManager {
       },
       // Text frequency for text overlay display (0-1 normalized scale)
       textFrequency: 0.5, // Default middle value (equivalent to step 4 of 8)
+      // Color correction settings (Story 6.7)
+      colorFilters: {
+        brightness: 1.0, // Default 100% (1.0 multiplier, range 0.5-1.5)
+        contrast: 1.0, // Default 100% (1.0 multiplier, range 0.5-1.5)
+        saturation: 1.0, // Default 100% (1.0 multiplier, range 0.0-2.0)
+      },
       // FileSystem Access API state tracking
       fileSystemAPIWorking: null, // null = unknown, true = working, false = not working
     }
@@ -89,7 +95,7 @@ class StateManager {
   async restoreFromPersistence() {
     try {
       // Load persisted state first, always
-      const persistedState = storageFacade.load('vj-tam-tam-state')
+      const persistedState = storageFacade.loadState()
       console.log('Persisted state loaded from storage', persistedState)
 
       // First, try to restore files from FileSystemAccessAPI if supported
@@ -197,6 +203,17 @@ class StateManager {
         console.log(`No text frequency found, using default: ${this.state.textFrequency}`)
       }
 
+      // Always restore color correction settings from localStorage with fallback to defaults
+      if (persistedState?.colorFilters) {
+        console.log('Color correction settings restored:', persistedState.colorFilters)
+        this.state.colorFilters = {
+          ...this.state.colorFilters,
+          ...persistedState.colorFilters,
+        }
+      } else {
+        console.log('No color correction settings found, using defaults')
+      }
+
       // Always restore FileSystem API working state from localStorage with fallback to null
       if (persistedState?.fileSystemAPIWorking !== undefined) {
         console.log('FileSystem API working state restored:', persistedState.fileSystemAPIWorking)
@@ -263,7 +280,7 @@ class StateManager {
    */
   saveCurrentState() {
     try {
-      storageFacade.save('vj-tam-tam-state', this.state)
+      storageFacade.saveState(this.state)
       console.log('Current state saved to localStorage.')
     } catch (error) {
       console.error('Error saving current state:', error)
@@ -302,9 +319,17 @@ class StateManager {
 
         if (isUpgrade) {
           console.log(`Upgrading metadata-only file: ${newItem.name}`)
-          // Replace existing item with full data
-          this.state.mediaPool[existingIndex] = newItem
-          upgradedItems.push(newItem)
+          // Upgrade existing item while preserving original metadata (especially ID)
+          const upgradedItem = {
+            ...existingItem, // Keep original metadata including ID
+            file: newItem.file, // Update with actual file
+            url: newItem.url, // Update with actual URL
+            // Update other file-specific properties if they're missing
+            ...(newItem.mimeType && !existingItem.mimeType && { mimeType: newItem.mimeType }),
+            ...(newItem.type && !existingItem.type && { type: newItem.type }),
+          }
+          this.state.mediaPool[existingIndex] = upgradedItem
+          upgradedItems.push(upgradedItem)
         } else {
           console.log(`File already in media pool (skipped): ${newItem.name}`)
         }
@@ -354,20 +379,51 @@ class StateManager {
   }
 
   /**
+   * Upgrade media items with restored file handles
+   * @param {MediaItem[]} restoredFiles - Array of restored files with full data
+   * @returns {number} Number of items that were upgraded
+   */
+  upgradeMediaWithFileHandles(restoredFiles) {
+    if (!Array.isArray(restoredFiles) || restoredFiles.length === 0) {
+      console.log('No files to upgrade')
+      return 0
+    }
+
+    console.log(`Upgrading ${restoredFiles.length} files with restored data`)
+
+    // Track upgrade count
+    const initialUpgradedCount = this.state.mediaPool.filter(
+      (item) => !item.file || !item.url
+    ).length
+
+    // Use addMediaToPool which already handles upgrading metadata-only items
+    this.addMediaToPool(restoredFiles)
+
+    // Calculate how many were actually upgraded
+    const finalUpgradedCount = this.state.mediaPool.filter((item) => !item.file || !item.url).length
+    const upgradedCount = initialUpgradedCount - finalUpgradedCount
+
+    console.log(`Successfully upgraded ${upgradedCount} files from metadata-only to full data`)
+    return upgradedCount
+  }
+
+  /**
    * Remove a media item from the pool
    * @param {string} id - Media item ID to remove
    */
   removeMediaFromPool(id) {
     const initialLength = this.state.mediaPool.length
+    const itemToRemove = this.state.mediaPool.find((item) => item.id === id)
     this.state.mediaPool = this.state.mediaPool.filter((item) => item.id !== id)
 
-    if (this.state.mediaPool.length < initialLength) {
+    if (this.state.mediaPool.length < initialLength && itemToRemove) {
       // Remove file handle from storage (async but doesn't block)
       this.removeFileHandleAsync(id)
 
       eventBus.emit(STATE_EVENTS.MEDIA_POOL_UPDATED, {
         mediaPool: this.getMediaPool(),
-        removedItem: id,
+        removedItem: itemToRemove,
+        totalCount: this.state.mediaPool.length,
       })
     }
   }
@@ -395,7 +451,7 @@ class StateManager {
     }
 
     // Get count before clearing
-    const removedCount = this.state.mediaPool.length
+    const previousCount = this.state.mediaPool.length
 
     // Clear the pool
     this.state.mediaPool = []
@@ -406,7 +462,9 @@ class StateManager {
     // Emit event
     eventBus.emit(STATE_EVENTS.MEDIA_POOL_UPDATED, {
       mediaPool: [],
-      clearedCount: removedCount,
+      totalCount: 0,
+      previousCount,
+      cleared: true,
     })
 
     return true
@@ -426,10 +484,10 @@ class StateManager {
   /**
    * Get a media item by ID
    * @param {string} id - Media item ID
-   * @returns {MediaItem|undefined} Media item or undefined if not found
+   * @returns {MediaItem|null} Media item or null if not found
    */
   getMediaById(id) {
-    return this.state.mediaPool.find((item) => item.id === id)
+    return this.state.mediaPool.find((item) => item.id === id) || null
   }
 
   /**
@@ -491,18 +549,53 @@ class StateManager {
       return false
     }
 
-    // Check individual properties if they exist
-    const validations = [
-      !('minDuration' in settings) ||
-        (typeof settings.minDuration === 'number' && settings.minDuration >= 0),
-      !('maxDuration' in settings) ||
-        (typeof settings.maxDuration === 'number' && settings.maxDuration >= 0),
-      !('skipStart' in settings) ||
-        (typeof settings.skipStart === 'number' && settings.skipStart >= 0),
-      !('skipEnd' in settings) || (typeof settings.skipEnd === 'number' && settings.skipEnd >= 0),
-    ]
+    // Check individual properties if they exist and filter out invalid ranges
+    const filteredSettings = {}
 
-    return validations.every(Boolean)
+    // Duration ranges: 1-30 seconds
+    if ('minDuration' in settings) {
+      if (
+        typeof settings.minDuration === 'number' &&
+        settings.minDuration >= 1 &&
+        settings.minDuration <= 30
+      ) {
+        filteredSettings.minDuration = settings.minDuration
+      }
+    }
+
+    if ('maxDuration' in settings) {
+      if (
+        typeof settings.maxDuration === 'number' &&
+        settings.maxDuration >= 1 &&
+        settings.maxDuration <= 30
+      ) {
+        filteredSettings.maxDuration = settings.maxDuration
+      }
+    }
+
+    // Skip values: 0+ seconds
+    if ('skipStart' in settings) {
+      if (typeof settings.skipStart === 'number' && settings.skipStart >= 0) {
+        filteredSettings.skipStart = settings.skipStart
+      }
+    }
+
+    if ('skipEnd' in settings) {
+      if (typeof settings.skipEnd === 'number' && settings.skipEnd >= 0) {
+        filteredSettings.skipEnd = settings.skipEnd
+      }
+    }
+
+    // Replace the original settings with filtered valid ones
+    Object.keys(settings).forEach((key) => {
+      if (!(key in filteredSettings)) {
+        delete settings[key]
+      } else {
+        settings[key] = filteredSettings[key]
+      }
+    })
+
+    return Object.keys(filteredSettings).length > 0
   }
 
   /**
@@ -572,9 +665,9 @@ class StateManager {
   }
 
   /**
-   * Add text to the text pool with deduplication and management
+   * Add text to the text pool
    * @param {string} text - Text to add
-   * @returns {boolean} True if text was added, false if duplicate or invalid
+   * @returns {boolean} True if text was added, false if invalid
    */
   addText(text) {
     // Basic validation
@@ -587,9 +680,8 @@ class StateManager {
       return false
     }
 
-    // Check for duplicates using fast Set lookup
-    if (this.textPoolIndex.has(trimmedText)) {
-      this.textPoolStats.duplicatesRejected++
+    // Check length limit (200 characters)
+    if (trimmedText.length > 200) {
       return false
     }
 
@@ -597,21 +689,35 @@ class StateManager {
     if (this.state.textPool.length >= this.textPoolMaxSize) {
       // Remove oldest text to make room
       const removedText = this.state.textPool.shift()
-      this.textPoolIndex.delete(removedText)
+      if (this.textPoolIndex) {
+        this.textPoolIndex.delete(removedText)
+      }
     }
 
-    // Add new text
+    // Add new text (duplicates are allowed)
     this.state.textPool.push(trimmedText)
-    this.textPoolIndex.add(trimmedText)
+    if (this.textPoolIndex) {
+      this.textPoolIndex.add(trimmedText)
+    }
 
     // Update statistics
-    this.textPoolStats.totalAdditions++
-    this.updateAverageTextLength()
+    if (this.textPoolStats) {
+      this.textPoolStats.totalAdditions++
+      this.updateAverageTextLength()
+    }
 
-    // Emit event
-    eventBus.emit(TEXT_POOL_EVENTS.TEXT_ADDED, {
+    // Emit events
+    eventBus.emit('textPool.updated', {
+      action: 'added',
       text: trimmedText,
+      textPool: [...this.state.textPool],
       poolSize: this.state.textPool.length,
+      timestamp: Date.now(),
+    })
+
+    eventBus.emit('textPool.sizeChanged', {
+      newSize: this.state.textPool.length,
+      previousSize: this.state.textPool.length - 1,
     })
 
     // Save to persistence
@@ -642,7 +748,9 @@ class StateManager {
    * @returns {boolean} True if text exists
    */
   hasText(text) {
-    return this.textPoolIndex.has(text?.trim())
+    if (!text || typeof text !== 'string') return false
+    const trimmedText = text.trim()
+    return this.state.textPool.includes(trimmedText)
   }
 
   /**
@@ -658,7 +766,7 @@ class StateManager {
   }
 
   /**
-   * Remove text from the pool
+   * Remove text from the pool (removes first occurrence)
    * @param {string} text - Text to remove
    * @returns {boolean} True if text was removed
    */
@@ -668,27 +776,41 @@ class StateManager {
       return false
     }
 
-    if (!this.textPoolIndex.has(trimmedText)) {
-      console.warn('Text not found in pool:', trimmedText)
+    // Remove first occurrence from array
+    const index = this.state.textPool.indexOf(trimmedText)
+    if (index === -1) {
       return false
     }
 
-    // Remove from array
-    const index = this.state.textPool.indexOf(trimmedText)
-    if (index > -1) {
-      this.state.textPool.splice(index, 1)
+    const previousSize = this.state.textPool.length
+    this.state.textPool.splice(index, 1)
+
+    // Update index if it exists
+    if (this.textPoolIndex) {
+      this.textPoolIndex.delete(trimmedText)
     }
 
-    // Remove from index
-    this.textPoolIndex.delete(trimmedText)
-
     // Update statistics
-    this.updateAverageTextLength()
+    if (this.textPoolStats) {
+      this.textPoolStats.totalRemovals = (this.textPoolStats.totalRemovals || 0) + 1
+    }
+    if (this.updateAverageTextLength) {
+      this.updateAverageTextLength()
+    }
 
-    // Emit event
-    eventBus.emit(TEXT_POOL_EVENTS.TEXT_REMOVED, {
+    // Emit events
+    eventBus.emit('textPool.updated', {
+      action: 'removed',
       text: trimmedText,
+      textPool: [...this.state.textPool],
       poolSize: this.state.textPool.length,
+      timestamp: Date.now(),
+    })
+
+    eventBus.emit('textPool.sizeChanged', {
+      newSize: this.state.textPool.length,
+      previousSize,
+      isAtLimit: false,
     })
 
     // Save to persistence
@@ -707,18 +829,38 @@ class StateManager {
       return false
     }
 
-    const clearedCount = this.state.textPool.length
+    const previousSize = this.state.textPool.length
+    const previousPool = [...this.state.textPool]
 
     // Clear the arrays
     this.state.textPool = []
-    this.textPoolIndex.clear()
+    if (this.textPoolIndex) {
+      this.textPoolIndex.clear()
+    }
 
     // Reset statistics
-    this.textPoolStats.averageTextLength = 0
+    if (this.textPoolStats) {
+      this.textPoolStats.averageTextLength = 0
+      // Update clear statistics
+      this.textPoolStats.totalClears = (this.textPoolStats.totalClears || 0) + 1
+      this.textPoolStats.lastClearSize = previousSize
+      this.textPoolStats.lastClearTimestamp = Date.now()
+    }
 
-    // Emit event
-    eventBus.emit(TEXT_POOL_EVENTS.POOL_CLEARED, {
-      clearedCount,
+    // Emit events
+    eventBus.emit('textPool.updated', {
+      action: 'cleared',
+      textPool: [],
+      poolSize: 0,
+      previousSize,
+      clearedTexts: previousPool,
+      timestamp: Date.now(),
+    })
+
+    eventBus.emit('textPool.sizeChanged', {
+      newSize: 0,
+      previousSize,
+      isAtLimit: false,
     })
 
     // Save to persistence
@@ -733,10 +875,18 @@ class StateManager {
    */
   getTextPoolStats() {
     return {
-      ...this.textPoolStats,
+      totalEntries: this.state.textPool.length,
+      totalAdditions: this.textPoolStats?.totalAdditions || 0,
+      totalRemovals: this.textPoolStats?.totalRemovals || 0,
+      totalClears: this.textPoolStats?.totalClears || 0,
+      lastClearSize: this.textPoolStats?.lastClearSize,
+      lastClearTimestamp: this.textPoolStats?.lastClearTimestamp,
+      averageTextLength: this.textPoolStats?.averageTextLength || 0,
       currentSize: this.state.textPool.length,
-      maxSize: this.textPoolMaxSize,
-      utilizationPercent: Math.round((this.state.textPool.length / this.textPoolMaxSize) * 100),
+      maxSize: this.textPoolMaxSize || 1000,
+      utilizationPercent: Math.round(
+        (this.state.textPool.length / (this.textPoolMaxSize || 1000)) * 100
+      ),
     }
   }
 
@@ -814,7 +964,64 @@ class StateManager {
     this.state.fileSystemAPIWorking = isWorking
     this.saveCurrentState()
   }
+
+  /**
+   * Get current color filter settings
+   * @returns {Object} Color filter settings
+   */
+  getColorFilters() {
+    return { ...this.state.colorFilters }
+  }
+
+  /**
+   * Update color filter settings
+   * @param {Object} newFilters - New color filter values
+   */
+  updateColorFilters(newFilters) {
+    const validatedFilters = this.validateColorFilters(newFilters)
+    this.state.colorFilters = {
+      ...this.state.colorFilters,
+      ...validatedFilters,
+    }
+    this.saveCurrentState()
+    console.log('Color filters updated:', this.state.colorFilters)
+  }
+
+  /**
+   * Validate color filter settings
+   * @param {Object} filters - Color filter values to validate
+   * @returns {Object} Validated color filter values
+   */
+  validateColorFilters(filters) {
+    const validated = {}
+
+    if (filters.brightness !== undefined) {
+      const brightness = parseFloat(filters.brightness)
+      if (!isNaN(brightness) && brightness >= 0.5 && brightness <= 1.5) {
+        validated.brightness = brightness
+      }
+    }
+
+    if (filters.contrast !== undefined) {
+      const contrast = parseFloat(filters.contrast)
+      if (!isNaN(contrast) && contrast >= 0.5 && contrast <= 1.5) {
+        validated.contrast = contrast
+      }
+    }
+
+    if (filters.saturation !== undefined) {
+      const saturation = parseFloat(filters.saturation)
+      if (!isNaN(saturation) && saturation >= 0.0 && saturation <= 2.0) {
+        validated.saturation = saturation
+      }
+    }
+
+    return validated
+  }
 }
 
 // Export singleton instance
 export const stateManager = new StateManager()
+
+// Export class for testing
+export { StateManager }

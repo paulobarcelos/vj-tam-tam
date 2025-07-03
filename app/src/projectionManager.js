@@ -217,7 +217,7 @@ class ProjectionManager {
       console.log('Projection mode entered successfully')
     } catch (error) {
       console.error('Error entering projection mode:', error)
-      toastManager.error('Projection mode enter failed')
+      toastManager.show('Failed to enter projection mode', 'error')
     }
   }
 
@@ -256,7 +256,7 @@ class ProjectionManager {
       console.log('Projection mode exited successfully')
     } catch (error) {
       console.error('Error exiting projection mode:', error)
-      toastManager.error('Projection mode exit failed')
+      toastManager.show('Failed to exit projection mode', 'error')
     }
   }
 
@@ -648,7 +648,7 @@ class ProjectionManager {
 
     // In projection mode, corner handles are fixed and don't move with window resize
     // The window resize just changes how the scene is cropped, not where the handles are
-    console.log('Window resize detected during projection mode')
+    console.log('Window resized in projection mode - handles remain fixed')
   }
 
   /**
