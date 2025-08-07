@@ -169,6 +169,18 @@
                   <button id="match-screen-btn" class="secondary-button">Match Current Screen</button>
                 </div>
               </div>
+              
+              <!-- Test Card Controls (Story 6.8) -->
+              <div class="test-card-section">
+                <label class="control-label">Calibration</label>
+                
+                <div class="test-card-control-group">
+                  <button id="test-card-toggle-btn" class="test-card-button" data-active="false">
+                    <span class="button-text">Test Card</span>
+                    <span class="button-state">Off</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
           
@@ -263,6 +275,11 @@
         <div id="text-overlay" class="text-overlay">
           <!-- Text content will be dynamically inserted here -->
         </div>
+      </div>
+      
+      <!-- Test Card Overlay (Story 6.8) -->
+      <div id="test-card-overlay" class="test-card-overlay" style="display: none;">
+        <img src="assets/img/test-card.png" alt="Test Card Pattern" class="test-card-image">
       </div>
       
       <!-- Drop indicator overlay -->
