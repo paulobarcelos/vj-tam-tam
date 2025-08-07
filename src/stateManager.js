@@ -52,6 +52,10 @@ class StateManager {
         contrast: 1.0, // Default 100% (1.0 multiplier, range 0.5-1.5)
         saturation: 1.0, // Default 100% (1.0 multiplier, range 0.0-2.0)
       },
+      // Test card settings (Story 6.8)
+      testCardSettings: {
+        visible: false, // Default hidden
+      },
       // FileSystem Access API state tracking
       fileSystemAPIWorking: null, // null = unknown, true = working, false = not working
     }
@@ -212,6 +216,17 @@ class StateManager {
         }
       } else {
         console.log('No color correction settings found, using defaults')
+      }
+
+      // Always restore test card settings from localStorage with fallback to defaults
+      if (persistedState?.testCardSettings) {
+        console.log('Test card settings restored:', persistedState.testCardSettings)
+        this.state.testCardSettings = {
+          ...this.state.testCardSettings,
+          ...persistedState.testCardSettings,
+        }
+      } else {
+        console.log('No test card settings found, using defaults')
       }
 
       // Always restore FileSystem API working state from localStorage with fallback to null
@@ -985,6 +1000,35 @@ class StateManager {
     }
     this.saveCurrentState()
     console.log('Color filters updated:', this.state.colorFilters)
+  }
+
+  /**
+   * Get current test card settings
+   * @returns {Object} Test card settings
+   */
+  getTestCardSettings() {
+    return { ...this.state.testCardSettings }
+  }
+
+  /**
+   * Update test card settings
+   * @param {Object} newSettings - New test card settings to merge
+   */
+  updateTestCardSettings(newSettings) {
+    if (!newSettings || typeof newSettings !== 'object') {
+      console.warn('Invalid test card settings provided - must be a valid object')
+      return
+    }
+
+    // Merge with current settings
+    this.state.testCardSettings = {
+      ...this.state.testCardSettings,
+      ...newSettings,
+    }
+
+    // Save to persistence
+    this.saveCurrentState()
+    console.log('Test card settings updated:', this.state.testCardSettings)
   }
 
   /**

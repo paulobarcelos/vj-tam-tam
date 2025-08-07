@@ -9,6 +9,7 @@ import { stateManager } from './stateManager.js'
 import { playbackEngine } from './playbackEngine.js'
 import { textDisplayManager } from './textDisplayManager.js'
 import { colorCorrectionManager } from './colorCorrectionManager.js'
+import { testCardManager } from './testCardManager.js'
 import { STRINGS } from './constants/strings.js'
 
 /**
@@ -55,6 +56,14 @@ async function init() {
       console.log('Color Correction Manager initialized successfully')
     } else {
       console.error('Color Correction Manager initialization failed')
+    }
+
+    // Initialize Test Card Manager after advanced controls
+    console.log('Initializing Test Card Manager')
+    if (testCardManager.init()) {
+      console.log('Test Card Manager initialized successfully')
+    } else {
+      console.error('Test Card Manager initialization failed')
     }
 
     // Initialize Text Pool display after state is fully restored
