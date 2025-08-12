@@ -22,6 +22,7 @@ class TestCardManager {
     this.handleProjectionModeChange = this.handleProjectionModeChange.bind(this)
     this.handleStageTransformed = this.handleStageTransformed.bind(this)
     this.handleAspectRatioChanged = this.handleAspectRatioChanged.bind(this)
+    this.handleColorFilterChange = this.handleColorFilterChange.bind(this)
   }
 
   /**
@@ -61,12 +62,17 @@ class TestCardManager {
     eventBus.on(PROJECTION_EVENTS.MODE_ENABLED, this.handleProjectionModeChange)
     eventBus.on(PROJECTION_EVENTS.MODE_DISABLED, this.handleProjectionModeChange)
 
-    // Listen for stage transformations to ensure overlay stays in sync
+    // Listen for stage resize (actual emission from ProjectionManager)
+    eventBus.on('projection.stageResized', this.handleStageTransformed)
+
+    // Backward-compat: Some tests expect these legacy subscriptions
     eventBus.on('projection.stageTransformed', this.handleStageTransformed)
     eventBus.on('projection.aspectRatioChanged', this.handleAspectRatioChanged)
 
     // Listen for color filter changes to ensure test card reflects them
-    eventBus.on('colorCorrection.updated', this.handleColorFilterChange.bind(this))
+    eventBus.on('colorFilters.applied', this.handleColorFilterChange)
+    // Backward-compat: legacy event name expected in some tests
+    eventBus.on('colorCorrection.updated', this.handleColorFilterChange)
   }
 
   /**
@@ -243,8 +249,12 @@ class TestCardManager {
     // Remove event bus listeners
     eventBus.off(PROJECTION_EVENTS.MODE_ENABLED, this.handleProjectionModeChange)
     eventBus.off(PROJECTION_EVENTS.MODE_DISABLED, this.handleProjectionModeChange)
+    eventBus.off('projection.stageResized', this.handleStageTransformed)
+    // Backward-compat cleanup
     eventBus.off('projection.stageTransformed', this.handleStageTransformed)
     eventBus.off('projection.aspectRatioChanged', this.handleAspectRatioChanged)
+    eventBus.off('colorFilters.applied', this.handleColorFilterChange)
+    eventBus.off('colorCorrection.updated', this.handleColorFilterChange)
 
     console.log('TestCardManager cleaned up')
   }
