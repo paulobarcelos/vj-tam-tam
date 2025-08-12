@@ -6,7 +6,7 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { testCardManager } from './testCardManager.js'
 import { eventBus } from './eventBus.js'
 import { stateManager } from './stateManager.js'
-import { PROJECTION_EVENTS } from './constants/events.js'
+import { PROJECTION_EVENTS, COLOR_FILTER_EVENTS } from './constants/events.js'
 
 // Mock stateManager
 vi.mock('./stateManager.js', () => ({
@@ -107,12 +107,11 @@ describe('TestCardManager - Story 6.8: Test Card Overlay Toggle', () => {
         PROJECTION_EVENTS.MODE_DISABLED,
         expect.any(Function)
       )
-      expect(eventBus.on).toHaveBeenCalledWith('projection.stageTransformed', expect.any(Function))
       expect(eventBus.on).toHaveBeenCalledWith(
-        'projection.aspectRatioChanged',
+        PROJECTION_EVENTS.STAGE_RESIZED,
         expect.any(Function)
       )
-      expect(eventBus.on).toHaveBeenCalledWith('colorCorrection.updated', expect.any(Function))
+      expect(eventBus.on).toHaveBeenCalledWith(COLOR_FILTER_EVENTS.APPLIED, expect.any(Function))
     })
   })
 
@@ -394,9 +393,8 @@ describe('TestCardManager - Story 6.8: Test Card Overlay Toggle', () => {
         PROJECTION_EVENTS.MODE_DISABLED,
         expect.any(Function)
       )
-      expect(eventBus.off).toHaveBeenCalledWith('projection.stageTransformed', expect.any(Function))
       expect(eventBus.off).toHaveBeenCalledWith(
-        'projection.aspectRatioChanged',
+        PROJECTION_EVENTS.STAGE_RESIZED,
         expect.any(Function)
       )
     })

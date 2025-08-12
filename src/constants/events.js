@@ -50,6 +50,7 @@ export const PROJECTION_EVENTS = {
   LAYOUT_CHANGED: 'projection.layoutChanged',
   LAYOUT_SAVED: 'projection.layoutSaved',
   LAYOUT_LOADED: 'projection.layoutLoaded',
+  STAGE_RESIZED: 'projection.stageResized', // canonical resize/aspect change event
 }
 
 /**
@@ -69,4 +70,11 @@ export const CYCLING_EVENTS = {
   STOPPED: 'cycling.stopped',
   MEDIA_CHANGED: 'cycling.mediaChanged',
   ERROR: 'cycling.error',
+}
+
+/**
+ * Color filters related events (Story 6.7)
+ */
+export const COLOR_FILTER_EVENTS = {
+  APPLIED: 'colorFilters.applied',
 }

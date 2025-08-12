@@ -6,6 +6,7 @@
 
 import { eventBus } from './eventBus.js'
 import { stateManager } from './stateManager.js'
+import { COLOR_FILTER_EVENTS } from './constants/events.js'
 
 /**
  * @typedef {Object} ColorFilters
@@ -175,7 +176,7 @@ class ColorCorrectionManager {
     this.stageElement.style.filter = filterString
 
     // Emit event for other components
-    eventBus.emit('colorFilters.applied', {
+    eventBus.emit(COLOR_FILTER_EVENTS.APPLIED, {
       brightness,
       contrast,
       saturation,
