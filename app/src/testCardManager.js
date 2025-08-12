@@ -7,7 +7,7 @@
 
 import { eventBus } from './eventBus.js'
 import { stateManager } from './stateManager.js'
-import { PROJECTION_EVENTS } from './constants/events.js'
+import { PROJECTION_EVENTS, COLOR_FILTER_EVENTS } from './constants/events.js'
 
 class TestCardManager {
   constructor() {
@@ -62,17 +62,11 @@ class TestCardManager {
     eventBus.on(PROJECTION_EVENTS.MODE_ENABLED, this.handleProjectionModeChange)
     eventBus.on(PROJECTION_EVENTS.MODE_DISABLED, this.handleProjectionModeChange)
 
-    // Listen for stage resize (actual emission from ProjectionManager)
-    eventBus.on('projection.stageResized', this.handleStageTransformed)
+    // Listen for stage resize (canonical emission from ProjectionManager)
+    eventBus.on(PROJECTION_EVENTS.STAGE_RESIZED, this.handleStageTransformed)
 
-    // Backward-compat: Some tests expect these legacy subscriptions
-    eventBus.on('projection.stageTransformed', this.handleStageTransformed)
-    eventBus.on('projection.aspectRatioChanged', this.handleAspectRatioChanged)
-
-    // Listen for color filter changes to ensure test card reflects them
-    eventBus.on('colorFilters.applied', this.handleColorFilterChange)
-    // Backward-compat: legacy event name expected in some tests
-    eventBus.on('colorCorrection.updated', this.handleColorFilterChange)
+    // Listen for color filter changes to ensure test card reflects them (canonical)
+    eventBus.on(COLOR_FILTER_EVENTS.APPLIED, this.handleColorFilterChange)
   }
 
   /**
@@ -249,12 +243,8 @@ class TestCardManager {
     // Remove event bus listeners
     eventBus.off(PROJECTION_EVENTS.MODE_ENABLED, this.handleProjectionModeChange)
     eventBus.off(PROJECTION_EVENTS.MODE_DISABLED, this.handleProjectionModeChange)
-    eventBus.off('projection.stageResized', this.handleStageTransformed)
-    // Backward-compat cleanup
-    eventBus.off('projection.stageTransformed', this.handleStageTransformed)
-    eventBus.off('projection.aspectRatioChanged', this.handleAspectRatioChanged)
-    eventBus.off('colorFilters.applied', this.handleColorFilterChange)
-    eventBus.off('colorCorrection.updated', this.handleColorFilterChange)
+    eventBus.off(PROJECTION_EVENTS.STAGE_RESIZED, this.handleStageTransformed)
+    eventBus.off(COLOR_FILTER_EVENTS.APPLIED, this.handleColorFilterChange)
 
     console.log('TestCardManager cleaned up')
   }

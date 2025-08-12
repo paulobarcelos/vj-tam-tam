@@ -288,27 +288,32 @@ class UIManager {
     // Trigger activity for idle state management
     this.handleActivity(e)
 
-    const items = Array.from(e.dataTransfer.items)
+    const items = Array.from(e.dataTransfer.items || [])
     const files = []
 
     try {
-      // Process each dropped item
+      // Process each dropped item with cross-browser fallback
       for (const item of items) {
-        if (item.kind === 'file') {
-          const entry = item.webkitGetAsEntry()
-          if (entry) {
-            if (entry.isFile) {
-              // Handle individual file
-              const file = item.getAsFile()
-              if (file) {
-                files.push(file)
-              }
-            } else if (entry.isDirectory) {
-              // Handle directory recursively
-              const dirFiles = await this.processDirectory(entry)
-              files.push(...dirFiles)
-            }
+        if (item.kind !== 'file') continue
+
+        const hasGetAsEntry = typeof item.webkitGetAsEntry === 'function'
+        const entry = hasGetAsEntry ? item.webkitGetAsEntry() : null
+
+        if (entry) {
+          if (entry.isFile) {
+            const file = item.getAsFile()
+            if (file) files.push(file)
+          } else if (entry.isDirectory) {
+            const dirFiles = await this.processDirectory(entry)
+            files.push(...dirFiles)
           }
+          continue
+        }
+
+        // Fallback: treat as plain file (most browsers other than WebKit)
+        const file = item.getAsFile && item.getAsFile()
+        if (file) {
+          files.push(file)
         }
       }
 

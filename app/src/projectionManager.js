@@ -873,7 +873,7 @@ class ProjectionManager {
       ratio: this.currentAspectRatio.toFixed(3),
     })
 
-    // Notify Maptastic of stage changes after applying
+    // Notify listeners of stage changes after applying
     this.notifyMaptasticOfStageChange()
   }
 
@@ -956,7 +956,7 @@ class ProjectionManager {
    */
   notifyMaptasticOfStageChange() {
     // Trigger Maptastic to recalculate based on new stage dimensions
-    eventBus.emit('projection.stageResized', {
+    eventBus.emit(PROJECTION_EVENTS.STAGE_RESIZED, {
       width: this.stageElement.offsetWidth,
       height: this.stageElement.offsetHeight,
       aspectRatio: {

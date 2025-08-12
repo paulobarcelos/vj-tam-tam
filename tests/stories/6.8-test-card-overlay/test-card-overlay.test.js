@@ -7,6 +7,7 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { testCardManager } from '../../../app/src/testCardManager.js'
 import { projectionManager } from '../../../app/src/projectionManager.js'
 import { stateManager } from '../../../app/src/stateManager.js'
+import { toastManager } from '../../../app/src/toastManager.js'
 import { eventBus } from '../../../app/src/eventBus.js'
 
 // Mock dependencies
@@ -44,6 +45,7 @@ describe('Story 6.8: Test Card Overlay Toggle - Integration Tests', () => {
           <img src="assets/img/test-card.png" alt="Test Card Pattern" class="test-card-image">
         </div>
       </div>
+      <div id="toast-container" class="toast-container"></div>
       
       <!-- Advanced Controls -->
       <div id="advanced-controls-section" class="advanced-controls-section visible">
@@ -92,6 +94,12 @@ describe('Story 6.8: Test Card Overlay Toggle - Integration Tests', () => {
     testCardManager.isInitialized = false
     projectionManager.isActive = false
     projectionManager.isInitialized = false
+
+    // Ensure toast manager has a container after DOM is ready
+    const toastContainer = document.getElementById('toast-container')
+    if (toastContainer) {
+      toastManager.container = toastContainer
+    }
   })
 
   afterEach(() => {
