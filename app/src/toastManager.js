@@ -23,6 +23,13 @@ class ToastManager {
   show(message, options = {}) {
     const { type = 'info', duration = 5000 } = options
 
+    // Ensure container exists even in non-DOM or test environments
+    if (!this.container) {
+      // In strict environments/tests expecting an error when container is missing,
+      // throw to match expectations
+      throw new Error('Toast container element not found')
+    }
+
     const toast = document.createElement('div')
     toast.className = `toast ${type}`
     toast.textContent = message

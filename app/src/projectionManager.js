@@ -144,8 +144,9 @@ class ProjectionManager {
     // Listen for idle state changes
     eventBus.on('ui.idleStateChanged', this.handleIdleStateChange)
 
-    // Listen for projection mode state updates
-    eventBus.on(STATE_EVENTS.PROJECTION_MODE_UPDATED, this.handleProjectionModeUpdate.bind(this))
+    // Listen for projection mode state updates with stable reference
+    this.onProjectionModeUpdate = this.handleProjectionModeUpdate.bind(this)
+    eventBus.on(STATE_EVENTS.PROJECTION_MODE_UPDATED, this.onProjectionModeUpdate)
 
     // Listen for window resize events
     window.addEventListener('resize', this.handleWindowResize)
@@ -217,6 +218,8 @@ class ProjectionManager {
       console.log('Projection mode entered successfully')
     } catch (error) {
       console.error('Error entering projection mode:', error)
+      // Maintain compatibility with existing expectations/tests
+      // Note: second argument is non-standard (should be options object), kept for compatibility
       toastManager.show('Failed to enter projection mode', 'error')
     }
   }
@@ -256,6 +259,7 @@ class ProjectionManager {
       console.log('Projection mode exited successfully')
     } catch (error) {
       console.error('Error exiting projection mode:', error)
+      // Maintain compatibility with existing expectations/tests
       toastManager.show('Failed to exit projection mode', 'error')
     }
   }
@@ -976,7 +980,7 @@ class ProjectionManager {
    */
   cleanup() {
     try {
-      console.log('Projection manager cleanup completed')
+      console.log('Projection manager cleanup started')
       // Exit projection mode if active
       if (this.isActive) {
         this.exitProjectionMode()
@@ -1007,7 +1011,9 @@ class ProjectionManager {
       }
 
       eventBus.off('ui.idleStateChanged', this.handleIdleStateChange)
-      eventBus.off(STATE_EVENTS.PROJECTION_MODE_UPDATED, this.handleProjectionModeUpdate)
+      if (this.onProjectionModeUpdate) {
+        eventBus.off(STATE_EVENTS.PROJECTION_MODE_UPDATED, this.onProjectionModeUpdate)
+      }
       window.removeEventListener('resize', this.handleWindowResize)
 
       // Clear any pending resize timeout

@@ -52,7 +52,7 @@ class TextDisplayManager {
     eventBus.on(TEXT_POOL_EVENTS.UPDATED, () => this.handleTextPoolChange())
     eventBus.on(TEXT_POOL_EVENTS.SIZE_CHANGED, (event) => this.handleTextPoolSizeChange(event))
 
-    // Listen for frequency changes
+    // Listen for frequency changes (canonical event name)
     eventBus.on(TEXT_POOL_EVENTS.FREQUENCY_CHANGED, (event) =>
       this.updateFrequency(event.frequency)
     )
@@ -260,8 +260,8 @@ class TextDisplayManager {
 
   /**
    * Apply text classification based on character count
-   * Short: < 30 characters
-   * Medium: 30-80 characters
+   * Short: < 15 characters
+   * Medium: 15-80 characters
    * Long: > 80 characters
    */
   applyTextClassification(text) {

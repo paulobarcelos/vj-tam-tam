@@ -432,6 +432,15 @@ class StateManager {
     this.state.mediaPool = this.state.mediaPool.filter((item) => item.id !== id)
 
     if (this.state.mediaPool.length < initialLength && itemToRemove) {
+      // Revoke Object URL to prevent memory leaks
+      try {
+        if (itemToRemove.url) {
+          URL.revokeObjectURL(itemToRemove.url)
+        }
+      } catch (e) {
+        console.warn('Failed to revoke object URL for removed media:', e)
+      }
+
       // Remove file handle from storage (async but doesn't block)
       this.removeFileHandleAsync(id)
 
@@ -467,6 +476,21 @@ class StateManager {
 
     // Get count before clearing
     const previousCount = this.state.mediaPool.length
+
+    // Revoke all object URLs before clearing
+    try {
+      this.state.mediaPool.forEach((item) => {
+        if (item && item.url) {
+          try {
+            URL.revokeObjectURL(item.url)
+          } catch (e) {
+            console.warn('Failed to revoke object URL while clearing pool:', e)
+          }
+        }
+      })
+    } catch (e) {
+      console.warn('Error while revoking object URLs during clear:', e)
+    }
 
     // Clear the pool
     this.state.mediaPool = []
@@ -534,15 +558,16 @@ class StateManager {
    * @param {Object} newSettings - New segment settings to merge
    */
   updateSegmentSettings(newSettings) {
-    if (!this.validateSegmentSettings(newSettings)) {
+    const validated = this.validateSegmentSettings(newSettings)
+    if (Object.keys(validated).length === 0) {
       console.warn('Invalid segment settings provided - must be a valid object')
       return
     }
 
-    // Merge with current settings
+    // Merge with current settings using only validated values
     this.state.segmentSettings = {
       ...this.state.segmentSettings,
-      ...newSettings,
+      ...validated,
     }
 
     // Emit event for listeners
@@ -561,7 +586,7 @@ class StateManager {
    */
   validateSegmentSettings(settings) {
     if (!settings || typeof settings !== 'object') {
-      return false
+      return {}
     }
 
     // Check individual properties if they exist and filter out invalid ranges
@@ -601,16 +626,7 @@ class StateManager {
       }
     }
 
-    // Replace the original settings with filtered valid ones
-    Object.keys(settings).forEach((key) => {
-      if (!(key in filteredSettings)) {
-        delete settings[key]
-      } else {
-        settings[key] = filteredSettings[key]
-      }
-    })
-
-    return Object.keys(filteredSettings).length > 0
+    return filteredSettings
   }
 
   /**
@@ -949,8 +965,8 @@ class StateManager {
 
     this.state.textFrequency = frequency
 
-    // Emit event
-    eventBus.emit(TEXT_POOL_EVENTS.FREQUENCY_UPDATED, {
+    // Emit event (canonical name used by listeners)
+    eventBus.emit(TEXT_POOL_EVENTS.FREQUENCY_CHANGED, {
       frequency: this.state.textFrequency,
     })
 

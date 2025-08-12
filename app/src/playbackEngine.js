@@ -39,6 +39,11 @@ class PlaybackEngine {
     this.currentMediaItem = null
     this.recentMediaHistory = [] // Track recent items to avoid immediate repetition
     this.playbackState = PLAYBACK_STATES.INACTIVE
+
+    // Bound handlers to allow proper add/remove of listeners
+    this.onMediaPoolUpdate = this.handleMediaPoolUpdate.bind(this)
+    this.onMediaPoolRestored = this.handleMediaPoolRestored.bind(this)
+    this.onWindowResize = this.handleWindowResize.bind(this)
   }
 
   /**
@@ -54,11 +59,6 @@ class PlaybackEngine {
       // Set up event listeners
       this.setupEventListeners()
 
-      // Listen for direct media pool events
-      eventBus.on(STATE_EVENTS.MEDIA_POOL_UPDATED, this.handleMediaPoolUpdate.bind(this))
-      eventBus.on(STATE_EVENTS.MEDIA_POOL_RESTORED, this.handleMediaPoolRestored.bind(this))
-      window.addEventListener('resize', this.handleWindowResize.bind(this))
-
       console.log('PlaybackEngine initialized successfully')
     } catch (error) {
       console.error('PlaybackEngine initialization error:', error)
@@ -70,12 +70,12 @@ class PlaybackEngine {
    * Set up event listeners for state changes and window resize
    */
   setupEventListeners() {
-    // Listen for media pool updates and restoration
-    eventBus.on(STATE_EVENTS.MEDIA_POOL_UPDATED, this.handleMediaPoolUpdate.bind(this))
-    eventBus.on(STATE_EVENTS.MEDIA_POOL_RESTORED, this.handleMediaPoolRestored.bind(this))
+    // Listen for media pool updates and restoration using stable handler refs
+    eventBus.on(STATE_EVENTS.MEDIA_POOL_UPDATED, this.onMediaPoolUpdate)
+    eventBus.on(STATE_EVENTS.MEDIA_POOL_RESTORED, this.onMediaPoolRestored)
 
     // Listen for window resize events
-    window.addEventListener('resize', this.handleWindowResize)
+    window.addEventListener('resize', this.onWindowResize)
   }
 
   /**
@@ -486,9 +486,9 @@ class PlaybackEngine {
   cleanup() {
     try {
       // Remove event listeners
-      eventBus.off('state.mediaPoolUpdated', this.handleMediaPoolUpdate.bind(this))
-      eventBus.off('state.mediaPoolRestored', this.handleMediaPoolRestored.bind(this))
-      window.removeEventListener('resize', this.handleWindowResize)
+      eventBus.off(STATE_EVENTS.MEDIA_POOL_UPDATED, this.onMediaPoolUpdate)
+      eventBus.off(STATE_EVENTS.MEDIA_POOL_RESTORED, this.onMediaPoolRestored)
+      window.removeEventListener('resize', this.onWindowResize)
 
       // Stop playback and clear current media
       this.stopAutoPlayback()

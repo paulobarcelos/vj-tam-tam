@@ -1138,7 +1138,7 @@ body {
 
 /* Stage positioning in projection mode */
 .stage.projection-mode {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   /* Width and height set dynamically by JavaScript */

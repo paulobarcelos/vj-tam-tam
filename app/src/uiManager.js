@@ -194,22 +194,31 @@ class UIManager {
    * Set up event bus listeners for inter-module communication
    */
   setupEventBusListeners() {
-    // New StateManager events
-    eventBus.on(STATE_EVENTS.MEDIA_POOL_UPDATED, this.handleMediaPoolStateUpdate.bind(this))
-    eventBus.on(STATE_EVENTS.MEDIA_POOL_RESTORED, this.handleMediaPoolRestored.bind(this))
+    // Use bound handler references for proper cleanup if needed
+    this.onMediaPoolUpdated = this.handleMediaPoolStateUpdate.bind(this)
+    this.onMediaPoolRestored = this.handleMediaPoolRestored.bind(this)
+    this.onSegmentSettingsUpdated = this.handleSegmentSettingsUpdate.bind(this)
+    this.onUISettingsUpdated = this.handleUISettingsUpdate.bind(this)
+    this.onTextPoolUpdated = this.handleTextPoolUpdate.bind(this)
+    this.onTextPoolSizeChanged = this.handleTextPoolSizeChange.bind(this)
+    this.onFrequencyChanged = this.handleFrequencyChange.bind(this)
+
+    // StateManager events
+    eventBus.on(STATE_EVENTS.MEDIA_POOL_UPDATED, this.onMediaPoolUpdated)
+    eventBus.on(STATE_EVENTS.MEDIA_POOL_RESTORED, this.onMediaPoolRestored)
 
     // Listen for segment settings updates
-    eventBus.on(STATE_EVENTS.SEGMENT_SETTINGS_UPDATED, this.handleSegmentSettingsUpdate.bind(this))
+    eventBus.on(STATE_EVENTS.SEGMENT_SETTINGS_UPDATED, this.onSegmentSettingsUpdated)
 
     // Listen for UI settings updates
-    eventBus.on(STATE_EVENTS.UI_SETTINGS_UPDATED, this.handleUISettingsUpdate.bind(this))
+    eventBus.on(STATE_EVENTS.UI_SETTINGS_UPDATED, this.onUISettingsUpdated)
 
     // Listen for text pool updates
-    eventBus.on(TEXT_POOL_EVENTS.UPDATED, this.handleTextPoolUpdate.bind(this))
-    eventBus.on(TEXT_POOL_EVENTS.SIZE_CHANGED, this.handleTextPoolSizeChange.bind(this))
+    eventBus.on(TEXT_POOL_EVENTS.UPDATED, this.onTextPoolUpdated)
+    eventBus.on(TEXT_POOL_EVENTS.SIZE_CHANGED, this.onTextPoolSizeChanged)
 
     // Listen for frequency changes
-    eventBus.on(TEXT_POOL_EVENTS.FREQUENCY_CHANGED, this.handleFrequencyChange.bind(this))
+    eventBus.on(TEXT_POOL_EVENTS.FREQUENCY_CHANGED, this.onFrequencyChanged)
   }
 
   /**
@@ -882,6 +891,25 @@ class UIManager {
     if (this.idleTimer) {
       clearTimeout(this.idleTimer)
       this.idleTimer = null
+    }
+
+    // Remove event bus listeners if they were set
+    try {
+      if (this.onMediaPoolUpdated)
+        eventBus.off(STATE_EVENTS.MEDIA_POOL_UPDATED, this.onMediaPoolUpdated)
+      if (this.onMediaPoolRestored)
+        eventBus.off(STATE_EVENTS.MEDIA_POOL_RESTORED, this.onMediaPoolRestored)
+      if (this.onSegmentSettingsUpdated)
+        eventBus.off(STATE_EVENTS.SEGMENT_SETTINGS_UPDATED, this.onSegmentSettingsUpdated)
+      if (this.onUISettingsUpdated)
+        eventBus.off(STATE_EVENTS.UI_SETTINGS_UPDATED, this.onUISettingsUpdated)
+      if (this.onTextPoolUpdated) eventBus.off(TEXT_POOL_EVENTS.UPDATED, this.onTextPoolUpdated)
+      if (this.onTextPoolSizeChanged)
+        eventBus.off(TEXT_POOL_EVENTS.SIZE_CHANGED, this.onTextPoolSizeChanged)
+      if (this.onFrequencyChanged)
+        eventBus.off(TEXT_POOL_EVENTS.FREQUENCY_CHANGED, this.onFrequencyChanged)
+    } catch (e) {
+      console.warn('UIManager cleanup: error removing event listeners', e)
     }
   }
 
@@ -1922,7 +1950,7 @@ class UIManager {
    */
   debugMediaPoolState() {
     console.log('=== Media Pool Debug Information ===')
-    const mediaItems = eventBus.getData('mediaPool') || []
+    const mediaItems = stateManager.getMediaPool() || []
     console.log(`Total media items: ${mediaItems.length}`)
 
     let permissionCount = 0
@@ -1932,9 +1960,14 @@ class UIManager {
     mediaItems.forEach((item, index) => {
       console.log(`Item ${index + 1}:`, item)
 
-      if (item.needsPermission) permissionCount++
-      if (item.isTemporary) temporaryCount++
-      if (!item.needsPermission && !item.isTemporary) usableCount++
+      const needsPermission = (!item.file || !item.url) && item.fromFileSystemAPI
+      const isTemporary =
+        (item.file && item.url && !item.fromFileSystemAPI) ||
+        (!item.file && !item.url && !item.fromFileSystemAPI)
+
+      if (needsPermission) permissionCount++
+      if (isTemporary) temporaryCount++
+      if (!needsPermission && !isTemporary) usableCount++
     })
 
     console.log(`Files needing permission: ${permissionCount}`)
