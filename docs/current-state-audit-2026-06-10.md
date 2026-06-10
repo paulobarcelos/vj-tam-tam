@@ -6,7 +6,16 @@ This note records what is true of the repository after a fresh review of `main`,
 
 `main` is a functional vanilla JavaScript static app served from `app/`. It has media import, random playback, text overlays, advanced controls, projection mapping corner calibration, aspect ratio controls, color correction, test card overlay, and local persistence. The current durable deployment path in this branch is GitHub Pages through `npm run publish`, not Vercel.
 
-The repo also contains older BMad planning docs and story files. Most early stories match the app, but several later or deferred stories are stale, aspirational, or contradicted by the implementation. There is a separate `nextjs-migration` branch with Vercel-oriented tooling and `.ai/` planning artifacts, but that branch is not the current usable product.
+The repo also contains older BMad planning docs and story files. Most early stories match the app, but several later or deferred stories are stale, aspirational, or superseded by decisions made during implementation. Treat the current app as the canonical product state; do not backtrack to old stories unless there is a deliberate product reason. There is a separate `nextjs-migration` branch with Vercel-oriented tooling and `.ai/` planning artifacts, but that branch is not the current usable product.
+
+## Product Calibration
+
+Follow-up review with Paulo on 2026-06-10 clarified that the implemented app has generally transcended the older story scaffold. The documentation drift below should mostly be read as "old docs need pruning or reframing", not "the current app is wrong".
+
+- The lack of an in-app fullscreen toggle is intentional for now. Earlier work found it hard to keep a custom UI control synchronized across browser-native fullscreen paths, so the simpler product decision was to rely on browser fullscreen. Follow-up console testing confirmed that `document.documentElement.requestFullscreen({ navigationUI: "hide" })` enters a deeper element fullscreen in Chrome that hides vertical tabs; if projection workflows need it, consider a minimal "presentation fullscreen" action rather than restoring a fully state-synchronized fullscreen UI.
+- The current aggregate persistence model under `vj-tam-tam-state` is acceptable unless the code review finds a stronger maintainability reason to split it.
+- Heavy console logging likely came from earlier agent-driven/browser-difficult testing workflows. Prefer improving tests and adding an explicit debug/logging layer before deleting useful observability wholesale.
+- Maptastic is acceptable while it works. A later homography-focused replacement may be worthwhile, but that is a larger technical direction rather than an immediate blocker.
 
 ## Current Product Shape
 
@@ -40,10 +49,12 @@ Current verification:
 - `npm run lint` passes.
 - `npm audit --omit=dev` reports 0 vulnerabilities.
 
+An independent maintainability review is captured in [Code Quality Review - 2026-06-10](./code-quality-review-2026-06-10.md). Its main conclusion is that the app works, but the next serious work should be boundary repair: `uiManager.js`, `stateManager.js`, `projectionManager.js`, `style.css`, and story-era tests are carrying too much responsibility.
+
 ## Documentation Drift
 
-- README and PRD still describe a dedicated Fullscreen API button/control. Story `docs/stories/3.6.story.md` says that feature was deliberately removed from MVP, and the app currently has no dedicated fullscreen toggle.
-- PRD and story `docs/stories/6.6.story.md` describe scale, translation, rotation, and flip controls in projection setup mode. The current app has corner warping and aspect ratio controls, but not those transform controls.
+- README and PRD still describe a dedicated Fullscreen API button/control. Story `docs/stories/3.6.story.md` says that feature was deliberately removed from MVP, and the app currently has no dedicated fullscreen toggle. Current decision: no broad fullscreen UI work needed, but `requestFullscreen({ navigationUI: "hide" })` is a validated escape hatch for Chrome vertical-tabs/projector use.
+- PRD and story `docs/stories/6.6.story.md` describe scale, translation, rotation, and flip controls in projection setup mode. The current app has corner warping and aspect ratio controls, but not those transform controls. Current decision: treat the app as canonical; do not implement old transform controls unless a new UI pass revalidates them.
 - Story `docs/stories/6.5.story.md` is still marked approved/incomplete, while the app already includes custom corner handles and Maptastic layout persistence.
 - Story `docs/stories/6.10.story.md` describes per-setting `localStorage` keys such as `vjtamtam.projectionMode.active`; the current implementation stores the app state as one aggregate object under `vj-tam-tam-state`, with file handles handled separately through IndexedDB.
 - Story `docs/stories/3.3.story.md` is marked deferred for text pool work, but later Epic 4 work implemented text input, text pool display, text frequency, and overlay rendering.
@@ -52,8 +63,8 @@ Current verification:
 ## Implementation Notes
 
 - The current architecture is understandable, but `uiManager.js` and `style.css` are both large enough that UI polish work will be easier after extracting smaller UI modules or at least separating panel responsibilities.
-- The app logs heavily to the console during normal use. This is useful while stabilizing but noisy for a party/live-performance tool.
-- `app/lib/maptastic.js` is an old global-style browser library. It works in the current static setup, but it should be treated carefully if the app is migrated into another build system.
+- The app logs heavily to the console during normal use. This is useful while stabilizing and was likely part of earlier agent/browser verification, but it is noisy for a party/live-performance tool. A reasonable next step is an explicit debug logger or debug mode, not blind deletion.
+- `app/lib/maptastic.js` is an old global-style browser library. It works in the current static setup, but it should be treated carefully if the app is migrated into another build system. A future replacement could isolate the homography math directly, but that should be handled as a focused projection-mapping project.
 - The initial screen works, but the welcome text can sit under the drawer because the stage welcome is centered against the full viewport while the drawer overlays the left side.
 - `StateManager.restoreFromPersistence()` falls back to defaults on corrupt stored state, but it does not currently clear the corrupt aggregate key.
 
