@@ -1,0 +1,338 @@
+/* ================================================= */
+
+#app {
+  position: relative;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Stage (main display area) */
+.stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #111;
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease;
+  z-index: 1;
+  /* Enable positioning context for corner handles */
+  transform-origin: top left;
+}
+
+.stage.drag-over {
+  border-color: #007acc;
+  background-color: rgba(0, 122, 204, 0.1);
+}
+
+.stage-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Welcome message area */
+.welcome-message {
+  text-align: center;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  cursor: pointer;
+  padding: 2rem;
+  border-radius: 8px;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  user-select: none;
+}
+
+.welcome-message:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  transform: scale(1.02);
+}
+
+.welcome-message:active {
+  transform: scale(0.98);
+}
+
+.welcome-message h1 {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.welcome-message p {
+  font-size: 1.2rem;
+  font-weight: bold;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+.welcome-message.hidden {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  .welcome-message {
+    margin-left: 300px;
+    max-width: calc(100vw - 300px - 4rem);
+  }
+}
+
+/* Fullscreen media display */
+.stage-media {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+/* Text Overlay Container */
+.text-overlay-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Allow clicks to pass through to stage */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10%;
+  z-index: 2;
+}
+
+/* Text Overlay Element */
+.text-overlay {
+  text-align: center;
+  
+  /* AC 8.1: Bold Arial font family */
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+  font-weight: bold;
+  text-transform: uppercase;
+  
+  line-height: 1;
+  /* word-wrap: break-word;
+  word-break: break-word;*/
+  hyphens: auto; 
+  
+  /* Default state */
+  opacity: 0;
+  
+  /* Text rendering optimization */
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Base text size - uses CSS variables set by JavaScript based on projection surface */
+  font-size: var(--text-base-size, 20vh); /* Fallback to viewport units if variables not set */
+  
+  /* Clamp text to 5 lines */
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Text length-based sizing classes using CSS variables */
+.text-overlay.text-short {
+  /* Short text: equivalent to min(20vw, 20vh) of projection surface */
+  font-size: var(--text-short-size, min(20vw, 20vh));
+}
+
+.text-overlay.text-medium {
+  /* Medium text: equivalent to min(13vw, 13vh) of projection surface */
+  font-size: var(--text-medium-size, min(13vw, 13vh));
+}
+
+.text-overlay.text-long {
+  /* Long text: equivalent to min(10vw, 10vh) of projection surface */
+  font-size: var(--text-long-size, min(10vh, 10vw));
+}
+
+/* Text Overlay Visibility States */
+.text-overlay.visible {
+  opacity: 1;
+}
+
+.text-overlay.hidden {
+  opacity: 0;
+}
+
+/* AC 8.5: Color variants */
+.text-overlay.color-white {
+  color: #ffffff;
+}
+
+.text-overlay.color-black {
+  color: #000000;
+}
+
+/* Frequency Control Section */
+.frequency-control-section {
+  padding: 1rem;
+  border-top: 1px solid #333;
+  margin-top: 0.5rem;
+}
+
+.frequency-control-header {
+  margin-bottom: 0.75rem;
+}
+
+.frequency-label {
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: #fff;
+  margin: 0;
+}
+
+/* Frequency Slider */
+.frequency-slider-container {
+  position: relative;
+  margin-bottom: 0.5rem;
+}
+
+.frequency-slider {
+  width: 100%;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #444;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+  position: relative;
+}
+
+.frequency-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.frequency-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.frequency-slider::-webkit-slider-thumb:hover {
+  background: #f0f0f0;
+  transform: scale(1.1);
+}
+
+.frequency-slider::-moz-range-thumb:hover {
+  background: #f0f0f0;
+  transform: scale(1.1);
+}
+
+.frequency-slider:focus {
+  box-shadow: 0 0 0 2px #007acc;
+}
+
+/* Frequency Labels */
+.frequency-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  font-size: 0.7rem;
+  color: #999;
+  font-family: Arial, sans-serif;
+}
+
+.frequency-label-min,
+.frequency-label-max {
+  font-weight: bold;
+}
+
+/* Discrete Step Indicators for 5-step slider (0, 0.25, 0.5, 0.75, 1.0) */
+.frequency-slider-container::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: repeating-linear-gradient(
+    to right,
+    #666 0,
+    #666 2px,
+    transparent 2px,
+    transparent 25%
+  );
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+
+
+/* Screen reader support */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.stage-media.image {
+  /* Additional image-specific styles if needed */
+}
+
+.stage-media.video {
+  /* Additional video-specific styles if needed */
+}
+
+/* Drop indicator overlay */
+.drop-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 122, 204, 0.2);
+  border: 3px dashed #007acc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.drop-indicator.hidden {
+  display: none;
+}
+
+.drop-message {
+  text-align: center;
+  color: #007acc;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.supported-formats {
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  opacity: 0.8;
+}

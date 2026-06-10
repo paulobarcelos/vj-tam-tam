@@ -575,10 +575,15 @@ class PlaybackEngine {
    * @param {number} segmentDuration - Duration in seconds
    */
   scheduleImageTransition(segmentDuration) {
+    const duration =
+      Number.isFinite(segmentDuration) && segmentDuration > 0
+        ? segmentDuration
+        : PLAYBACK_CONFIG.DEFAULT_IMAGE_DURATION
+
     this.clearCyclingTimer()
     this.cyclingTimer = setTimeout(() => {
       this.transitionToNextMedia()
-    }, segmentDuration * 1000) // Convert seconds to milliseconds
+    }, duration * 1000) // Convert seconds to milliseconds
   }
 
   /**

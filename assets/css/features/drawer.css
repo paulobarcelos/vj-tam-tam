@@ -1,0 +1,115 @@
+/* Left drawer */
+.left-drawer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 300px;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  transition: background-color 0.2s ease, opacity 0.3s ease;
+  overflow-y: auto;
+}
+
+.left-drawer.drag-over {
+  background-color: rgba(0, 122, 204, 0.8);
+}
+
+/* Application Header - VJ Tam Tam Logo */
+.app-header {
+  padding: 1rem;
+  border-bottom: 2px solid #444;
+  display: flex;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.9);
+  flex-shrink: 0;
+}
+
+.app-logo h1 {
+  /* Typography: Arial Bold per UI-UX-Spec Section 2 */
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  font-size: 1.4rem;
+  color: #ffffff;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Media Pool Header */
+.drawer-header {
+  padding: 1rem;
+  border-bottom: 1px solid #444;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.drawer-header .header-left {
+  flex: 1;
+}
+
+.drawer-header .header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.drawer-header h2 {
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+/* Idle state styles */
+.ui-idle {
+  cursor: none;
+}
+
+.ui-idle .left-drawer {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Ensure stage remains interactive during idle state */
+.ui-idle .stage {
+  pointer-events: auto;
+}
+
+/* Future support for other UI elements that should be hidden during idle */
+.ui-idle .hidden-on-idle {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+/* File picker controls */
+.file-picker-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Legacy .file-picker-btn styles removed - now using .btn classes */
+
+/* Media Pool Notices Container */
+.media-pool-notices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 1rem;
+  padding-top: 1rem;
+}
+
+.media-pool {
+  padding: 1rem;
+  padding-top: 0.5rem;
+  max-height: 400px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  gap: 0.5rem;
+  align-content: start;
+}
+

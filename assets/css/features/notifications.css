@@ -1,0 +1,77 @@
+/* ===================================================
+   BRUTALIST MINIMALISM DESIGN SYSTEM - TOAST NOTIFICATIONS
+   Following UI-UX-Spec.md Section 5.4 requirements
+   =================================================== */
+
+/* Toast notifications - positioned bottom-center per UI-UX-Spec */
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.toast {
+  /* Typography: Arial Bold per UI-UX-Spec Section 2 */
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  
+  /* Brutalist Design */
+  background-color: #ffffff;
+  color: #000000;
+  border: 2px solid #000000;
+  border-radius: 0; /* No rounded corners - brutalist */
+  
+  /* Layout */
+  padding: 0.75rem 1.5rem;
+  max-width: 400px;
+  min-width: 200px;
+  text-align: center;
+  word-wrap: break-word;
+  
+  /* Animation */
+  animation: toast-slide-up 0.3s ease-out;
+  
+  /* Positioning */
+  margin-bottom: 0;
+}
+
+/* Toast variants with brutalist black/white styling */
+.toast.error {
+  background-color: #000000;
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+.toast.success {
+  background-color: #ffffff;
+  color: #000000;
+  border-color: #000000;
+}
+
+.toast.info {
+  background-color: #ffffff;
+  color: #000000;
+  border-color: #000000;
+}
+
+/* Toast animations */
+@keyframes toast-slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+

@@ -80,6 +80,18 @@ const mockVideoItem = {
   addedAt: new Date(),
 }
 
+function resetPlaybackEngineState() {
+  playbackEngine.clearCyclingTimer()
+  playbackEngine.currentMediaElement = null
+  playbackEngine.stageElement = null
+  playbackEngine.isPlaybackActive = false
+  playbackEngine.autoPlaybackEnabled = true
+  playbackEngine.isCyclingActive = false
+  playbackEngine.currentMediaItem = null
+  playbackEngine.recentMediaHistory = []
+  playbackEngine.playbackState = 'inactive'
+}
+
 describe('PlaybackEngine', () => {
   // Store original global objects to restore later
   let originalDocument
@@ -148,10 +160,7 @@ describe('PlaybackEngine', () => {
     })
 
     // Reset PlaybackEngine state and mocks
-    playbackEngine.currentMediaElement = null
-    playbackEngine.stageElement = null
-    playbackEngine.isPlaybackActive = false // Reset the new property
-    playbackEngine.autoPlaybackEnabled = true // Reset the new property
+    resetPlaybackEngineState()
     vi.clearAllMocks() // Clear all mocks including the new ones
 
     // Re-mock getElementById and createElement after vi.clearAllMocks()
@@ -208,7 +217,9 @@ describe('PlaybackEngine', () => {
   })
 
   afterEach(() => {
-    // Clean up
+    // Clean up while the mocked console is still installed, so async playback paths stay quiet.
+    resetPlaybackEngineState()
+    vi.useRealTimers()
     vi.resetAllMocks()
 
     // Restore original globals or delete if they didn't exist
@@ -857,6 +868,21 @@ describe('PlaybackEngine', () => {
         expect(playbackEngine.cyclingTimer).toBeDefined()
 
         vi.advanceTimersByTime(4000) // Default segment duration (was IMAGE_DISPLAY_DURATION)
+        expect(transitionSpy).toHaveBeenCalled()
+
+        vi.useRealTimers()
+      })
+
+      it('should fall back to default image duration for invalid segment durations', () => {
+        vi.useFakeTimers()
+        const transitionSpy = vi.spyOn(playbackEngine, 'transitionToNextMedia')
+
+        playbackEngine.scheduleImageTransition(Number.NaN)
+
+        vi.advanceTimersByTime(3999)
+        expect(transitionSpy).not.toHaveBeenCalled()
+
+        vi.advanceTimersByTime(1)
         expect(transitionSpy).toHaveBeenCalled()
 
         vi.useRealTimers()

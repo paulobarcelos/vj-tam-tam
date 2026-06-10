@@ -29,6 +29,7 @@ export const STRINGS = {
       clearMedia: 'Clear all',
       restoreAccess: '🔓 Restore Access',
       bulkRestore: '↗️ Bulk Restore All',
+      presentationFullscreen: '⛶',
     },
 
     // Tooltips and help text
@@ -38,6 +39,7 @@ export const STRINGS = {
       removeMediaItem: 'Remove from pool',
       dismissNotice: 'Dismiss',
       restoreAccess: 'Restore file access',
+      presentationFullscreen: 'Presentation fullscreen',
     },
 
     // Labels and headings
@@ -124,6 +126,7 @@ export const STRINGS = {
         folderAccessFailed: 'Error accessing folder. Please try again.',
         fileProcessingFailed: 'Error processing some files. Please try again.',
         appInitFailed: 'Failed to initialize application. Please refresh the page.',
+        presentationFullscreenFailed: 'Could not enter presentation fullscreen',
         settingsSaveFailed: 'Settings could not be saved',
         filesSkipped: '{{count}} file{{plural}} already in media pool (skipped)',
         importFailed: 'Some files could not be imported. Supported formats: {{supportedTypes}}',
