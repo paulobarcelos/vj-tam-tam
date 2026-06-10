@@ -18,6 +18,10 @@ import {
 import { formatDuration } from './utils/stringUtils.js'
 import { mediaProcessor } from './mediaProcessor.js'
 import { projectionManager } from './projectionManager.js'
+import { requestPresentationFullscreen } from './presentationFullscreen.js'
+import { deriveMediaAccessState } from './mediaAccessState.js'
+import { IdleController } from './idleController.js'
+import { TextPoolView } from './textPoolView.js'
 
 class UIManager {
   constructor() {
@@ -29,6 +33,7 @@ class UIManager {
     this.browseFilesBtn = null
     this.browseFoldersBtn = null
     this.clearMediaBtn = null
+    this.presentationFullscreenBtn = null
     this.dragCounter = 0 // Track drag enter/leave events
     this.isFilePickerActive = false // Lock to prevent concurrent file picker calls
     this.advancedControlsToggle = null
@@ -55,18 +60,50 @@ class UIManager {
     // Frequency control elements
     this.textFrequencySlider = null
     this.frequencyControlSection = null
+    this.textPoolView = null
 
-    // Idle/Active state management properties
-    this.isUIIdle = false
-    this.idleTimer = null
-    this.IDLE_TIMEOUT_MS = 4000 // 4 seconds default
-    this.activityListeners = []
-    this.lastActivityTime = Date.now()
+    this.idleController = new IdleController({ eventBus })
 
     // Educational notices tracking (per page load)
     this.dismissedNotices = {
       temporary: false,
     }
+  }
+
+  get isUIIdle() {
+    return this.idleController.isIdle
+  }
+
+  set isUIIdle(value) {
+    this.idleController.isIdle = value
+  }
+
+  get idleTimer() {
+    return this.idleController.idleTimer
+  }
+
+  set idleTimer(value) {
+    this.idleController.idleTimer = value
+  }
+
+  get IDLE_TIMEOUT_MS() {
+    return this.idleController.timeoutMs
+  }
+
+  get activityListeners() {
+    return this.idleController.activityListeners
+  }
+
+  set activityListeners(value) {
+    this.idleController.activityListeners = value
+  }
+
+  get lastActivityTime() {
+    return this.idleController.lastActivityTime
+  }
+
+  set lastActivityTime(value) {
+    this.idleController.lastActivityTime = value
   }
 
   /**
@@ -83,6 +120,7 @@ class UIManager {
     this.browseFilesBtn = document.getElementById('browse-files-btn')
     this.browseFoldersBtn = document.getElementById('browse-folders-btn')
     this.clearMediaBtn = document.getElementById('clear-media-btn')
+    this.presentationFullscreenBtn = document.getElementById('presentation-fullscreen-btn')
 
     // Advanced Controls elements
     this.advancedControlsToggle = document.getElementById('advanced-controls-toggle')
@@ -119,6 +157,7 @@ class UIManager {
       !this.browseFilesBtn ||
       !this.browseFoldersBtn ||
       !this.clearMediaBtn ||
+      !this.presentationFullscreenBtn ||
       !this.advancedControlsToggle ||
       !this.advancedControlsSection ||
       !this.minDurationSlider ||
@@ -145,10 +184,22 @@ class UIManager {
     // Make debug method available in console
     window.debugMediaPool = () => this.debugMediaPoolState()
 
+    this.textPoolView = new TextPoolView({
+      textInput: this.textInput,
+      addTextBtn: this.addTextBtn,
+      textPoolDisplay: this.textPoolDisplay,
+      textPoolEmpty: this.textPoolEmpty,
+      clearTextBtn: this.clearTextBtn,
+      textPoolFooter: this.textPoolFooter,
+      textFrequencySlider: this.textFrequencySlider,
+    })
+    this.textPillElements = this.textPoolView.textPillElements
+
     // Set up event listeners
     this.setupDragAndDropListeners()
     this.setupEventBusListeners()
     this.setupFilePickerListeners()
+    this.setupPresentationFullscreenListener()
     this.setupAdvancedControlsListeners()
     this.setupTextPoolListeners()
     this.setupFrequencyControlListeners()
@@ -234,6 +285,27 @@ class UIManager {
 
     // Clear media button handler
     this.clearMediaBtn.addEventListener('click', this.handleClearMediaClick.bind(this))
+  }
+
+  /**
+   * Set up the one-way presentation fullscreen action.
+   */
+  setupPresentationFullscreenListener() {
+    this.presentationFullscreenBtn.addEventListener('click', () => {
+      this.handlePresentationFullscreenClick()
+    })
+  }
+
+  /**
+   * Request deep presentation fullscreen without trying to mirror browser state.
+   */
+  async handlePresentationFullscreenClick() {
+    try {
+      await requestPresentationFullscreen()
+    } catch (error) {
+      console.error('Presentation fullscreen request failed:', error)
+      toastManager.error(STRINGS.USER_MESSAGES.notifications.error.presentationFullscreenFailed)
+    }
   }
 
   /**
@@ -669,19 +741,14 @@ class UIManager {
     mediaElement.className = 'media-item'
     mediaElement.dataset.id = item.id
 
-    // Determine status based on actual item properties (not relying on status field)
-    const needsPermission = (!item.file || !item.url) && item.fromFileSystemAPI
-    const isTemporary =
-      (item.file && item.url && !item.fromFileSystemAPI) ||
-      (!item.file && !item.url && !item.fromFileSystemAPI)
-    const isMetadataOnly = !item.file && !item.url
+    const accessState = deriveMediaAccessState(item)
 
     // Add status classes based on actual state
-    if (needsPermission) {
+    if (accessState.needsPermission) {
       mediaElement.classList.add('needs-permission')
-    } else if (isTemporary) {
+    } else if (accessState.isTemporary) {
       mediaElement.classList.add('temporary-file')
-    } else if (isMetadataOnly) {
+    } else if (accessState.isMetadataOnly) {
       mediaElement.classList.add('metadata-only')
     }
 
@@ -715,7 +782,7 @@ class UIManager {
     controls.className = 'media-controls'
 
     // Add restore button for files needing permission
-    if (needsPermission) {
+    if (accessState.needsPermission) {
       console.log(`Creating restore button for file: ${item.name}`)
       const restoreBtn = document.createElement('button')
       restoreBtn.className = 'btn btn--icon-small media-restore-btn'
@@ -751,11 +818,11 @@ class UIManager {
     const sizeText = item.size
       ? `${(item.size / 1024 / 1024).toFixed(1)} MB`
       : t.get('USER_INTERFACE.fileStatus.unknownSize') || 'Unknown size'
-    const statusText = needsPermission
+    const statusText = accessState.needsPermission
       ? t.get('USER_INTERFACE.fileStatus.needsPermission')
-      : isMetadataOnly
+      : accessState.isMetadataOnly
         ? t.get('USER_INTERFACE.fileStatus.metadataOnly')
-        : isTemporary
+        : accessState.isTemporary
           ? t.get('USER_INTERFACE.fileStatus.temporary')
           : t.get('USER_INTERFACE.fileStatus.ready') || 'Ready'
 
@@ -886,6 +953,7 @@ class UIManager {
   cleanup() {
     this.removeGlobalActivationHijacking()
     this.cleanupActivityDetection()
+    this.textPoolView?.cleanup()
 
     // Clean up projection manager
     if (projectionManager) {
@@ -1052,6 +1120,16 @@ class UIManager {
     const clearBtn = document.getElementById('clear-media-btn')
     if (clearBtn) {
       clearBtn.textContent = STRINGS.USER_INTERFACE.buttons.clearMedia
+    }
+
+    const presentationFullscreenBtn = document.getElementById('presentation-fullscreen-btn')
+    if (presentationFullscreenBtn) {
+      presentationFullscreenBtn.textContent = STRINGS.USER_INTERFACE.buttons.presentationFullscreen
+      presentationFullscreenBtn.title = STRINGS.USER_INTERFACE.tooltips.presentationFullscreen
+      presentationFullscreenBtn.setAttribute(
+        'aria-label',
+        STRINGS.USER_INTERFACE.tooltips.presentationFullscreen
+      )
     }
 
     // Update welcome message
@@ -1307,52 +1385,21 @@ class UIManager {
    * Set up text pool event listeners
    */
   setupTextPoolListeners() {
-    // Add button click
-    this.addTextBtn.addEventListener('click', () => this.handleAddText())
-
-    // Enter key submission
-    this.textInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        this.handleAddText()
-      }
-    })
-
-    // Clear all button click
-    this.clearTextBtn.addEventListener('click', () => this.handleClearAll())
-
-    // Initialize text pool display with existing data
-    this.initializeTextPoolDisplay()
+    this.textPoolView.setupTextPoolListeners()
   }
 
   /**
    * Initialize text pool display with existing data from state
    */
   initializeTextPoolDisplay() {
-    const textPool = stateManager.getTextPool()
-    this.renderTextPoolDisplay(textPool)
+    this.textPoolView.initializeTextPoolDisplay()
   }
 
   /**
    * Handle adding text to the pool
    */
   handleAddText() {
-    const text = this.textInput.value.trim()
-
-    if (!text) {
-      toastManager.error(STRINGS.USER_MESSAGES.notifications.textPool.emptyInputWarning)
-      return
-    }
-
-    if (text.length > 200) {
-      toastManager.error(STRINGS.USER_MESSAGES.notifications.textPool.tooLongWarning)
-      return
-    }
-
-    if (stateManager.addText(text)) {
-      this.textInput.value = ''
-      this.textInput.focus() // Keep focus for continuous entry
-      toastManager.success(STRINGS.USER_MESSAGES.notifications.textPool.textAdded)
-    }
+    this.textPoolView.handleAddText()
   }
 
   /**
@@ -1360,22 +1407,7 @@ class UIManager {
    * @param {Object} event - Text pool update event data
    */
   handleTextPoolUpdate(event) {
-    const { action, text, textPool } = event
-
-    switch (action) {
-      case 'added':
-        this.addTextPill(text)
-        break
-      case 'removed':
-        this.removeTextPill(text)
-        break
-      case 'cleared':
-        this.clearTextPoolDisplay()
-        break
-      default:
-        // Fall back to full re-render for unknown actions
-        this.renderTextPoolDisplay(textPool)
-    }
+    this.textPoolView.handleTextPoolUpdate(event)
   }
 
   /**
@@ -1383,15 +1415,7 @@ class UIManager {
    * @param {Object} event - Size change event data
    */
   handleTextPoolSizeChange(event) {
-    const { newSize } = event
-
-    this.updateClearAllVisibility(newSize)
-
-    if (newSize === 0) {
-      this.showEmptyState()
-    } else {
-      this.hideEmptyState()
-    }
+    this.textPoolView.handleTextPoolSizeChange(event)
   }
 
   /**
@@ -1399,26 +1423,7 @@ class UIManager {
    * @param {string[]} textPool - Array of text strings
    */
   renderTextPoolDisplay(textPool) {
-    // Clear existing display
-    this.textPoolDisplay.innerHTML = ''
-    this.textPillElements.clear()
-
-    this.updateClearAllVisibility(textPool.length)
-
-    if (textPool.length === 0) {
-      this.showEmptyState()
-      return
-    }
-
-    this.hideEmptyState()
-
-    // Render text pills - each entry gets its own pill (including duplicates)
-    textPool.forEach((text, index) => {
-      const pill = this.createTextPill(text, index)
-      this.textPoolDisplay.appendChild(pill)
-      // Use index as key to allow duplicates
-      this.textPillElements.set(index, pill)
-    })
+    this.textPoolView.renderTextPoolDisplay(textPool)
   }
 
   /**
@@ -1428,56 +1433,7 @@ class UIManager {
    * @returns {HTMLElement} - Text pill element
    */
   createTextPill(text, index = null) {
-    const pill = document.createElement('div')
-    pill.className = 'text-pill entering'
-    pill.dataset.text = text
-    pill.title = text // Full text on hover for truncated content
-    if (index !== null) {
-      pill.dataset.index = index
-    }
-
-    const content = document.createElement('span')
-    content.className = 'text-pill-content'
-    content.textContent = text
-
-    // Create delete button
-    const deleteBtn = document.createElement('button')
-    deleteBtn.className = 'btn btn--icon-small btn--danger delete-text-btn'
-    deleteBtn.innerHTML = '×'
-    deleteBtn.title = STRINGS.USER_INTERFACE.textPool.deleteButtonTitle
-    deleteBtn.setAttribute(
-      'aria-label',
-      t.get('USER_INTERFACE.textPool.deleteButtonAriaLabel', { text })
-    )
-
-    // Add delete button click handler
-    deleteBtn.addEventListener('click', (e) => {
-      e.stopPropagation() // Prevent pill click event
-      this.handleRemoveText(text)
-    })
-
-    // Add keyboard support for delete button
-    deleteBtn.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault()
-        deleteBtn.click()
-      }
-    })
-
-    pill.appendChild(content)
-    pill.appendChild(deleteBtn)
-
-    // Add click handler for text expansion (if needed)
-    content.addEventListener('click', () => {
-      content.classList.toggle('expanded')
-    })
-
-    // Remove entering animation class after animation completes
-    setTimeout(() => {
-      pill.classList.remove('entering')
-    }, 300)
-
-    return pill
+    return this.textPoolView.createTextPill(text, index)
   }
 
   /**
@@ -1485,21 +1441,7 @@ class UIManager {
    * @param {string} text - Text to add
    */
   addTextPill(text) {
-    this.hideEmptyState()
-
-    // Get current text pool to determine the correct index
-    const textPool = stateManager.getTextPool()
-    const index = textPool.length - 1 // New text is at the end
-
-    // Create pill for new text (duplicates are allowed)
-    const pill = this.createTextPill(text, index)
-    this.textPoolDisplay.appendChild(pill)
-
-    // Add to tracking Map with correct index
-    this.textPillElements.set(index, pill)
-
-    // Scroll to bottom to show new pill
-    this.textPoolDisplay.parentElement.scrollTop = this.textPoolDisplay.parentElement.scrollHeight
+    this.textPoolView.addTextPill(text)
   }
 
   /**
@@ -1507,87 +1449,14 @@ class UIManager {
    * @param {string} text - Text to remove
    */
   removeTextPill(text) {
-    // Find the first pill with matching text in tracked elements
-    let pillToRemove = null
-    let indexToRemove = null
-
-    for (const [index, pill] of this.textPillElements.entries()) {
-      if (pill.dataset.text === text) {
-        pillToRemove = pill
-        indexToRemove = index
-        break
-      }
-    }
-
-    // Fallback: search in DOM if not found in tracked elements
-    if (!pillToRemove) {
-      const domPills = this.textPoolDisplay.querySelectorAll('.text-pill')
-      for (const pill of domPills) {
-        if (pill.dataset.text === text) {
-          pillToRemove = pill
-          break
-        }
-      }
-    }
-
-    if (!pillToRemove) return
-
-    // Add delete button animation if it exists
-    const deleteBtn = pillToRemove.querySelector('.delete-text-btn')
-    if (deleteBtn) {
-      deleteBtn.classList.add('deleting')
-    }
-
-    // Add leaving animation to pill
-    pillToRemove.classList.add('leaving')
-
-    // Remove from DOM after animation
-    setTimeout(() => {
-      if (pillToRemove.parentElement) {
-        pillToRemove.parentElement.removeChild(pillToRemove)
-      }
-
-      // Remove from tracking Map if it was tracked
-      if (indexToRemove !== null) {
-        this.textPillElements.delete(indexToRemove)
-      }
-
-      // Check if we should show empty state by counting remaining pills
-      const remainingPills = this.textPoolDisplay.querySelectorAll('.text-pill').length
-      if (remainingPills === 0) {
-        this.showEmptyState()
-        this.updateClearAllVisibility(0)
-      }
-    }, 200)
+    this.textPoolView.removeTextPill(text)
   }
 
   /**
    * Clear all text pills from the display
    */
   clearTextPoolDisplay() {
-    const pills = Array.from(this.textPillElements.values())
-
-    if (pills.length === 0) {
-      this.showEmptyState()
-      this.updateClearAllVisibility(0)
-      return
-    }
-
-    // Add staggered leaving animations
-    pills.forEach((pill, index) => {
-      setTimeout(() => {
-        pill.classList.add('leaving')
-      }, index * 50) // 50ms stagger between pills
-    })
-
-    // Clear DOM after all animations complete
-    const totalAnimationTime = pills.length * 50 + 200 // Animation duration
-    setTimeout(() => {
-      this.textPoolDisplay.innerHTML = ''
-      this.textPillElements.clear()
-      this.showEmptyState()
-      this.updateClearAllVisibility(0)
-    }, totalAnimationTime)
+    this.textPoolView.clearTextPoolDisplay()
   }
 
   /**
@@ -1595,49 +1464,14 @@ class UIManager {
    * @param {string} text - Text to remove
    */
   handleRemoveText(text) {
-    if (stateManager.removeText(text)) {
-      // Success - state manager will emit events that trigger UI updates
-      const truncatedText = text.substring(0, 30) + (text.length > 30 ? '...' : '')
-      toastManager.show(
-        t.get('USER_MESSAGES.notifications.textPool.textRemoved', { text: truncatedText }),
-        { type: 'info' }
-      )
-    } else {
-      // Error handling
-      toastManager.error(STRINGS.USER_MESSAGES.notifications.textPool.textRemovalFailed)
-    }
+    this.textPoolView.handleRemoveText(text)
   }
 
   /**
    * Handle clear all text pool operation
    */
   handleClearAll() {
-    const textPoolSize = stateManager.getTextPoolSize()
-
-    if (textPoolSize === 0) {
-      toastManager.show(STRINGS.USER_MESSAGES.notifications.textPool.poolAlreadyEmpty, {
-        type: 'info',
-      })
-      return
-    }
-
-    // Show confirmation dialog for larger pools
-    if (textPoolSize > 5) {
-      const confirmed = window.confirm(
-        t.get('USER_MESSAGES.notifications.textPool.confirmClearAll', { count: textPoolSize })
-      )
-      if (!confirmed) {
-        return
-      }
-    }
-
-    if (stateManager.clearTextPool()) {
-      toastManager.success(
-        t.get('USER_MESSAGES.notifications.textPool.poolCleared', { count: textPoolSize })
-      )
-    } else {
-      toastManager.error(STRINGS.USER_MESSAGES.notifications.textPool.poolClearFailed)
-    }
+    this.textPoolView.handleClearAll()
   }
 
   /**
@@ -1645,29 +1479,21 @@ class UIManager {
    * @param {number} poolSize - Current text pool size
    */
   updateClearAllVisibility(poolSize) {
-    if (poolSize > 0) {
-      this.clearTextBtn.style.display = 'block'
-      this.textPoolFooter.classList.remove('hidden')
-    } else {
-      this.clearTextBtn.style.display = 'none'
-      this.textPoolFooter.classList.add('hidden')
-    }
+    this.textPoolView.updateClearAllVisibility(poolSize)
   }
 
   /**
    * Show the empty state message
    */
   showEmptyState() {
-    this.textPoolEmpty.style.display = 'block'
-    this.textPoolDisplay.style.display = 'none'
+    this.textPoolView.showEmptyState()
   }
 
   /**
    * Hide the empty state message
    */
   hideEmptyState() {
-    this.textPoolEmpty.style.display = 'none'
-    this.textPoolDisplay.style.display = 'flex'
+    this.textPoolView.hideEmptyState()
   }
 
   // ============================================================================
@@ -1678,57 +1504,23 @@ class UIManager {
    * Set up frequency control event listeners
    */
   setupFrequencyControlListeners() {
-    // Frequency slider input
-    this.textFrequencySlider.addEventListener('input', () => {
-      this.handleFrequencyChange()
-    })
-
-    // Frequency slider change (for final value)
-    this.textFrequencySlider.addEventListener('change', (e) => {
-      const frequency = parseFloat(e.target.value)
-      this.handleFrequencyChangeComplete(frequency)
-    })
-
-    // Listen for frequency changes from other sources
-    eventBus.on('textPool.frequencyChanged', (event) => {
-      this.updateFrequencyDisplay(event.frequency)
-    })
-
-    // Keyboard accessibility
-    this.textFrequencySlider.addEventListener('keydown', (e) => {
-      // Allow arrow keys for fine control
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-        e.preventDefault()
-        const currentFrequency = parseFloat(this.textFrequencySlider.value)
-        const delta = e.key === 'ArrowRight' ? 0.25 : -0.25
-        const newFrequency = Math.max(0, Math.min(1, currentFrequency + delta))
-
-        this.textFrequencySlider.value = newFrequency
-        this.handleFrequencyChange()
-        this.handleFrequencyChangeComplete(newFrequency)
-      }
-    })
+    this.textPoolView.setupFrequencyControlListeners()
   }
 
   initializeFrequencyControl() {
-    // Set initial frequency from state
-    const currentFrequency = stateManager.getTextFrequency()
-    this.textFrequencySlider.value = currentFrequency
-    this.updateFrequencyDisplay(currentFrequency)
+    this.textPoolView.initializeFrequencyControl()
   }
 
   handleFrequencyChange() {
-    // No immediate visual feedback needed for simplified slider
+    this.textPoolView.handleFrequencyChange()
   }
 
   handleFrequencyChangeComplete(frequency) {
-    // Final frequency change
-    stateManager.setTextFrequency(frequency)
+    this.textPoolView.handleFrequencyChangeComplete(frequency)
   }
 
   updateFrequencyDisplay(frequency) {
-    // Update slider if change came from external source
-    this.textFrequencySlider.value = frequency
+    this.textPoolView.updateFrequencyDisplay(frequency)
   }
 
   /**
@@ -1778,39 +1570,21 @@ class UIManager {
    * Enter idle state - hide UI elements
    */
   enterIdleState() {
-    this.isUIIdle = true
-    document.body.classList.add('ui-idle')
-    console.log('UI entering idle state')
-
-    // Emit idle state change for projection manager (AC 3.7)
-    eventBus.emit('ui.idleStateChanged', { isIdle: true })
+    this.idleController.enterIdleState()
   }
 
   /**
    * Exit idle state - show UI elements and reset timer
    */
   exitIdleState() {
-    if (this.isUIIdle) {
-      this.isUIIdle = false
-      document.body.classList.remove('ui-idle')
-      console.log('UI exiting idle state')
-
-      // Emit idle state change for projection manager (AC 3.7)
-      eventBus.emit('ui.idleStateChanged', { isIdle: false })
-    }
-    this.resetIdleTimer()
+    this.idleController.exitIdleState()
   }
 
   /**
    * Reset the idle timer
    */
   resetIdleTimer() {
-    if (this.idleTimer) {
-      clearTimeout(this.idleTimer)
-    }
-    this.idleTimer = setTimeout(() => {
-      this.enterIdleState()
-    }, this.IDLE_TIMEOUT_MS)
+    this.idleController.resetIdleTimer()
   }
 
   /**
@@ -1818,44 +1592,21 @@ class UIManager {
    * @param {Event} event - User activity event
    */
   handleActivity() {
-    if (this.isUIIdle) {
-      this.exitIdleState()
-    } else {
-      this.resetIdleTimer()
-    }
-
-    this.lastActivityTime = Date.now()
+    this.idleController.handleActivity()
   }
 
   /**
    * Set up activity detection for idle state management
    */
   setupActivityDetection() {
-    const events = ['mousemove', 'mousedown', 'keydown', 'click']
-    events.forEach((eventName) => {
-      const listener = (event) => this.handleActivity(event)
-      document.addEventListener(eventName, listener, { passive: true })
-      this.activityListeners.push({ eventName, listener })
-    })
-
-    // Start with active state
-    this.resetIdleTimer()
-    console.log('Activity detection initialized for idle state management')
+    this.idleController.setupActivityDetection()
   }
 
   /**
    * Clean up activity detection listeners
    */
   cleanupActivityDetection() {
-    this.activityListeners.forEach(({ eventName, listener }) => {
-      document.removeEventListener(eventName, listener)
-    })
-    this.activityListeners = []
-
-    if (this.idleTimer) {
-      clearTimeout(this.idleTimer)
-      this.idleTimer = null
-    }
+    this.idleController.cleanupActivityDetection()
   }
 
   /**
@@ -1965,14 +1716,11 @@ class UIManager {
     mediaItems.forEach((item, index) => {
       console.log(`Item ${index + 1}:`, item)
 
-      const needsPermission = (!item.file || !item.url) && item.fromFileSystemAPI
-      const isTemporary =
-        (item.file && item.url && !item.fromFileSystemAPI) ||
-        (!item.file && !item.url && !item.fromFileSystemAPI)
+      const accessState = deriveMediaAccessState(item)
 
-      if (needsPermission) permissionCount++
-      if (isTemporary) temporaryCount++
-      if (!needsPermission && !isTemporary) usableCount++
+      if (accessState.needsPermission) permissionCount++
+      if (accessState.isTemporary) temporaryCount++
+      if (accessState.isReady) usableCount++
     })
 
     console.log(`Files needing permission: ${permissionCount}`)

@@ -1,0 +1,253 @@
+/* Text Pool Section */
+#text-pool-section {
+  /* Inherits drawer-section base styles */
+}
+
+.text-input-area {
+  padding: 1rem;
+}
+
+.input-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.text-input-field {
+  flex: 1;
+  padding: 0.5rem;
+  background-color: #333;
+  border: 1px solid #555;
+  border-radius: 3px;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-size: 0.9rem;
+}
+
+.text-input-field:focus {
+  outline: 2px solid #007acc;
+  border-color: #007acc;
+}
+
+/* Legacy .add-text-btn styles removed - now using .btn classes */
+
+/* Text Pool Display Container */
+.text-pool-display-container {
+  padding: 0 1rem 1rem 1rem;
+  max-height: 200px;
+  overflow-y: auto;
+  border-top: 1px solid #333;
+  margin-top: 0.5rem;
+}
+
+.text-pool-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding: 0.5rem 0;
+}
+
+/* Text Pills/Tags Styling */
+.text-pill {
+  display: inline-flex;
+  align-items: center;
+  background-color: #444;
+  border: 1px solid #666;
+  border-radius: 15px;
+  padding: 0.3rem 0.8rem;
+  font-family: Arial, sans-serif;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #fff;
+  cursor: default;
+  transition: all 0.2s ease;
+  max-width: 100%;
+  word-break: break-word;
+  position: relative;
+  margin: 0.2rem 0.3rem 0.2rem 0; /* Extra margin for delete button */
+}
+
+.text-pill:hover {
+  background-color: #555;
+  border-color: #777;
+  transform: translateY(-1px);
+}
+
+.text-pill.entering {
+  animation: pill-enter 0.3s ease-out;
+}
+
+.text-pill.leaving {
+  animation: pill-leave 0.2s ease-in forwards;
+}
+
+/* Text Pill Content */
+.text-pill-content {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px; /* Prevent pills from becoming too wide */
+  padding-right: 0.5rem; /* Space for delete button */
+}
+
+.text-pill-content.expanded {
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+/* Text pill delete button overrides */
+.delete-text-btn {
+  position: absolute !important;
+  top: -6px;
+  right: -6px;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  font-size: 0.75rem !important;
+  opacity: 0;
+  z-index: 10;
+  line-height: 1;
+}
+
+.delete-text-btn:focus {
+  opacity: 1;
+}
+
+/* Show delete button on pill hover */
+.text-pill:hover .delete-text-btn {
+  opacity: 1;
+}
+
+/* Accessibility improvements */
+.text-pill:focus-within .delete-text-btn {
+  opacity: 1;
+}
+
+/* Delete button animations */
+.delete-text-btn.deleting {
+  animation: delete-btn-press 0.1s ease-in-out;
+}
+
+@keyframes delete-btn-press {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+/* Media Pool Footer (aligned with text pool pattern) */
+.media-pool-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.5rem 0 0 0;
+  border-top: 1px solid #333;
+  margin-top: 0.5rem;
+}
+
+/* Text Pool Footer */
+.text-pool-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.5rem 0 0 0;
+  border-top: 1px solid #333;
+  margin-top: 0.5rem;
+}
+
+/* Legacy .clear-all-btn styles removed - now using .btn classes */
+
+/* Hide footer when text pool is empty */
+.text-pool-footer.hidden {
+  display: none;
+}
+
+/* Empty State Styling */
+.text-pool-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #888;
+}
+
+.text-pool-empty .empty-message {
+  font-family: Arial, sans-serif;
+  font-size: 0.9rem;
+  margin: 0;
+  font-style: italic;
+}
+
+/* Animations */
+@keyframes pill-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes pill-leave {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+/* Scrollbar Styling for Text Pool Display */
+.text-pool-display-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.text-pool-display-container::-webkit-scrollbar-track {
+  background: #333;
+  border-radius: 3px;
+}
+
+.text-pool-display-container::-webkit-scrollbar-thumb {
+  background: #666;
+  border-radius: 3px;
+}
+
+.text-pool-display-container::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+/* Responsive Behavior */
+@media (max-width: 768px) {
+  .text-pool-display-container {
+    max-height: 150px;
+  }
+  
+  .text-pill-content {
+    max-width: 120px;
+    padding-right: 1rem;
+  }
+  
+  .delete-text-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 0.9rem;
+    top: -8px;
+    right: -8px;
+  }
+  
+  .clear-all-btn {
+    font-size: 0.8rem;
+    padding: 0.5rem;
+  }
+}
+
+/* Touch device support */
+@media (hover: none) {
+  .delete-text-btn {
+    opacity: 0.7; /* Always visible on touch devices */
+  }
+}
+

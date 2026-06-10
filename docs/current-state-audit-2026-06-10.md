@@ -12,7 +12,7 @@ The repo also contains older BMad planning docs and story files. Most early stor
 
 Follow-up review with Paulo on 2026-06-10 clarified that the implemented app has generally transcended the older story scaffold. The documentation drift below should mostly be read as "old docs need pruning or reframing", not "the current app is wrong".
 
-- The lack of an in-app fullscreen toggle is intentional for now. Earlier work found it hard to keep a custom UI control synchronized across browser-native fullscreen paths, so the simpler product decision was to rely on browser fullscreen. Follow-up console testing confirmed that `document.documentElement.requestFullscreen({ navigationUI: "hide" })` enters a deeper element fullscreen in Chrome that hides vertical tabs; if projection workflows need it, consider a minimal "presentation fullscreen" action rather than restoring a fully state-synchronized fullscreen UI.
+- The app now has a minimal presentation fullscreen action that calls `document.documentElement.requestFullscreen({ navigationUI: "hide" })`. Earlier work found it hard to keep a custom UI control synchronized across browser-native fullscreen paths, so this action is deliberately one-way and does not restore a fully state-synchronized fullscreen UI.
 - The current aggregate persistence model under `vj-tam-tam-state` is acceptable unless the code review finds a stronger maintainability reason to split it.
 - Heavy console logging likely came from earlier agent-driven/browser-difficult testing workflows. Prefer improving tests and adding an explicit debug/logging layer before deleting useful observability wholesale.
 - Maptastic is acceptable while it works. A later homography-focused replacement may be worthwhile, but that is a larger technical direction rather than an immediate blocker.
@@ -45,7 +45,7 @@ After this audit, the test environment has a complete in-memory `localStorage` s
 
 Current verification:
 
-- `npm test` passes: 23 test files, 613 tests.
+- `npm test` passes: 28 test files, 630 tests.
 - `npm run lint` passes.
 - `npm audit --omit=dev` reports 0 vulnerabilities.
 
@@ -53,7 +53,7 @@ An independent maintainability review is captured in [Code Quality Review - 2026
 
 ## Documentation Drift
 
-- README and PRD still describe a dedicated Fullscreen API button/control. Story `docs/stories/3.6.story.md` says that feature was deliberately removed from MVP, and the app currently has no dedicated fullscreen toggle. Current decision: no broad fullscreen UI work needed, but `requestFullscreen({ navigationUI: "hide" })` is a validated escape hatch for Chrome vertical-tabs/projector use.
+- README and PRD still describe a broader dedicated Fullscreen API button/control. Story `docs/stories/3.6.story.md` says that feature was deliberately removed from MVP. Current decision: keep only the minimal presentation fullscreen action using `requestFullscreen({ navigationUI: "hide" })`; do not restore a fully synchronized fullscreen state machine unless a new UI pass revalidates it.
 - PRD and story `docs/stories/6.6.story.md` describe scale, translation, rotation, and flip controls in projection setup mode. The current app has corner warping and aspect ratio controls, but not those transform controls. Current decision: treat the app as canonical; do not implement old transform controls unless a new UI pass revalidates them.
 - Story `docs/stories/6.5.story.md` is still marked approved/incomplete, while the app already includes custom corner handles and Maptastic layout persistence.
 - Story `docs/stories/6.10.story.md` describes per-setting `localStorage` keys such as `vjtamtam.projectionMode.active`; the current implementation stores the app state as one aggregate object under `vj-tam-tam-state`, with file handles handled separately through IndexedDB.
@@ -65,7 +65,7 @@ An independent maintainability review is captured in [Code Quality Review - 2026
 - The current architecture is understandable, but `uiManager.js` and `style.css` are both large enough that UI polish work will be easier after extracting smaller UI modules or at least separating panel responsibilities.
 - The app logs heavily to the console during normal use. This is useful while stabilizing and was likely part of earlier agent/browser verification, but it is noisy for a party/live-performance tool. A reasonable next step is an explicit debug logger or debug mode, not blind deletion.
 - `app/lib/maptastic.js` is an old global-style browser library. It works in the current static setup, but it should be treated carefully if the app is migrated into another build system. A future replacement could isolate the homography math directly, but that should be handled as a focused projection-mapping project.
-- The initial screen works, but the welcome text can sit under the drawer because the stage welcome is centered against the full viewport while the drawer overlays the left side.
+- The initial screen now offsets the welcome text on desktop so it centers in the visible stage area beside the drawer rather than sitting underneath the drawer edge.
 - `StateManager.restoreFromPersistence()` falls back to defaults on corrupt stored state, but it does not currently clear the corrupt aggregate key.
 
 ## Migration Recommendation

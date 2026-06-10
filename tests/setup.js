@@ -1,4 +1,8 @@
-import { beforeEach } from 'vitest'
+import { afterEach, beforeEach, vi } from 'vitest'
+
+let consoleLogSpy
+let consoleWarnSpy
+let consoleErrorSpy
 
 function createLocalStorageMock() {
   let store = {}
@@ -35,4 +39,14 @@ function ensureLocalStorage() {
 beforeEach(() => {
   ensureLocalStorage()
   globalThis.localStorage.clear()
+
+  consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+  consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+})
+
+afterEach(() => {
+  consoleLogSpy?.mockRestore()
+  consoleWarnSpy?.mockRestore()
+  consoleErrorSpy?.mockRestore()
 })

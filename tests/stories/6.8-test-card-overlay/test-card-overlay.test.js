@@ -9,6 +9,7 @@ import { projectionManager } from '../../../app/src/projectionManager.js'
 import { stateManager } from '../../../app/src/stateManager.js'
 import { toastManager } from '../../../app/src/toastManager.js'
 import { eventBus } from '../../../app/src/eventBus.js'
+import { bindToastManager, installMockMaptastic, loadAppFixture } from '../../helpers/appFixture.js'
 
 // Mock dependencies
 vi.mock('../../../app/src/stateManager.js', () => ({
@@ -28,50 +29,10 @@ vi.mock('../../../app/src/eventBus.js', () => ({
   },
 }))
 
-// Mock Maptastic
-globalThis.Maptastic = vi.fn(() => ({
-  addLayer: vi.fn(),
-  setConfigEnabled: vi.fn(),
-  getLayout: vi.fn(() => []),
-  setLayout: vi.fn(),
-}))
-
 describe('Story 6.8: Test Card Overlay Toggle - Integration Tests', () => {
   beforeEach(() => {
-    // Setup complete DOM structure
-    document.body.innerHTML = `
-      <div id="stage" class="stage">
-        <div id="test-card-overlay" class="test-card-overlay" style="display: none;">
-          <img src="assets/img/test-card.png" alt="Test Card Pattern" class="test-card-image">
-        </div>
-      </div>
-      <div id="toast-container" class="toast-container"></div>
-      
-      <!-- Advanced Controls -->
-      <div id="advanced-controls-section" class="advanced-controls-section visible">
-        <div class="projection-controls">
-          <button id="projection-toggle-btn" class="projection-button" data-projection-active="false">
-            <span class="button-text">Enter Projection Setup</span>
-          </button>
-          
-          <div id="projection-mode-controls" class="projection-settings" style="display: none;">
-            <!-- Test Card Controls -->
-            <div class="test-card-section">
-              <label class="control-label">Calibration</label>
-              
-              <div class="test-card-control-group">
-                <button id="test-card-toggle-btn" class="test-card-button" data-active="false">
-                  <span class="button-text">Test Card</span>
-                  <span class="button-state">Off</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div id="projection-handles-container" class="projection-handles-container"></div>
-    `
+    loadAppFixture()
+    installMockMaptastic()
 
     // Setup CSS styles for visibility testing
     const style = document.createElement('style')
@@ -95,11 +56,7 @@ describe('Story 6.8: Test Card Overlay Toggle - Integration Tests', () => {
     projectionManager.isActive = false
     projectionManager.isInitialized = false
 
-    // Ensure toast manager has a container after DOM is ready
-    const toastContainer = document.getElementById('toast-container')
-    if (toastContainer) {
-      toastManager.container = toastContainer
-    }
+    bindToastManager(toastManager)
   })
 
   afterEach(() => {
@@ -399,6 +356,8 @@ describe('Story 6.8: Test Card Overlay Toggle - Integration Tests', () => {
 
   describe('Error Handling and Edge Cases', () => {
     it('should handle missing DOM elements gracefully', () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
       // Remove required elements
       document.getElementById('test-card-overlay').remove()
 
@@ -406,15 +365,21 @@ describe('Story 6.8: Test Card Overlay Toggle - Integration Tests', () => {
 
       expect(result).toBe(false)
       expect(testCardManager.isInitialized).toBe(false)
+      expect(consoleSpy).toHaveBeenCalledWith('TestCardManager: Required DOM elements not found')
+      consoleSpy.mockRestore()
     })
 
     it('should handle projection mode changes without test card controls present', () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
       // Remove test card button
       document.getElementById('test-card-toggle-btn').remove()
 
       const result = testCardManager.init()
 
       expect(result).toBe(false)
+      expect(consoleSpy).toHaveBeenCalledWith('TestCardManager: Required DOM elements not found')
+      consoleSpy.mockRestore()
     })
 
     it('should handle aspect ratio updates when overlay is not visible', () => {
@@ -432,8 +397,6 @@ describe('Story 6.8: Test Card Overlay Toggle - Integration Tests', () => {
       projectionManager.init()
 
       // 1. Enter projection mode
-      const projectionButton = document.getElementById('projection-toggle-btn')
-      projectionButton.click()
       projectionManager.enterProjectionMode()
 
       // Show projection controls
@@ -465,7 +428,6 @@ describe('Story 6.8: Test Card Overlay Toggle - Integration Tests', () => {
       expect(testCardManager.isVisible).toBe(false)
 
       // 6. Exit projection mode
-      projectionButton.click()
       projectionManager.exitProjectionMode()
       projectionControls.style.display = 'none'
 

@@ -1,307 +1,440 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VJ Tam Tam</title>
-  <link rel="stylesheet" href="assets/css/style.css">
-</head>
-<body>
-  <div id="app">
-    <!-- Left drawer with media pool -->
-    <div id="left-drawer" class="left-drawer">
-      <!-- Application Header with Logo -->
-      <div class="app-header">
-        <div class="app-logo">
-          <h1>VJ Tam Tam</h1>
-        </div>
-      </div>
-      
-      <!-- Media Pool Section -->
-      <div class="drawer-header">
-        <div class="header-left">
-          <h2>Media Pool</h2>
-        </div>
-        <div class="header-right">
-          <div class="file-picker-controls btn-group">
-            <button id="browse-files-btn" class="btn btn--secondary" title="Browse for individual files">
-              📄 Files
-            </button>
-            <button id="browse-folders-btn" class="btn btn--secondary" title="Browse for entire folders">
-              📁 Folders
-            </button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VJ Tam Tam</title>
+    <link rel="stylesheet" href="assets/css/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Left drawer with media pool -->
+      <div id="left-drawer" class="left-drawer">
+        <!-- Application Header with Logo -->
+        <div class="app-header">
+          <div class="app-logo">
+            <h1>VJ Tam Tam</h1>
           </div>
-        </div>
-      </div>
-      <div class="media-pool-container">
-        <!-- Info messages container (above the grid) -->
-        <div id="media-pool-notices" class="media-pool-notices">
-          <!-- Info notices will be displayed here -->
-        </div>
-        
-        <div id="media-pool" class="media-pool">
-          <!-- Media items will be displayed here -->
-        </div>
-        
-        <!-- Media Pool Footer with Clear Button (aligned with text pool pattern) -->
-        <div class="media-pool-footer">
-          <button id="clear-media-btn" class="btn btn--danger btn--small" style="display: none;">
-            <!-- Text content will be set via JavaScript from strings.js -->
+          <button
+            id="presentation-fullscreen-btn"
+            class="btn btn--icon app-header-action"
+            title="Presentation fullscreen"
+          >
+            ⛶
           </button>
         </div>
-      </div>
-      
-      <!-- Text Pool Section -->
-      <div class="drawer-section" id="text-pool-section">
-        <div class="section-header">
-          <h3>Text Pool</h3>
-        </div>
-        
-        <div class="text-input-area">
-          <div class="input-controls">
-            <input 
-              type="text" 
-              id="text-input" 
-              class="text-input-field" 
-              placeholder="Add a message..." 
-              maxlength="200"
-              autocomplete="off"
-            >
-            <button id="add-text-btn" class="btn btn--icon" title="Add text">+</button>
-          </div>
-        </div>
 
-        <!-- Text Pool Display Area -->
-        <div class="text-pool-display-container">
-          <div id="text-pool-display" class="text-pool-display">
-            <!-- Text pills will be dynamically rendered here -->
+        <!-- Media Pool Section -->
+        <div class="drawer-header">
+          <div class="header-left">
+            <h2>Media Pool</h2>
           </div>
-          
-          <!-- Empty State (shown when text pool is empty) -->
-          <div id="text-pool-empty" class="text-pool-empty" style="display: none;">
-            <p class="empty-message">No messages added yet</p>
+          <div class="header-right">
+            <div class="file-picker-controls btn-group">
+              <button
+                id="browse-files-btn"
+                class="btn btn--secondary"
+                title="Browse for individual files"
+              >
+                📄 Files
+              </button>
+              <button
+                id="browse-folders-btn"
+                class="btn btn--secondary"
+                title="Browse for entire folders"
+              >
+                📁 Folders
+              </button>
+            </div>
           </div>
-          
-          <!-- Clear All Button (NEW) -->
-          <div class="text-pool-footer">
-            <button id="clear-text-btn" class="btn btn--danger btn--small" style="display: none;">
+        </div>
+        <div class="media-pool-container">
+          <!-- Info messages container (above the grid) -->
+          <div id="media-pool-notices" class="media-pool-notices">
+            <!-- Info notices will be displayed here -->
+          </div>
+
+          <div id="media-pool" class="media-pool">
+            <!-- Media items will be displayed here -->
+          </div>
+
+          <!-- Media Pool Footer with Clear Button (aligned with text pool pattern) -->
+          <div class="media-pool-footer">
+            <button id="clear-media-btn" class="btn btn--danger btn--small" style="display: none">
               <!-- Text content will be set via JavaScript from strings.js -->
             </button>
           </div>
         </div>
-        
-        <!-- Frequency Control -->
-        <div class="frequency-control-section">
-          <div class="frequency-control-header">
-            <label for="text-frequency-slider" class="frequency-label" id="frequency-label">Text Frequency</label>
+
+        <!-- Text Pool Section -->
+        <div class="drawer-section" id="text-pool-section">
+          <div class="section-header">
+            <h3>Text Pool</h3>
           </div>
-          
-          <div class="frequency-slider-container">
-            <input 
-              type="range" 
-              id="text-frequency-slider" 
-              class="frequency-slider"
-              min="0" 
-              max="1" 
-              value="0.5" 
-              step="0.25"
-              aria-label="Text display frequency"
-              aria-describedby="frequency-description"
-            >
-            
-            <div class="frequency-labels">
-              <span class="frequency-label-min" id="frequency-label-min">Never</span>
-              <span class="frequency-label-max" id="frequency-label-max">Always</span>
+
+          <div class="text-input-area">
+            <div class="input-controls">
+              <input
+                type="text"
+                id="text-input"
+                class="text-input-field"
+                placeholder="Add a message..."
+                maxlength="200"
+                autocomplete="off"
+              />
+              <button id="add-text-btn" class="btn btn--icon" title="Add text">+</button>
             </div>
           </div>
-          
-          <div id="frequency-description" class="frequency-description sr-only">
-            Controls how often text messages appear over the visuals. 
-            Range from Never to Always.
+
+          <!-- Text Pool Display Area -->
+          <div class="text-pool-display-container">
+            <div id="text-pool-display" class="text-pool-display">
+              <!-- Text pills will be dynamically rendered here -->
+            </div>
+
+            <!-- Empty State (shown when text pool is empty) -->
+            <div id="text-pool-empty" class="text-pool-empty" style="display: none">
+              <p class="empty-message">No messages added yet</p>
+            </div>
+
+            <!-- Clear All Button (NEW) -->
+            <div class="text-pool-footer">
+              <button id="clear-text-btn" class="btn btn--danger btn--small" style="display: none">
+                <!-- Text content will be set via JavaScript from strings.js -->
+              </button>
+            </div>
+          </div>
+
+          <!-- Frequency Control -->
+          <div class="frequency-control-section">
+            <div class="frequency-control-header">
+              <label for="text-frequency-slider" class="frequency-label" id="frequency-label"
+                >Text Frequency</label
+              >
+            </div>
+
+            <div class="frequency-slider-container">
+              <input
+                type="range"
+                id="text-frequency-slider"
+                class="frequency-slider"
+                min="0"
+                max="1"
+                value="0.5"
+                step="0.25"
+                aria-label="Text display frequency"
+                aria-describedby="frequency-description"
+              />
+
+              <div class="frequency-labels">
+                <span class="frequency-label-min" id="frequency-label-min">Never</span>
+                <span class="frequency-label-max" id="frequency-label-max">Always</span>
+              </div>
+            </div>
+
+            <div id="frequency-description" class="frequency-description sr-only">
+              Controls how often text messages appear over the visuals. Range from Never to Always.
+            </div>
           </div>
         </div>
-      </div>
-      
-      <!-- Advanced Controls Section -->
-      <div class="drawer-section">
-        <div class="advanced-controls-header">
-          <button 
-            id="advanced-controls-toggle" 
-            class="btn btn--secondary btn--small"
-            aria-expanded="false"
-            aria-controls="advanced-controls-section">
-            <span class="toggle-icon">▶</span>
-            <span class="toggle-text">Advanced Settings</span>
-          </button>
-        </div>
-        <div id="advanced-controls-section" class="advanced-controls-section" aria-hidden="true">
-          <!-- Projection Setup Toggle Control -->
-          <div class="projection-controls">
-            <button 
-              id="projection-toggle-btn" 
-              class="btn btn--primary btn--full-width projection-button"
-              data-projection-active="false"
+
+        <!-- Advanced Controls Section -->
+        <div class="drawer-section">
+          <div class="advanced-controls-header">
+            <button
+              id="advanced-controls-toggle"
+              class="btn btn--secondary btn--small"
               aria-expanded="false"
-              aria-controls="projection-mode-controls">
-              <span class="button-text">Enter Projection Setup</span>
+              aria-controls="advanced-controls-section"
+            >
+              <span class="toggle-icon">▶</span>
+              <span class="toggle-text">Advanced Settings</span>
             </button>
-            
-            <!-- Additional projection controls appear when active -->
-            <div id="projection-mode-controls" class="projection-settings" style="display: none;">
-              <div class="aspect-ratio-section">
-                <label class="control-label">Projection Surface Aspect Ratio</label>
-                
-                <!-- Preset buttons -->
-                <div class="aspect-preset-buttons">
-                  <button class="aspect-preset-btn" data-ratio="16:9" data-value="1.777">16:9</button>
-                  <button class="aspect-preset-btn" data-ratio="4:3" data-value="1.333">4:3</button>
-                  <button class="aspect-preset-btn" data-ratio="1:1" data-value="1.000">1:1</button>
-                </div>
-                
-                <!-- Aspect ratio inputs (centralized) -->
-                <div class="custom-aspect-controls">
-                  <label>Set Aspect Ratio</label>
-                  <div class="aspect-input-group">
-                    <input type="number" id="aspect-width" placeholder="Width" min="1" step="0.1" value="16">
-                    <span class="aspect-separator">:</span>
-                    <input type="number" id="aspect-height" placeholder="Height" min="1" step="0.1" value="9">
+          </div>
+          <div id="advanced-controls-section" class="advanced-controls-section" aria-hidden="true">
+            <!-- Projection Setup Toggle Control -->
+            <div class="projection-controls">
+              <button
+                id="projection-toggle-btn"
+                class="btn btn--primary btn--full-width projection-button"
+                data-projection-active="false"
+                aria-expanded="false"
+                aria-controls="projection-mode-controls"
+              >
+                <span class="button-text">Enter Projection Setup</span>
+              </button>
+
+              <!-- Additional projection controls appear when active -->
+              <div id="projection-mode-controls" class="projection-settings" style="display: none">
+                <div class="aspect-ratio-section">
+                  <label class="control-label">Projection Surface Aspect Ratio</label>
+
+                  <!-- Preset buttons -->
+                  <div class="aspect-preset-buttons">
+                    <button class="aspect-preset-btn" data-ratio="16:9" data-value="1.777">
+                      16:9
+                    </button>
+                    <button class="aspect-preset-btn" data-ratio="4:3" data-value="1.333">
+                      4:3
+                    </button>
+                    <button class="aspect-preset-btn" data-ratio="1:1" data-value="1.000">
+                      1:1
+                    </button>
                   </div>
-                  <button id="match-screen-btn" class="secondary-button">Match Current Screen</button>
+
+                  <!-- Aspect ratio inputs (centralized) -->
+                  <div class="custom-aspect-controls">
+                    <label>Set Aspect Ratio</label>
+                    <div class="aspect-input-group">
+                      <input
+                        type="number"
+                        id="aspect-width"
+                        placeholder="Width"
+                        min="1"
+                        step="0.1"
+                        value="16"
+                      />
+                      <span class="aspect-separator">:</span>
+                      <input
+                        type="number"
+                        id="aspect-height"
+                        placeholder="Height"
+                        min="1"
+                        step="0.1"
+                        value="9"
+                      />
+                    </div>
+                    <button id="match-screen-btn" class="secondary-button">
+                      Match Current Screen
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Test Card Controls (Story 6.8) -->
+                <div class="test-card-section">
+                  <label class="control-label">Calibration</label>
+
+                  <div class="test-card-control-group">
+                    <button id="test-card-toggle-btn" class="test-card-button" data-active="false">
+                      <span class="button-text">Test Card</span>
+                      <span class="button-state">Off</span>
+                    </button>
+                  </div>
                 </div>
               </div>
-              
-              <!-- Test Card Controls (Story 6.8) -->
-              <div class="test-card-section">
-                <label class="control-label">Calibration</label>
-                
-                <div class="test-card-control-group">
-                  <button id="test-card-toggle-btn" class="test-card-button" data-active="false">
-                    <span class="button-text">Test Card</span>
-                    <span class="button-state">Off</span>
-                  </button>
+            </div>
+
+            <div class="control-group">
+              <label for="min-duration-control">Minimum Segment Duration</label>
+              <div class="control-pair">
+                <input
+                  type="range"
+                  id="min-duration-slider"
+                  min="1"
+                  max="30"
+                  value="5"
+                  step="0.1"
+                  class="duration-slider"
+                />
+                <input
+                  type="number"
+                  id="min-duration-input"
+                  min="1"
+                  max="30"
+                  value="5"
+                  step="0.1"
+                  class="duration-input"
+                />
+                <span class="duration-unit">sec</span>
+              </div>
+            </div>
+            <div class="control-group">
+              <label for="max-duration-control">Maximum Segment Duration</label>
+              <div class="control-pair">
+                <input
+                  type="range"
+                  id="max-duration-slider"
+                  min="1"
+                  max="30"
+                  value="5"
+                  step="0.1"
+                  class="duration-slider"
+                />
+                <input
+                  type="number"
+                  id="max-duration-input"
+                  min="1"
+                  max="30"
+                  value="5"
+                  step="0.1"
+                  class="duration-input"
+                />
+                <span class="duration-unit">sec</span>
+              </div>
+            </div>
+            <div class="control-group">
+              <label for="skip-start-control">Video Skip Start</label>
+              <div class="control-pair">
+                <input
+                  type="range"
+                  id="skip-start-slider"
+                  min="0"
+                  max="60"
+                  value="0"
+                  step="0.1"
+                  class="duration-slider"
+                />
+                <input
+                  type="number"
+                  id="skip-start-input"
+                  min="0"
+                  max="60"
+                  value="0"
+                  step="0.1"
+                  class="duration-input"
+                />
+                <span class="duration-unit">sec</span>
+              </div>
+            </div>
+            <div class="control-group">
+              <label for="skip-end-control">Video Skip End</label>
+              <div class="control-pair">
+                <input
+                  type="range"
+                  id="skip-end-slider"
+                  min="0"
+                  max="60"
+                  value="0"
+                  step="0.1"
+                  class="duration-slider"
+                />
+                <input
+                  type="number"
+                  id="skip-end-input"
+                  min="0"
+                  max="60"
+                  value="0"
+                  step="0.1"
+                  class="duration-input"
+                />
+                <span class="duration-unit">sec</span>
+              </div>
+            </div>
+
+            <!-- Color Correction Controls -->
+            <div id="color-correction-controls" class="color-controls-section">
+              <label class="control-label">Color Correction</label>
+
+              <!-- Brightness Control -->
+              <div class="color-control-group">
+                <label class="color-label">Brightness</label>
+                <div class="control-with-reset">
+                  <input
+                    type="range"
+                    id="brightness-slider"
+                    min="0.0"
+                    max="2.0"
+                    step="0.05"
+                    value="1.0"
+                    class="color-slider"
+                  />
+                  <span id="brightness-value" class="value-display">100%</span>
+                  <button id="reset-brightness-btn" class="reset-button">Reset</button>
                 </div>
               </div>
-            </div>
-          </div>
-          
-          <div class="control-group">
-            <label for="min-duration-control">Minimum Segment Duration</label>
-            <div class="control-pair">
-              <input type="range" id="min-duration-slider" min="1" max="30" value="5" step="0.1" class="duration-slider">
-              <input type="number" id="min-duration-input" min="1" max="30" value="5" step="0.1" class="duration-input">
-              <span class="duration-unit">sec</span>
-            </div>
-          </div>
-          <div class="control-group">
-            <label for="max-duration-control">Maximum Segment Duration</label>
-            <div class="control-pair">
-              <input type="range" id="max-duration-slider" min="1" max="30" value="5" step="0.1" class="duration-slider">
-              <input type="number" id="max-duration-input" min="1" max="30" value="5" step="0.1" class="duration-input">
-              <span class="duration-unit">sec</span>
-            </div>
-          </div>
-          <div class="control-group">
-            <label for="skip-start-control">Video Skip Start</label>
-            <div class="control-pair">
-              <input type="range" id="skip-start-slider" min="0" max="60" value="0" step="0.1" class="duration-slider">
-              <input type="number" id="skip-start-input" min="0" max="60" value="0" step="0.1" class="duration-input">
-              <span class="duration-unit">sec</span>
-            </div>
-          </div>
-          <div class="control-group">
-            <label for="skip-end-control">Video Skip End</label>
-            <div class="control-pair">
-              <input type="range" id="skip-end-slider" min="0" max="60" value="0" step="0.1" class="duration-slider">
-              <input type="number" id="skip-end-input" min="0" max="60" value="0" step="0.1" class="duration-input">
-              <span class="duration-unit">sec</span>
-            </div>
-          </div>
-          
-          <!-- Color Correction Controls -->
-          <div id="color-correction-controls" class="color-controls-section">
-            <label class="control-label">Color Correction</label>
-            
-            <!-- Brightness Control -->
-            <div class="color-control-group">
-              <label class="color-label">Brightness</label>
-              <div class="control-with-reset">
-                <input type="range" id="brightness-slider" min="0.0" max="2.0" step="0.05" value="1.0" class="color-slider">
-                <span id="brightness-value" class="value-display">100%</span>
-                <button id="reset-brightness-btn" class="reset-button">Reset</button>
+
+              <!-- Contrast Control -->
+              <div class="color-control-group">
+                <label class="color-label">Contrast</label>
+                <div class="control-with-reset">
+                  <input
+                    type="range"
+                    id="contrast-slider"
+                    min="0.0"
+                    max="2.0"
+                    step="0.05"
+                    value="1.0"
+                    class="color-slider"
+                  />
+                  <span id="contrast-value" class="value-display">100%</span>
+                  <button id="reset-contrast-btn" class="reset-button">Reset</button>
+                </div>
               </div>
-            </div>
-            
-            <!-- Contrast Control -->
-            <div class="color-control-group">
-              <label class="color-label">Contrast</label>
-              <div class="control-with-reset">
-                <input type="range" id="contrast-slider" min="0.0" max="2.0" step="0.05" value="1.0" class="color-slider">
-                <span id="contrast-value" class="value-display">100%</span>
-                <button id="reset-contrast-btn" class="reset-button">Reset</button>
+
+              <!-- Saturation Control -->
+              <div class="color-control-group">
+                <label class="color-label">Saturation</label>
+                <div class="control-with-reset">
+                  <input
+                    type="range"
+                    id="saturation-slider"
+                    min="0"
+                    max="2"
+                    step="0.05"
+                    value="1.0"
+                    class="color-slider"
+                  />
+                  <span id="saturation-value" class="value-display">100%</span>
+                  <button id="reset-saturation-btn" class="reset-button">Reset</button>
+                </div>
               </div>
-            </div>
-            
-            <!-- Saturation Control -->
-            <div class="color-control-group">
-              <label class="color-label">Saturation</label>
-              <div class="control-with-reset">
-                <input type="range" id="saturation-slider" min="0" max="2" step="0.05" value="1.0" class="color-slider">
-                <span id="saturation-value" class="value-display">100%</span>
-                <button id="reset-saturation-btn" class="reset-button">Reset</button>
+
+              <!-- Master Reset -->
+              <div class="master-reset-section">
+                <button id="reset-all-colors-btn" class="master-reset-button">
+                  Reset All Colors
+                </button>
               </div>
-            </div>
-            
-            <!-- Master Reset -->
-            <div class="master-reset-section">
-              <button id="reset-all-colors-btn" class="master-reset-button">Reset All Colors</button>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- Main stage area where media is displayed -->
+      <div id="stage" class="stage">
+        <div id="stage-content" class="stage-content">
+          <!-- Welcome message area (clickable for file picker) -->
+          <div id="welcome-message" class="welcome-message">
+            <h1>Welcome to VJ Tam Tam</h1>
+            <p>
+              Please drag and drop your photos and videos here, or click to browse, to start your
+              performance
+            </p>
+          </div>
+        </div>
+
+        <!-- Text Overlay (NEW) -->
+        <div id="text-overlay-container" class="text-overlay-container">
+          <div id="text-overlay" class="text-overlay">
+            <!-- Text content will be dynamically inserted here -->
+          </div>
+        </div>
+
+        <!-- Test Card Overlay (Story 6.8) -->
+        <div id="test-card-overlay" class="test-card-overlay" style="display: none">
+          <img src="assets/img/test-card.png" alt="Test Card Pattern" class="test-card-image" />
+        </div>
+
+        <!-- Drop indicator overlay -->
+        <div id="drop-indicator" class="drop-indicator hidden">
+          <div class="drop-message">
+            <p>Drop your media files here</p>
+            <p class="supported-formats">Supported: JPG, PNG, GIF, HEIC, WebP, MP4, MOV, WebM</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toast notification container -->
+      <div id="toast-container" class="toast-container"></div>
+
+      <!-- Projection handles container (above all other content) -->
+      <div id="projection-handles-container" class="projection-handles-container"></div>
     </div>
 
-    <!-- Main stage area where media is displayed -->
-    <div id="stage" class="stage">
-      <div id="stage-content" class="stage-content">
-        <!-- Welcome message area (clickable for file picker) -->
-        <div id="welcome-message" class="welcome-message">
-          <h1>Welcome to VJ Tam Tam</h1>
-          <p>Please drag and drop your photos and videos here, or click to browse, to start your performance</p>
-        </div>
-      </div>
-      
-      <!-- Text Overlay (NEW) -->
-      <div id="text-overlay-container" class="text-overlay-container">
-        <div id="text-overlay" class="text-overlay">
-          <!-- Text content will be dynamically inserted here -->
-        </div>
-      </div>
-      
-      <!-- Test Card Overlay (Story 6.8) -->
-      <div id="test-card-overlay" class="test-card-overlay" style="display: none;">
-        <img src="assets/img/test-card.png" alt="Test Card Pattern" class="test-card-image">
-      </div>
-      
-      <!-- Drop indicator overlay -->
-      <div id="drop-indicator" class="drop-indicator hidden">
-        <div class="drop-message">
-          <p>Drop your media files here</p>
-          <p class="supported-formats">Supported: JPG, PNG, GIF, HEIC, WebP, MP4, MOV, WebM</p>
-        </div>
-      </div>
-    </div>
+    <!-- Maptastic library for projection mapping -->
+    <script src="lib/maptastic.js"></script>
 
-    <!-- Toast notification container -->
-    <div id="toast-container" class="toast-container"></div>
-    
-    <!-- Projection handles container (above all other content) -->
-    <div id="projection-handles-container" class="projection-handles-container"></div>
-  </div>
-
-  <!-- Maptastic library for projection mapping -->
-  <script src="lib/maptastic.js"></script>
-  
-  <!-- Main application script -->
-  <script type="module" src="src/main.js"></script>
-</body>
-</html> 
+    <!-- Main application script -->
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>

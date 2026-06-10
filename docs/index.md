@@ -10,6 +10,10 @@ Fresh audit of what is currently implemented, what is deployed, which older docs
 
 Independent maintainability review focused on structural simplification, large-file boundaries, projection architecture, test reliability, and refactor sequencing.
 
+### [Redesign-Ready Foundation - 2026-06-10](./redesign-ready-foundation-2026-06-10.md)
+
+Foundation changes completed after the audit: quiet test spine, CSS feature imports, extracted UI boundaries, minimal presentation fullscreen, and the next architecture path for redesign work.
+
 ### [Product Requirements Document (PRD)](./prd.md)
 
 Complete product requirements document defining the VJ Tam Tam auto-VJ tool, including vision, goals, target audience, key features, technical constraints, and detailed epics with user stories and acceptance criteria.

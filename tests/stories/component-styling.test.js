@@ -5,7 +5,22 @@
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import { readFileSync } from 'fs'
+import { dirname, resolve } from 'path'
 import { JSDOM } from 'jsdom'
+
+function readCssWithImports(filePath, seen = new Set()) {
+  if (seen.has(filePath)) return ''
+  seen.add(filePath)
+
+  const content = readFileSync(filePath, 'utf8')
+  const imports = [...content.matchAll(/@import\s+url\(["']?([^"')]+)["']?\);/g)]
+
+  const importedContent = imports
+    .map((match) => readCssWithImports(resolve(dirname(filePath), match[1]), seen))
+    .join('\n')
+
+  return `${content}\n${importedContent}`
+}
 
 describe('Story 3.5: Component Styling Consistency', () => {
   let cssContent
@@ -13,7 +28,7 @@ describe('Story 3.5: Component Styling Consistency', () => {
   beforeEach(() => {
     // Load CSS content for validation
     try {
-      cssContent = readFileSync('./app/assets/css/style.css', 'utf8')
+      cssContent = readCssWithImports(resolve('./app/assets/css/style.css'))
     } catch {
       cssContent = ''
     }

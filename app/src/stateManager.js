@@ -8,6 +8,7 @@ import { storageFacade } from './facades/storageFacade.js'
 import { fileSystemAccessFacade } from './facades/fileSystemAccessFacade.js'
 import { filterRestorableMedia } from './utils/mediaUtils.js'
 import { STATE_EVENTS, TEXT_POOL_EVENTS } from './constants/events.js'
+import { createDefaultState } from './defaultState.js'
 
 /**
  * @typedef {Object} MediaItem
@@ -23,42 +24,7 @@ import { STATE_EVENTS, TEXT_POOL_EVENTS } from './constants/events.js'
 
 class StateManager {
   constructor() {
-    this.state = {
-      mediaPool: [],
-      // Text pool for text overlay messages
-      textPool: [],
-      // Segment settings configuration
-      segmentSettings: {
-        minDuration: 5, // seconds (default 5s as per Story 2.3 requirements)
-        maxDuration: 5, // seconds (default 5s as per Story 2.3 requirements)
-        skipStart: 0, // seconds (default 0s)
-        skipEnd: 0, // seconds (default 0s)
-      },
-      // UI settings configuration
-      uiSettings: {
-        advancedControlsVisible: false, // default collapsed
-      },
-      // Projection mode settings (Story 6.3)
-      projectionMode: {
-        active: false, // default projection mode inactive
-        maptasticLayout: null, // saved corner positions
-        projectionSurfaceAspectRatio: null, // saved projection surface aspect ratio
-      },
-      // Text frequency for text overlay display (0-1 normalized scale)
-      textFrequency: 0.5, // Default middle value (equivalent to step 4 of 8)
-      // Color correction settings (Story 6.7)
-      colorFilters: {
-        brightness: 1.0, // Default 100% (1.0 multiplier, range 0.5-1.5)
-        contrast: 1.0, // Default 100% (1.0 multiplier, range 0.5-1.5)
-        saturation: 1.0, // Default 100% (1.0 multiplier, range 0.0-2.0)
-      },
-      // Test card settings (Story 6.8)
-      testCardSettings: {
-        visible: false, // Default hidden
-      },
-      // FileSystem Access API state tracking
-      fileSystemAPIWorking: null, // null = unknown, true = working, false = not working
-    }
+    this.state = createDefaultState()
     // Text pool configuration
     this.textPoolMaxSize = 1000 // Configurable limit
     this.textPoolIndex = new Set() // Fast duplicate lookup

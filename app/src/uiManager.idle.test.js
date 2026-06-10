@@ -131,6 +131,7 @@ describe('UIManager - Idle State Management', () => {
           </div>
         </div>
         <div id="left-drawer" class="left-drawer">
+          <button id="presentation-fullscreen-btn">Fullscreen</button>
           <div class="drawer-header">
             <h2>Media Pool</h2>
             <div class="file-picker-controls">
@@ -138,6 +139,7 @@ describe('UIManager - Idle State Management', () => {
               <button id="browse-folders-btn">Folders</button>
             </div>
           </div>
+          <div id="media-pool-notices"></div>
           <div id="media-pool"></div>
           <button id="clear-media-btn">Clear</button>
           <div id="advanced-controls-toggle">
@@ -230,7 +232,7 @@ describe('UIManager - Idle State Management', () => {
     })
 
     it('should reset idle timer when exiting idle state', () => {
-      const resetSpy = vi.spyOn(uiManager, 'resetIdleTimer')
+      const resetSpy = vi.spyOn(uiManager.idleController, 'resetIdleTimer')
 
       uiManager.exitIdleState()
 
@@ -238,7 +240,7 @@ describe('UIManager - Idle State Management', () => {
     })
 
     it('should only exit if already idle', () => {
-      const resetSpy = vi.spyOn(uiManager, 'resetIdleTimer')
+      const resetSpy = vi.spyOn(uiManager.idleController, 'resetIdleTimer')
 
       // Not idle initially
       expect(uiManager.isUIIdle).toBe(false)
@@ -267,7 +269,7 @@ describe('UIManager - Idle State Management', () => {
     })
 
     it('should enter idle state after timeout', () => {
-      const enterIdleSpy = vi.spyOn(uiManager, 'enterIdleState')
+      const enterIdleSpy = vi.spyOn(uiManager.idleController, 'enterIdleState')
 
       uiManager.resetIdleTimer()
 
@@ -280,7 +282,7 @@ describe('UIManager - Idle State Management', () => {
 
   describe('handleActivity', () => {
     it('should exit idle state if currently idle', () => {
-      const exitIdleSpy = vi.spyOn(uiManager, 'exitIdleState')
+      const exitIdleSpy = vi.spyOn(uiManager.idleController, 'exitIdleState')
 
       // Set to idle first
       uiManager.isUIIdle = true
@@ -292,7 +294,7 @@ describe('UIManager - Idle State Management', () => {
     })
 
     it('should reset timer if not idle', () => {
-      const resetTimerSpy = vi.spyOn(uiManager, 'resetIdleTimer')
+      const resetTimerSpy = vi.spyOn(uiManager.idleController, 'resetIdleTimer')
 
       // Not idle
       uiManager.isUIIdle = false
@@ -316,7 +318,7 @@ describe('UIManager - Idle State Management', () => {
     })
 
     it('should handle ESC key normally', () => {
-      const exitIdleSpy = vi.spyOn(uiManager, 'exitIdleState')
+      const exitIdleSpy = vi.spyOn(uiManager.idleController, 'exitIdleState')
 
       // Set to idle first
       uiManager.isUIIdle = true
@@ -351,7 +353,7 @@ describe('UIManager - Idle State Management', () => {
     })
 
     it('should start with active state by resetting timer', () => {
-      const resetTimerSpy = vi.spyOn(uiManager, 'resetIdleTimer')
+      const resetTimerSpy = vi.spyOn(uiManager.idleController, 'resetIdleTimer')
 
       uiManager.setupActivityDetection()
 

@@ -16,6 +16,9 @@ export const PLAYBACK_CONFIG = {
   // Minimum delay between cycling transitions (milliseconds)
   MIN_TRANSITION_DELAY: 100,
 
+  // Fallback image display duration when segment settings are unavailable (seconds)
+  DEFAULT_IMAGE_DURATION: 4,
+
   // Video timing precision settings
   VIDEO_TIMING: {
     // Timing tolerance for segment end detection (seconds)

@@ -1,0 +1,147 @@
+/* VJ Tam Tam CSS */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #000;
+  color: #fff;
+  overflow: hidden;
+  height: 100vh;
+}
+
+/* ===================================================
+   BRUTALIST MINIMALISM DESIGN SYSTEM - BUTTONS
+   Following UI-UX-Spec.md Section 2 requirements
+   =================================================== */
+
+/* Base Button Classes - Brutalist Minimalism */
+.btn {
+  /* Typography: Arial Bold per UI-UX-Spec Section 2 */
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  min-height: 44px; /* Accessibility: minimum touch target */
+  
+  /* Brutalist Design */
+  background-color: #ffffff;
+  color: #000000;
+  border: 2px solid #000000;
+  border-radius: 0; /* No rounded corners - brutalist */
+  
+  /* Interaction */
+  cursor: pointer;
+  transition: all 0.1s ease; /* Quick transitions for immediate feedback */
+  text-decoration: none;
+  outline: none;
+  
+  /* Prevent text selection */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Button States */
+.btn:hover {
+  background-color: #000000;
+  color: #ffffff;
+  transform: translateY(-1px); /* Subtle lift effect */
+}
+
+.btn:active {
+  transform: translateY(0);
+  background-color: #333333;
+  color: #ffffff;
+}
+
+.btn:focus {
+  outline: 3px solid #ffffff;
+  outline-offset: 2px;
+  background-color: #000000;
+  color: #ffffff;
+}
+
+.btn:disabled {
+  background-color: #666666;
+  color: #cccccc;
+  border-color: #666666;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Button Size Variants */
+.btn--small {
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  min-height: 36px;
+}
+
+.btn--large {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  min-height: 52px;
+}
+
+/* Button Style Variants */
+.btn--secondary {
+  background-color: transparent;
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+.btn--secondary:hover {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+.btn--secondary:focus {
+  outline-color: #000000;
+  background-color: #ffffff;
+  color: #000000;
+}
+
+.btn--danger {
+  background-color: #ffffff;
+  color: #000000;
+  border-color: #000000;
+}
+
+.btn--danger:hover {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+.btn--icon {
+  padding: 0.5rem;
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 1rem;
+}
+
+.btn--icon-small {
+  padding: 0.25rem;
+  min-width: 32px;
+  min-height: 32px;
+  font-size: 0.9rem;
+}
+
+/* Button Groups */
+.btn-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-group .btn {
+  flex: 1;
+}
+
