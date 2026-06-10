@@ -12,31 +12,39 @@ vi.mock('../toastManager.js', () => ({
 describe('storageFacade', () => {
   let localStorageMock = {}
   let consoleErrorSpy
+  const originalLocalStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
 
   beforeEach(() => {
     // Mock localStorage before each test using globalThis
     localStorageMock = {}
-    globalThis.localStorage = {
-      getItem: vi.fn((key) => localStorageMock[key] || null),
-      setItem: vi.fn((key, value) => {
-        localStorageMock[key] = value
-      }),
-      removeItem: vi.fn((key) => {
-        delete localStorageMock[key]
-      }),
-      clear: vi.fn(() => {
-        localStorageMock = {}
-      }),
-      length: 0, // Add length property
-    }
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: {
+        getItem: vi.fn((key) => localStorageMock[key] || null),
+        setItem: vi.fn((key, value) => {
+          localStorageMock[key] = value
+        }),
+        removeItem: vi.fn((key) => {
+          delete localStorageMock[key]
+        }),
+        clear: vi.fn(() => {
+          localStorageMock = {}
+        }),
+        length: 0, // Add length property
+      },
+    })
 
     // Spy on console.error
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
   afterEach(() => {
-    // Restore original localStorage after each test
-    delete globalThis.localStorage
+    // Restore the environment's localStorage descriptor for other test files.
+    if (originalLocalStorageDescriptor) {
+      Object.defineProperty(globalThis, 'localStorage', originalLocalStorageDescriptor)
+    } else {
+      delete globalThis.localStorage
+    }
 
     // Restore console.error spy
     consoleErrorSpy.mockRestore()
