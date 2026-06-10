@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     // Use JSDOM environment for DOM testing
     environment: 'jsdom',
+    setupFiles: ['./tests/setup.js'],
 
     // Test file patterns - include tests in new app/src structure
     include: ['app/src/**/*.{test,spec}.{js,mjs,ts}', '**/*.{test,spec}.{js,mjs,ts}'],

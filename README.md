@@ -11,6 +11,10 @@ VJ Tam Tam is a user-friendly, web-based "auto VJ" tool designed to solve the pr
 - **File Persistence**: Your media selections persist across browser sessions
 - **Fullscreen Experience**: Immersive visual backdrop for any event
 
+## Current State
+
+As of 2026-06-10, `main` is the current usable static app and deploys through GitHub Pages from the `app/` directory. Older planning docs and the unfinished `nextjs-migration` branch include Vercel-oriented and future-feature notes that do not all match the current implementation. See [Current State Audit - 2026-06-10](./docs/current-state-audit-2026-06-10.md) for the latest repo-level review.
+
 ## Quick Start
 
 ### Local Development

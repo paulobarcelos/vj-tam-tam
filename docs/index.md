@@ -2,6 +2,10 @@
 
 ## Root Documents
 
+### [Current State Audit - 2026-06-10](./current-state-audit-2026-06-10.md)
+
+Fresh audit of what is currently implemented, what is deployed, which older docs are stale, and how to think about a future migration into the Bum Bum Tam Tam / Gostosa project context.
+
 ### [Product Requirements Document (PRD)](./prd.md)
 
 Complete product requirements document defining the VJ Tam Tam auto-VJ tool, including vision, goals, target audience, key features, technical constraints, and detailed epics with user stories and acceptance criteria.
