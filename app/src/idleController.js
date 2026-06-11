@@ -13,16 +13,18 @@ export class IdleController {
   enterIdleState() {
     this.isIdle = true
     this.document.body.classList.add('ui-idle')
+    this.document.body.classList.remove('ui-active')
     this.eventBus?.emit('ui.idleStateChanged', { isIdle: true })
   }
 
   exitIdleState() {
     if (this.isIdle) {
       this.isIdle = false
-      this.document.body.classList.remove('ui-idle')
       this.eventBus?.emit('ui.idleStateChanged', { isIdle: false })
     }
 
+    this.document.body.classList.remove('ui-idle')
+    this.document.body.classList.add('ui-active')
     this.resetIdleTimer()
   }
 

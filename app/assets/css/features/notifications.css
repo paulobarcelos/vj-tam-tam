@@ -13,8 +13,12 @@
   transition: bottom 0.28s ease;
 }
 
-body:not(.ui-idle) .toast-container {
-  bottom: calc(var(--live-strip-height) + 20px);
+.ui-idle .toast-container {
+  bottom: 20px;
+}
+
+.ui-active .toast-container {
+  bottom: calc(var(--live-strip-height) + 20px) !important;
 }
 
 .toast {
@@ -69,7 +73,7 @@ body:not(.ui-idle) .toast-container {
 }
 
 @media (max-width: 940px) {
-  body:not(.ui-idle) .toast-container {
-    bottom: calc(var(--live-strip-mobile-height) + 16px);
+  .ui-active .toast-container {
+    bottom: calc(var(--live-strip-mobile-height) + 16px) !important;
   }
 }

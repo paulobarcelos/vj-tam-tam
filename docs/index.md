@@ -214,4 +214,4 @@ State management, performance considerations, and integration points.
 
 ### [Stories Directory](./stories/)
 
-Collection of detailed user stories with acceptance criteria, implementation notes, and development progress tracking. Stories are organized by epic number (0.x, 1.x, 2.x, etc.) corresponding to the epics defined in the PRD. 
+Collection of detailed user stories with acceptance criteria, implementation notes, and development progress tracking. Stories are organized by epic number (0.x, 1.x, 2.x, etc.) corresponding to the epics defined in the PRD.
