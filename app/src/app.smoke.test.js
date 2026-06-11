@@ -73,8 +73,16 @@ describe('VJ Tam Tam app smoke', () => {
     expect(document.getElementById('presentation-fullscreen-btn')).toBeTruthy()
     expect(document.querySelector('#bottom-live-strip #presentation-fullscreen-btn')).toBeTruthy()
     expect(document.querySelector('#bottom-live-strip #min-duration-slider')).toBeTruthy()
+    expect(document.querySelector('#bottom-live-strip #skip-start-slider')).toBeTruthy()
+    expect(document.querySelector('#bottom-live-strip #skip-end-slider')).toBeTruthy()
     expect(document.querySelector('#bottom-live-strip #text-frequency-slider')).toBeTruthy()
     expect(document.querySelector('#advanced-controls-section #min-duration-slider')).toBeNull()
+    expect(document.querySelector('#advanced-controls-section #skip-start-slider')).toBeNull()
+    expect(document.querySelector('#advanced-controls-section #skip-end-slider')).toBeNull()
+
+    const advancedControls = document.getElementById('advanced-controls-section')
+    expect(advancedControls.children[0].id).toBe('color-correction-controls')
+    expect(advancedControls.children[1].classList.contains('projection-controls')).toBe(true)
     expect(document.body.classList.contains('ui-idle')).toBe(true)
     expect(projectionManager.isInitialized).toBe(true)
   })
@@ -122,13 +130,20 @@ describe('VJ Tam Tam app smoke', () => {
         url: 'blob:visual',
       },
     ])
-    stateManager.updateSegmentSettings({ minDuration: 7, maxDuration: 12 })
+    stateManager.updateSegmentSettings({
+      minDuration: 7,
+      maxDuration: 12,
+      skipStart: 2,
+      skipEnd: 4,
+    })
     stateManager.setTextFrequency(0.75)
 
     expect(document.getElementById('live-status-label').textContent).toBe('Ready')
     expect(document.getElementById('live-media-count').textContent).toBe('1/1 media ready')
     expect(document.getElementById('live-text-count').textContent).toBe('1 message')
     expect(document.getElementById('live-segment-summary').textContent).toBe('7.0-12.0 sec')
+    expect(document.getElementById('skip-start-input').value).toBe('2')
+    expect(document.getElementById('skip-end-input').value).toBe('4')
     expect(document.getElementById('live-frequency-summary').textContent).toBe('Often')
   })
 

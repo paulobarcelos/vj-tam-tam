@@ -5,8 +5,10 @@ This note records the implementation of controlled experiment **B** from [UI Con
 ## Implemented
 
 - Moved the live-use segment duration controls out of Advanced Settings and into a bottom strip.
+- Moved video skip start/end into the bottom strip so clip trimming sits with the other live timing controls.
 - Moved text frequency into the bottom strip so text behavior is visible while performing.
 - Moved the presentation fullscreen action into the bottom strip and kept it as a one-way request for `requestFullscreen({ navigationUI: "hide" })`.
+- Reordered Advanced Settings so color correction appears before projection setup.
 - Added a real readiness cell based on current state: usable media count, total media count, text pool size, and permission-restoration status.
 - Kept the stage welcome message centered in the viewport; the drawer and strip overlay it only while the UI is awake.
 - Made the strip obey the same idle behavior as the drawer.

@@ -147,6 +147,7 @@ describe('Story 3.5: Component Styling Consistency', () => {
       expect(cssContent).toContain('.ui-idle .bottom-live-strip')
       expect(cssContent).toContain('.ui-active .bottom-live-strip')
       expect(cssContent).toContain('.live-duration-control')
+      expect(cssContent).toContain('.live-strip-trim')
       expect(cssContent).toContain('.live-fullscreen-btn')
       expect(cssContent).not.toContain('cpu')
       expect(cssContent).not.toContain('bpm')

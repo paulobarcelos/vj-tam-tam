@@ -181,7 +181,7 @@
   padding: 0.82rem 0.95rem 0.56rem;
 }
 
-@media (max-width: 940px) {
+@media (max-width: 1180px) {
   .left-drawer {
     height: calc(100vh - var(--live-strip-mobile-height));
   }

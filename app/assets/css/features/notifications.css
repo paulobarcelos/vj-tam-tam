@@ -72,7 +72,7 @@
   }
 }
 
-@media (max-width: 940px) {
+@media (max-width: 1180px) {
   .ui-active .toast-container {
     bottom: calc(var(--live-strip-mobile-height) + 16px) !important;
   }
