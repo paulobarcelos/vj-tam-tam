@@ -87,6 +87,7 @@ describe('VJ Tam Tam app smoke', () => {
     uiManager.handleActivity(new window.MouseEvent('mousemove', { bubbles: true }))
 
     expect(document.body.classList.contains('ui-idle')).toBe(false)
+    expect(document.body.classList.contains('ui-active')).toBe(true)
   })
 
   it('adds text through the real drawer input', () => {

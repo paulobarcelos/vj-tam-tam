@@ -17,12 +17,14 @@ describe('IdleController', () => {
 
     expect(controller.isIdle).toBe(true)
     expect(document.body.classList.contains('ui-idle')).toBe(true)
+    expect(document.body.classList.contains('ui-active')).toBe(false)
     expect(eventBus.emit).toHaveBeenCalledWith('ui.idleStateChanged', { isIdle: true })
 
     controller.exitIdleState()
 
     expect(controller.isIdle).toBe(false)
     expect(document.body.classList.contains('ui-idle')).toBe(false)
+    expect(document.body.classList.contains('ui-active')).toBe(true)
     expect(eventBus.emit).toHaveBeenCalledWith('ui.idleStateChanged', { isIdle: false })
   })
 
@@ -59,5 +61,6 @@ describe('IdleController', () => {
 
     expect(controller.isIdle).toBe(true)
     expect(document.body.classList.contains('ui-idle')).toBe(true)
+    expect(document.body.classList.contains('ui-active')).toBe(false)
   })
 })
