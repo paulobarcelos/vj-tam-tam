@@ -62,7 +62,7 @@ class UIManager {
     this.frequencyControlSection = null
     this.textPoolView = null
 
-    this.idleController = new IdleController({ eventBus })
+    this.idleController = new IdleController({ eventBus, startIdle: true })
 
     // Educational notices tracking (per page load)
     this.dismissedNotices = {

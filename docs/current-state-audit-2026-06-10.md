@@ -65,7 +65,7 @@ An independent maintainability review is captured in [Code Quality Review - 2026
 - The current architecture is understandable, but `uiManager.js` and `style.css` are both large enough that UI polish work will be easier after extracting smaller UI modules or at least separating panel responsibilities.
 - The app logs heavily to the console during normal use. This is useful while stabilizing and was likely part of earlier agent/browser verification, but it is noisy for a party/live-performance tool. A reasonable next step is an explicit debug logger or debug mode, not blind deletion.
 - `app/lib/maptastic.js` is an old global-style browser library. It works in the current static setup, but it should be treated carefully if the app is migrated into another build system. A future replacement could isolate the homography math directly, but that should be handled as a focused projection-mapping project.
-- The initial screen now offsets the welcome text on desktop so it centers in the visible stage area beside the drawer rather than sitting underneath the drawer edge.
+- The initial screen starts in the same idle state used during performance: the drawer is hidden until user activity, and the welcome message remains centered in the full stage.
 - `StateManager.restoreFromPersistence()` falls back to defaults on corrupt stored state, but it does not currently clear the corrupt aggregate key.
 
 ## Migration Recommendation

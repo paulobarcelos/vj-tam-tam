@@ -72,13 +72,6 @@
   display: none;
 }
 
-@media (min-width: 769px) {
-  .welcome-message {
-    margin-left: 300px;
-    max-width: calc(100vw - 300px - 4rem);
-  }
-}
-
 /* Fullscreen media display */
 .stage-media {
   position: absolute;

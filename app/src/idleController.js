@@ -1,8 +1,9 @@
 export class IdleController {
-  constructor({ eventBus, documentRef = document, timeoutMs = 4000 } = {}) {
+  constructor({ eventBus, documentRef = document, timeoutMs = 4000, startIdle = false } = {}) {
     this.eventBus = eventBus
     this.document = documentRef
     this.timeoutMs = timeoutMs
+    this.startIdle = startIdle
     this.isIdle = false
     this.idleTimer = null
     this.activityListeners = []
@@ -53,7 +54,11 @@ export class IdleController {
       this.activityListeners.push({ eventName, listener })
     })
 
-    this.resetIdleTimer()
+    if (this.startIdle) {
+      this.enterIdleState()
+    } else {
+      this.resetIdleTimer()
+    }
   }
 
   cleanupActivityDetection() {

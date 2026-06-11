@@ -70,7 +70,18 @@ describe('VJ Tam Tam app smoke', () => {
     expect(document.getElementById('left-drawer')).toBeTruthy()
     expect(document.getElementById('stage')).toBeTruthy()
     expect(document.getElementById('presentation-fullscreen-btn')).toBeTruthy()
+    expect(document.body.classList.contains('ui-idle')).toBe(true)
     expect(projectionManager.isInitialized).toBe(true)
+  })
+
+  it('starts with the drawer hidden and reveals it on activity', () => {
+    uiManager.init()
+
+    expect(document.body.classList.contains('ui-idle')).toBe(true)
+
+    uiManager.handleActivity(new window.MouseEvent('mousemove', { bubbles: true }))
+
+    expect(document.body.classList.contains('ui-idle')).toBe(false)
   })
 
   it('adds text through the real drawer input', () => {
