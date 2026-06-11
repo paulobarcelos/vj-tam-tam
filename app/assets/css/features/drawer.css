@@ -3,48 +3,88 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 300px;
+  width: min(384px, 100vw);
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.8);
+  background: linear-gradient(180deg, rgba(9, 12, 14, 0.94), rgba(5, 7, 8, 0.9));
+  border-right: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-panel);
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
   z-index: 2;
   display: flex;
   flex-direction: column;
-  transition: background-color 0.2s ease, opacity 0.3s ease;
+  transition: background-color 0.2s ease, opacity 0.28s ease, transform 0.28s ease;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+
+.left-drawer::-webkit-scrollbar {
+  width: 8px;
+}
+
+.left-drawer::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.left-drawer::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border: 2px solid transparent;
+  border-radius: 999px;
 }
 
 .left-drawer.drag-over {
-  background-color: rgba(0, 122, 204, 0.8);
+  background: linear-gradient(180deg, rgba(10, 35, 44, 0.96), rgba(5, 18, 24, 0.92));
+  border-right-color: rgba(25, 212, 255, 0.5);
 }
 
 /* Application Header - VJ Tam Tam Logo */
 .app-header {
-  padding: 1rem;
-  border-bottom: 2px solid #444;
+  padding: 1rem 1rem 0.9rem;
+  border-bottom: 1px solid var(--line-soft);
   display: flex;
   align-items: center;
-  background-color: rgba(0, 0, 0, 0.9);
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: rgba(0, 0, 0, 0.2);
   flex-shrink: 0;
 }
 
 .app-logo h1 {
-  /* Typography: Arial Bold per UI-UX-Spec Section 2 */
-  font-family: Arial, sans-serif;
-  font-weight: bold;
-  font-size: 1.4rem;
-  color: #ffffff;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--text-strong);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
+}
+
+.app-logo h1::before {
+  content: '';
+  display: inline-block;
+  width: 0.58rem;
+  height: 0.58rem;
+  margin-right: 0.65rem;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 18px rgba(25, 212, 255, 0.75);
+  vertical-align: 0.08rem;
+}
+
+.app-header-action {
+  color: var(--text);
+  border-color: var(--line-soft);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 /* Media Pool Header */
 .drawer-header {
-  padding: 1rem;
-  border-bottom: 1px solid #444;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  padding: 1rem 1rem 0.65rem;
+  border-bottom: 1px solid var(--line-soft);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.8rem;
   flex-shrink: 0;
 }
 
@@ -55,12 +95,15 @@
 .drawer-header .header-right {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
 }
 
 .drawer-header h2 {
-  font-size: 1.2rem;
-  font-weight: 500;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 /* Idle state styles */
@@ -70,6 +113,7 @@
 
 .ui-idle .left-drawer {
   opacity: 0;
+  transform: translateX(-14px);
   pointer-events: none;
 }
 
@@ -89,6 +133,11 @@
 .file-picker-controls {
   display: flex;
   gap: 0.5rem;
+  width: 100%;
+}
+
+.file-picker-controls .btn {
+  flex: 1 1 0;
 }
 
 /* Legacy .file-picker-btn styles removed - now using .btn classes */
@@ -108,8 +157,24 @@
   max-height: 400px;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+  gap: 0.55rem;
   align-content: start;
 }
 
+.media-pool-container {
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.section-header {
+  padding: 0.9rem 1rem 0.6rem;
+}
+
+.section-header h3 {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}

@@ -786,7 +786,7 @@ class UIManager {
       console.log(`Creating restore button for file: ${item.name}`)
       const restoreBtn = document.createElement('button')
       restoreBtn.className = 'btn btn--icon-small media-restore-btn'
-      restoreBtn.innerHTML = '🔓'
+      restoreBtn.textContent = '↻'
       restoreBtn.title = t.get('USER_INTERFACE.tooltips.restoreAccess')
       restoreBtn.addEventListener('click', async (e) => {
         console.log('File restore button clicked')

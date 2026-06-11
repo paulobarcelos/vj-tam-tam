@@ -18,6 +18,10 @@ Foundation changes completed after the audit: quiet test spine, CSS feature impo
 
 Generated UI concept references and the recommended hybrid direction for the next design pass: Signal Desk base, Tropical Night accents, and Blackbox Calibration for projection setup.
 
+### [Signal Desk Implementation Slice - 2026-06-11](./design/signal-desk-implementation-slice-2026-06-11.md)
+
+First implemented redesign slice applying the Signal Desk direction to the drawer shell, media/text/timing/projection controls, idle first paint, and current styling test contract.
+
 ### [Product Requirements Document (PRD)](./prd.md)
 
 Complete product requirements document defining the VJ Tam Tam auto-VJ tool, including vision, goals, target audience, key features, technical constraints, and detailed epics with user stories and acceptance criteria.

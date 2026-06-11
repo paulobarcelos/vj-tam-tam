@@ -35,21 +35,24 @@ describe('Story 3.5: Component Styling Consistency', () => {
   })
 
   describe('AC 5.1: Button Styling Consistency - CSS Implementation', () => {
-    it('should define base button class with brutalist design', () => {
+    it('should define base button class with Signal Desk design tokens', () => {
       expect(cssContent).toContain('.btn {')
-      expect(cssContent).toContain('font-family: Arial')
-      expect(cssContent).toContain('font-weight: bold')
+      expect(cssContent).toContain('font-family: inherit')
+      expect(cssContent).toContain('font-weight: 700')
       expect(cssContent).toContain('text-transform: uppercase')
-      expect(cssContent).toContain('border-radius: 0')
-      expect(cssContent).toContain('border: 2px solid')
+      expect(cssContent).toContain('border-radius: var(--radius-md)')
+      expect(cssContent).toContain('border: 1px solid var(--line-strong)')
+      expect(cssContent).toContain('background: linear-gradient')
     })
 
     it('should define button variants', () => {
+      expect(cssContent).toContain('.btn--primary')
       expect(cssContent).toContain('.btn--secondary')
       expect(cssContent).toContain('.btn--danger')
       expect(cssContent).toContain('.btn--icon')
       expect(cssContent).toContain('.btn--small')
       expect(cssContent).toContain('.btn--icon-small')
+      expect(cssContent).toContain('.btn--full-width')
     })
 
     it('should define button states', () => {
@@ -82,13 +85,14 @@ describe('Story 3.5: Component Styling Consistency', () => {
       expect(cssContent).toContain('transform: translateX(-50%)')
     })
 
-    it('should apply brutalist styling to toasts', () => {
+    it('should apply Signal Desk styling to toasts', () => {
       expect(cssContent).toContain('.toast {')
-      expect(cssContent).toContain('font-family: Arial')
+      expect(cssContent).toContain('font-family: inherit')
       expect(cssContent).toContain('font-weight: bold')
       expect(cssContent).toContain('text-transform: uppercase')
-      expect(cssContent).toContain('border-radius: 0')
-      expect(cssContent).toContain('border: 2px solid')
+      expect(cssContent).toContain('border-radius: var(--radius-md)')
+      expect(cssContent).toContain('border: 1px solid var(--line-strong)')
+      expect(cssContent).toContain('backdrop-filter: blur(14px)')
     })
 
     it('should define toast variants', () => {
@@ -115,26 +119,32 @@ describe('Story 3.5: Component Styling Consistency', () => {
     })
 
     it('should use high contrast colors', () => {
-      expect(cssContent).toContain('#000000')
+      expect(cssContent).toContain('--surface-0: #050607')
+      expect(cssContent).toContain('--text-strong: #f5f7f8')
       expect(cssContent).toContain('#ffffff')
     })
   })
 
   describe('Design System Documentation - CSS Structure', () => {
-    it('should have organized CSS sections with headers', () => {
-      expect(cssContent).toContain('BRUTALIST MINIMALISM DESIGN SYSTEM - BUTTONS')
-      expect(cssContent).toContain('BRUTALIST MINIMALISM DESIGN SYSTEM - TOAST NOTIFICATIONS')
+    it('should expose shared design tokens', () => {
+      expect(cssContent).toContain(':root {')
+      expect(cssContent).toContain('--accent-cyan')
+      expect(cssContent).toContain('--accent-orange')
+      expect(cssContent).toContain('--radius-md')
+      expect(cssContent).toContain('--shadow-panel')
     })
 
-    it('should include UI-UX-Spec references', () => {
-      expect(cssContent).toContain('Following UI-UX-Spec')
-      expect(cssContent).toContain('per UI-UX-Spec Section')
+    it('should keep the drawer and projection surfaces tokenized', () => {
+      expect(cssContent).toContain('.left-drawer')
+      expect(cssContent).toContain('backdrop-filter: blur(18px)')
+      expect(cssContent).toContain('.projection-button[data-projection-active="true"]')
+      expect(cssContent).toContain('rgba(255, 122, 47')
     })
 
-    it('should document design principles in comments', () => {
-      expect(cssContent).toContain('Typography: Arial Bold')
-      expect(cssContent).toContain('Brutalist Design')
-      expect(cssContent).toContain('No rounded corners - brutalist')
+    it('should not rely on stale brutalist styling markers', () => {
+      expect(cssContent).not.toContain('BRUTALIST MINIMALISM DESIGN SYSTEM')
+      expect(cssContent).not.toContain('No rounded corners - brutalist')
+      expect(cssContent).not.toContain('Following UI-UX-Spec')
     })
   })
 })
@@ -150,8 +160,8 @@ describe('Story 3.5: DOM Structure Validation', () => {
         <body>
           <div id="app">
             <div class="file-picker-controls btn-group">
-              <button class="btn btn--secondary">📄 Files</button>
-              <button class="btn btn--secondary">📁 Folders</button>
+              <button class="btn btn--secondary">Files</button>
+              <button class="btn btn--secondary">Folders</button>
             </div>
             <button class="btn btn--danger btn--small">Clear all</button>
             <button class="btn btn--icon">+</button>

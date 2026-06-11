@@ -1,16 +1,16 @@
 /* Color Correction Controls Styling (Story 6.7) */
 .color-controls-section {
-  background: #1a1a1a;
-  border: 1px solid #333;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--line-soft);
   padding: 1rem;
   margin-top: 1rem;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
 }
 
 .color-control-group {
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .color-control-group:last-of-type {
@@ -20,17 +20,17 @@
 
 .color-label {
   display: block;
-  color: white;
+  color: var(--text);
   font-weight: bold;
   font-size: 0.9rem;
   margin-bottom: 0.5rem;
-  font-family: Arial, sans-serif;
+  font-family: inherit;
 }
 
 .control-with-reset {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .color-slider {
@@ -38,7 +38,7 @@
   -webkit-appearance: none;
   appearance: none;
   height: 6px;
-  background: #444;
+  background: linear-gradient(90deg, rgba(25, 212, 255, 0.46), var(--control-track));
   border-radius: 3px;
   outline: none;
   cursor: pointer;
@@ -49,73 +49,77 @@
   appearance: none;
   width: 18px;
   height: 18px;
-  background: #fff;
+  background: var(--control-thumb);
   border-radius: 50%;
   cursor: pointer;
-  border: 2px solid #000;
+  border: 2px solid rgba(5, 6, 7, 0.92);
+  box-shadow: 0 0 0 1px rgba(25, 212, 255, 0.38);
 }
 
 .color-slider::-moz-range-thumb {
   width: 16px;
   height: 16px;
-  background: #fff;
+  background: var(--control-thumb);
   border-radius: 50%;
   cursor: pointer;
-  border: 2px solid #000;
+  border: 2px solid rgba(5, 6, 7, 0.92);
+  box-shadow: 0 0 0 1px rgba(25, 212, 255, 0.38);
 }
 
 .value-display {
-  color: #ccc;
+  color: var(--text);
   font-family: monospace;
   text-align: right;
   font-size: 0.9rem;
+  min-width: 48px;
 }
 
 .reset-button {
-  background: #333;
-  border: 1px solid #555;
-  color: #ccc;
-  padding: 0.25rem 0.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line-soft);
+  color: var(--text);
+  padding: 0.32rem 0.55rem;
   cursor: pointer;
   font-size: 0.8rem;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 }
 
 .reset-button:hover {
-  background: #444;
-  color: white;
+  background: rgba(25, 212, 255, 0.12);
+  border-color: rgba(25, 212, 255, 0.42);
+  color: var(--text-strong);
 }
 
 .master-reset-section {
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid #333;
+  border-top: 1px solid var(--line-soft);
 }
 
 .master-reset-button {
-  background: #444;
-  border: 1px solid #666;
-  color: white;
+  background: rgba(255, 95, 109, 0.1);
+  border: 1px solid rgba(255, 95, 109, 0.32);
+  color: #ffd8dc;
   padding: 0.75rem 1.5rem;
   cursor: pointer;
   width: 100%;
   font-weight: bold;
   font-size: 0.9rem;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
 }
 
 .master-reset-button:hover {
-  background: #555;
-  border-color: #777;
+  background: rgba(255, 95, 109, 0.2);
+  border-color: rgba(255, 95, 109, 0.58);
 }
 
 /* Test Card Controls Styling (Story 6.8) */
 .test-card-section {
-  background: #1a1a1a;
-  border: 1px solid #333;
-
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--line-soft);
   margin-top: 1rem;
-  border-radius: 4px;
+  padding: 1rem;
+  border-radius: var(--radius-md);
 }
 
 .test-card-control-group {
@@ -127,26 +131,27 @@
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  background: #2a2a2a;
-  border: 1px solid #444;
-  color: white;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line-soft);
+  color: var(--text-strong);
   padding: 0.75rem 1rem;
   cursor: pointer;
-  transition: background-color 0.2s;
-  border-radius: 4px;
+  transition: background-color 0.2s, border-color 0.2s;
+  border-radius: var(--radius-md);
 }
 
 .test-card-button:hover {
-  background: #333;
+  background: rgba(25, 212, 255, 0.1);
+  border-color: rgba(25, 212, 255, 0.38);
 }
 
 .test-card-button[data-active="true"] {
-  background: #444;
-  border-color: #666;
+  background: rgba(255, 122, 47, 0.16);
+  border-color: rgba(255, 122, 47, 0.55);
 }
 
 .test-card-button[data-active="true"] .button-state {
-  color: #4CAF50;
+  color: var(--accent-orange);
 }
 
 .test-card-button .button-text {
@@ -155,7 +160,7 @@
 
 .test-card-button .button-state {
   font-size: 0.9em;
-  color: #888;
+  color: var(--text-muted);
 }
 
 /* Test Card Overlay */
@@ -185,8 +190,8 @@
 
 .advanced-controls-section {
   padding: 1rem;
-  background-color: rgba(26, 26, 26, 0.8);
-  border-top: 1px solid #333;
+  background: rgba(0, 0, 0, 0.14);
+  border-top: 1px solid var(--line-soft);
   /* Default hidden state per Story 6.1 AC 1.1 & 1.3 */
   display: none;
 }
@@ -201,25 +206,29 @@
 
 .control-group {
   margin-bottom: 1.2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .control-group:last-child {
   margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 .control-group label {
   display: block;
-  font-family: Arial, sans-serif;
+  font-family: inherit;
   font-weight: bold;
   font-size: 0.9rem;
   margin-bottom: 0.5rem;
-  color: #fff;
+  color: var(--text);
 }
 
 .control-pair {
   display: flex;
   align-items: center;
-  gap: 0.8rem;
+  gap: 0.65rem;
 }
 
 .duration-slider {
@@ -227,7 +236,7 @@
   -webkit-appearance: none;
   appearance: none;
   height: 6px;
-  background: #444;
+  background: linear-gradient(90deg, rgba(53, 232, 137, 0.42), var(--control-track));
   border-radius: 3px;
   outline: none;
   cursor: pointer;
@@ -238,56 +247,58 @@
   appearance: none;
   width: 18px;
   height: 18px;
-  background: #fff;
+  background: var(--control-thumb);
   border-radius: 50%;
   cursor: pointer;
-  border: 2px solid #000;
+  border: 2px solid rgba(5, 6, 7, 0.92);
+  box-shadow: 0 0 0 1px rgba(53, 232, 137, 0.34);
 }
 
 .duration-slider::-moz-range-thumb {
   width: 18px;
   height: 18px;
-  background: #fff;
+  background: var(--control-thumb);
   border-radius: 50%;
   cursor: pointer;
-  border: 2px solid #000;
+  border: 2px solid rgba(5, 6, 7, 0.92);
+  box-shadow: 0 0 0 1px rgba(53, 232, 137, 0.34);
   box-sizing: border-box;
 }
 
 .duration-slider:focus::-webkit-slider-thumb {
-  outline: 2px solid #007acc;
+  outline: 2px solid var(--accent-cyan);
   outline-offset: 2px;
 }
 
 .duration-slider:focus::-moz-range-thumb {
-  outline: 2px solid #007acc;
+  outline: 2px solid var(--accent-cyan);
   outline-offset: 2px;
 }
 
 .duration-input {
-  width: 50px;
-  padding: 0.3rem 0.4rem;
-  background-color: #333;
-  border: 1px solid #555;
-  border-radius: 3px;
-  color: #fff;
-  font-family: Arial, sans-serif;
+  width: 58px;
+  min-height: 34px;
+  padding: 0.32rem 0.4rem;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  color: var(--text-strong);
+  font-family: inherit;
   font-weight: bold;
   font-size: 0.9rem;
   text-align: center;
 }
 
 .duration-input:focus {
-  outline: 2px solid #007acc;
+  outline: 2px solid var(--accent-cyan);
   outline-offset: 1px;
-  border-color: #007acc;
+  border-color: var(--accent-cyan);
 }
 
 .duration-unit {
-  font-family: Arial, sans-serif;
+  font-family: inherit;
   font-weight: bold;
   font-size: 0.8rem;
-  color: #ccc;
+  color: var(--text-muted);
   min-width: 25px;
 }
-

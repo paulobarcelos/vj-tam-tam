@@ -13,7 +13,9 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: #111;
+  background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.035), transparent 34rem),
+    var(--surface-0);
   border: 2px solid transparent;
   transition: border-color 0.2s ease;
   z-index: 1;
@@ -22,8 +24,8 @@
 }
 
 .stage.drag-over {
-  border-color: #007acc;
-  background-color: rgba(0, 122, 204, 0.1);
+  border-color: var(--accent-cyan);
+  background-color: rgba(25, 212, 255, 0.08);
 }
 
 .stage-content {
@@ -37,17 +39,18 @@
 /* Welcome message area */
 .welcome-message {
   text-align: center;
-  color: #fff;
-  font-family: Arial, sans-serif;
+  color: var(--text-strong);
+  font-family: inherit;
   cursor: pointer;
   padding: 2rem;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   transition: background-color 0.2s ease, transform 0.1s ease;
   user-select: none;
+  max-width: min(680px, calc(100vw - 2rem));
 }
 
 .welcome-message:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: rgba(255, 255, 255, 0.035);
   transform: scale(1.02);
 }
 
@@ -56,16 +59,17 @@
 }
 
 .welcome-message h1 {
-  font-size: 2rem;
+  font-size: 2.1rem;
   font-weight: bold;
   margin-bottom: 1rem;
 }
 
 .welcome-message p {
-  font-size: 1.2rem;
+  font-size: 1.06rem;
   font-weight: bold;
   opacity: 0.9;
   line-height: 1.4;
+  color: var(--text);
 }
 
 .welcome-message.hidden {
@@ -168,7 +172,7 @@
 /* Frequency Control Section */
 .frequency-control-section {
   padding: 1rem;
-  border-top: 1px solid #333;
+  border-top: 1px solid var(--line-soft);
   margin-top: 0.5rem;
 }
 
@@ -177,10 +181,10 @@
 }
 
 .frequency-label {
-  font-family: Arial, sans-serif;
+  font-family: inherit;
   font-weight: bold;
   font-size: 0.9rem;
-  color: #fff;
+  color: var(--text);
   margin: 0;
 }
 
@@ -195,7 +199,7 @@
   height: 6px;
   -webkit-appearance: none;
   appearance: none;
-  background: #444;
+  background: linear-gradient(90deg, rgba(255, 177, 59, 0.44), var(--control-track));
   border-radius: 3px;
   outline: none;
   cursor: pointer;
@@ -207,10 +211,10 @@
   appearance: none;
   width: 20px;
   height: 20px;
-  background: #fff;
+  background: var(--control-thumb);
   border-radius: 50%;
   cursor: pointer;
-  border: 2px solid #000;
+  border: 2px solid rgba(5, 6, 7, 0.92);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   transition: all 0.2s ease;
 }
@@ -218,10 +222,10 @@
 .frequency-slider::-moz-range-thumb {
   width: 20px;
   height: 20px;
-  background: #fff;
+  background: var(--control-thumb);
   border-radius: 50%;
   cursor: pointer;
-  border: 2px solid #000;
+  border: 2px solid rgba(5, 6, 7, 0.92);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   transition: all 0.2s ease;
 }
@@ -237,7 +241,7 @@
 }
 
 .frequency-slider:focus {
-  box-shadow: 0 0 0 2px #007acc;
+  box-shadow: 0 0 0 2px rgba(25, 212, 255, 0.42);
 }
 
 /* Frequency Labels */
@@ -246,8 +250,8 @@
   justify-content: space-between;
   margin-top: 0.5rem;
   font-size: 0.7rem;
-  color: #999;
-  font-family: Arial, sans-serif;
+  color: var(--text-muted);
+  font-family: inherit;
 }
 
 .frequency-label-min,
@@ -265,8 +269,8 @@
   height: 2px;
   background: repeating-linear-gradient(
     to right,
-    #666 0,
-    #666 2px,
+    rgba(255, 255, 255, 0.26) 0,
+    rgba(255, 255, 255, 0.26) 2px,
     transparent 2px,
     transparent 25%
   );
@@ -304,8 +308,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 122, 204, 0.2);
-  border: 3px dashed #007acc;
+  background-color: rgba(25, 212, 255, 0.14);
+  border: 3px dashed rgba(25, 212, 255, 0.82);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -319,7 +323,7 @@
 
 .drop-message {
   text-align: center;
-  color: #007acc;
+  color: var(--accent-cyan);
   font-size: 1.5rem;
   font-weight: 600;
 }

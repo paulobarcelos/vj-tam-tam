@@ -4,7 +4,7 @@
 }
 
 .text-input-area {
-  padding: 1rem;
+  padding: 0.2rem 1rem 1rem;
 }
 
 .input-controls {
@@ -15,18 +15,27 @@
 
 .text-input-field {
   flex: 1;
-  padding: 0.5rem;
-  background-color: #333;
-  border: 1px solid #555;
-  border-radius: 3px;
-  color: #fff;
-  font-family: Arial, sans-serif;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0.62rem 0.75rem;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  color: var(--text-strong);
+  font-family: inherit;
   font-size: 0.9rem;
+  transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.text-input-field::placeholder {
+  color: var(--text-muted);
 }
 
 .text-input-field:focus {
-  outline: 2px solid #007acc;
-  border-color: #007acc;
+  outline: none;
+  border-color: rgba(25, 212, 255, 0.72);
+  background: rgba(25, 212, 255, 0.08);
+  box-shadow: 0 0 0 2px rgba(25, 212, 255, 0.16);
 }
 
 /* Legacy .add-text-btn styles removed - now using .btn classes */
@@ -36,40 +45,40 @@
   padding: 0 1rem 1rem 1rem;
   max-height: 200px;
   overflow-y: auto;
-  border-top: 1px solid #333;
-  margin-top: 0.5rem;
+  border-top: 1px solid var(--line-soft);
 }
 
 .text-pool-display {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
-  padding: 0.5rem 0;
+  gap: 0.45rem;
+  padding: 0.75rem 0;
 }
 
 /* Text Pills/Tags Styling */
 .text-pill {
   display: inline-flex;
   align-items: center;
-  background-color: #444;
-  border: 1px solid #666;
-  border-radius: 15px;
-  padding: 0.3rem 0.8rem;
-  font-family: Arial, sans-serif;
+  background: linear-gradient(180deg, rgba(25, 212, 255, 0.12), rgba(255, 255, 255, 0.04));
+  border: 1px solid rgba(25, 212, 255, 0.28);
+  border-left: 3px solid var(--accent-cyan);
+  border-radius: var(--radius-md);
+  padding: 0.42rem 0.76rem;
+  font-family: inherit;
   font-size: 0.8rem;
   font-weight: bold;
-  color: #fff;
+  color: var(--text-strong);
   cursor: default;
-  transition: all 0.2s ease;
+  transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
   max-width: 100%;
   word-break: break-word;
   position: relative;
-  margin: 0.2rem 0.3rem 0.2rem 0; /* Extra margin for delete button */
+  margin: 0.15rem 0.3rem 0.15rem 0; /* Extra margin for delete button */
 }
 
 .text-pill:hover {
-  background-color: #555;
-  border-color: #777;
+  background: rgba(25, 212, 255, 0.16);
+  border-color: rgba(25, 212, 255, 0.52);
   transform: translateY(-1px);
 }
 
@@ -99,8 +108,8 @@
 /* Text pill delete button overrides */
 .delete-text-btn {
   position: absolute !important;
-  top: -6px;
-  right: -6px;
+  top: -8px;
+  right: -8px;
   width: 20px !important;
   height: 20px !important;
   min-width: 20px !important;
@@ -143,7 +152,7 @@
   display: flex;
   justify-content: flex-end;
   padding: 0.5rem 0 0 0;
-  border-top: 1px solid #333;
+  border-top: 1px solid var(--line-soft);
   margin-top: 0.5rem;
 }
 
@@ -152,7 +161,7 @@
   display: flex;
   justify-content: flex-end;
   padding: 0.5rem 0 0 0;
-  border-top: 1px solid #333;
+  border-top: 1px solid var(--line-soft);
   margin-top: 0.5rem;
 }
 
@@ -167,11 +176,11 @@
 .text-pool-empty {
   text-align: center;
   padding: 2rem 1rem;
-  color: #888;
+  color: var(--text-muted);
 }
 
 .text-pool-empty .empty-message {
-  font-family: Arial, sans-serif;
+  font-family: inherit;
   font-size: 0.9rem;
   margin: 0;
   font-style: italic;
@@ -206,17 +215,17 @@
 }
 
 .text-pool-display-container::-webkit-scrollbar-track {
-  background: #333;
+  background: rgba(255, 255, 255, 0.04);
   border-radius: 3px;
 }
 
 .text-pool-display-container::-webkit-scrollbar-thumb {
-  background: #666;
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 3px;
 }
 
 .text-pool-display-container::-webkit-scrollbar-thumb:hover {
-  background: #777;
+  background: rgba(25, 212, 255, 0.42);
 }
 
 /* Responsive Behavior */
@@ -250,4 +259,3 @@
     opacity: 0.7; /* Always visible on touch devices */
   }
 }
-
