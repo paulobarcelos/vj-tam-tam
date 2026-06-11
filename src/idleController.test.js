@@ -46,4 +46,18 @@ describe('IdleController', () => {
     expect(controller.activityListeners).toHaveLength(0)
     expect(controller.idleTimer).toBe(null)
   })
+
+  it('can start in idle state when configured', () => {
+    controller = new IdleController({
+      eventBus,
+      documentRef: document,
+      timeoutMs: 4000,
+      startIdle: true,
+    })
+
+    controller.setupActivityDetection()
+
+    expect(controller.isIdle).toBe(true)
+    expect(document.body.classList.contains('ui-idle')).toBe(true)
+  })
 })

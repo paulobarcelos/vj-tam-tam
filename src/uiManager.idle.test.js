@@ -352,12 +352,14 @@ describe('UIManager - Idle State Management', () => {
       expect(uiManager.activityListeners).toHaveLength(4)
     })
 
-    it('should start with active state by resetting timer', () => {
-      const resetTimerSpy = vi.spyOn(uiManager.idleController, 'resetIdleTimer')
+    it('should start hidden in idle state', () => {
+      const enterIdleSpy = vi.spyOn(uiManager.idleController, 'enterIdleState')
 
       uiManager.setupActivityDetection()
 
-      expect(resetTimerSpy).toHaveBeenCalled()
+      expect(enterIdleSpy).toHaveBeenCalled()
+      expect(uiManager.isUIIdle).toBe(true)
+      expect(document.body.classList.contains('ui-idle')).toBe(true)
     })
   })
 
@@ -439,15 +441,8 @@ describe('UIManager - Idle State Management', () => {
       uiManager.setupActivityDetection()
     })
 
-    it('should complete full idle cycle: active -> idle -> active', () => {
-      // Start active
-      expect(uiManager.isUIIdle).toBe(false)
-      expect(document.body.classList.contains('ui-idle')).toBe(false)
-
-      // Wait for idle timeout (4000ms default)
-      vi.advanceTimersByTime(4100) // Add extra buffer
-
-      // Should be idle now
+    it('should complete full idle cycle: idle -> active -> idle', () => {
+      // Start idle so the drawer is hidden until user activity.
       expect(uiManager.isUIIdle).toBe(true)
       expect(document.body.classList.contains('ui-idle')).toBe(true)
 
@@ -458,6 +453,13 @@ describe('UIManager - Idle State Management', () => {
       // Should be active again
       expect(uiManager.isUIIdle).toBe(false)
       expect(document.body.classList.contains('ui-idle')).toBe(false)
+
+      // Wait for idle timeout (4000ms default)
+      vi.advanceTimersByTime(4100) // Add extra buffer
+
+      // Should be idle again
+      expect(uiManager.isUIIdle).toBe(true)
+      expect(document.body.classList.contains('ui-idle')).toBe(true)
     })
   })
 })
