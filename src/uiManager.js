@@ -62,6 +62,15 @@ class UIManager {
     this.frequencyControlSection = null
     this.textPoolView = null
 
+    // Bottom live strip elements
+    this.bottomLiveStrip = null
+    this.liveStatusDot = null
+    this.liveStatusLabel = null
+    this.liveMediaCount = null
+    this.liveTextCount = null
+    this.liveSegmentSummary = null
+    this.liveFrequencySummary = null
+
     this.idleController = new IdleController({ eventBus, startIdle: true })
 
     // Educational notices tracking (per page load)
@@ -146,6 +155,15 @@ class UIManager {
     this.textFrequencySlider = document.getElementById('text-frequency-slider')
     this.frequencyControlSection = document.querySelector('.frequency-control-section')
 
+    // Bottom live strip elements
+    this.bottomLiveStrip = document.getElementById('bottom-live-strip')
+    this.liveStatusDot = document.getElementById('live-status-dot')
+    this.liveStatusLabel = document.getElementById('live-status-label')
+    this.liveMediaCount = document.getElementById('live-media-count')
+    this.liveTextCount = document.getElementById('live-text-count')
+    this.liveSegmentSummary = document.getElementById('live-segment-summary')
+    this.liveFrequencySummary = document.getElementById('live-frequency-summary')
+
     // Check for required DOM elements
     if (
       !this.stage ||
@@ -218,6 +236,7 @@ class UIManager {
 
     // Initialize media pool display (will show empty message if no media)
     this.updateMediaPoolDisplay()
+    this.updateLiveStripStatus()
 
     return true
   }
@@ -252,7 +271,7 @@ class UIManager {
     this.onUISettingsUpdated = this.handleUISettingsUpdate.bind(this)
     this.onTextPoolUpdated = this.handleTextPoolUpdate.bind(this)
     this.onTextPoolSizeChanged = this.handleTextPoolSizeChange.bind(this)
-    this.onFrequencyChanged = this.handleFrequencyChange.bind(this)
+    this.onFrequencyChanged = (data) => this.updateFrequencyDisplay(data.frequency)
 
     // StateManager events
     eventBus.on(STATE_EVENTS.MEDIA_POOL_UPDATED, this.onMediaPoolUpdated)
@@ -479,6 +498,7 @@ class UIManager {
   handleMediaPoolStateUpdate(data) {
     this.updateMediaPoolDisplay()
     this.updateWelcomeMessageVisibility()
+    this.updateLiveStripStatus()
 
     // Provide user feedback for upgraded files
     if (data && data.upgradedItems && data.upgradedItems.length > 0) {
@@ -500,6 +520,7 @@ class UIManager {
   handleMediaPoolRestored() {
     this.updateMediaPoolDisplay()
     this.updateWelcomeMessageVisibility()
+    this.updateLiveStripStatus()
     // Banner approach handles permission restoration, no overlay needed
 
     // DO NOT initialize Advanced Controls here - it's too early in the restoration process
@@ -605,6 +626,7 @@ class UIManager {
 
     if (mediaItems.length === 0) {
       this.showEmptyMediaPoolMessage()
+      this.updateLiveStripStatus()
       return
     }
 
@@ -619,6 +641,7 @@ class UIManager {
 
     // Set up global user activation hijacking for permission restoration
     this.setupGlobalActivationHijacking()
+    this.updateLiveStripStatus()
   }
 
   /**
@@ -1124,7 +1147,6 @@ class UIManager {
 
     const presentationFullscreenBtn = document.getElementById('presentation-fullscreen-btn')
     if (presentationFullscreenBtn) {
-      presentationFullscreenBtn.textContent = STRINGS.USER_INTERFACE.buttons.presentationFullscreen
       presentationFullscreenBtn.title = STRINGS.USER_INTERFACE.tooltips.presentationFullscreen
       presentationFullscreenBtn.setAttribute(
         'aria-label',
@@ -1342,6 +1364,8 @@ class UIManager {
     ) {
       this.updateSegmentControlsDOM(settings)
     }
+
+    this.updateLiveSegmentSummary(settings)
   }
 
   /**
@@ -1408,6 +1432,7 @@ class UIManager {
    */
   handleTextPoolUpdate(event) {
     this.textPoolView.handleTextPoolUpdate(event)
+    this.updateLiveStripStatus()
   }
 
   /**
@@ -1416,6 +1441,7 @@ class UIManager {
    */
   handleTextPoolSizeChange(event) {
     this.textPoolView.handleTextPoolSizeChange(event)
+    this.updateLiveStripStatus()
   }
 
   /**
@@ -1509,18 +1535,22 @@ class UIManager {
 
   initializeFrequencyControl() {
     this.textPoolView.initializeFrequencyControl()
+    this.updateLiveFrequencySummary(stateManager.getTextFrequency())
   }
 
   handleFrequencyChange() {
     this.textPoolView.handleFrequencyChange()
+    this.updateLiveFrequencySummary(parseFloat(this.textFrequencySlider.value))
   }
 
   handleFrequencyChangeComplete(frequency) {
     this.textPoolView.handleFrequencyChangeComplete(frequency)
+    this.updateLiveFrequencySummary(frequency)
   }
 
   updateFrequencyDisplay(frequency) {
     this.textPoolView.updateFrequencyDisplay(frequency)
+    this.updateLiveFrequencySummary(frequency)
   }
 
   /**
@@ -1539,6 +1569,7 @@ class UIManager {
     const settings = stateManager.getSegmentSettings()
     console.log('Segment settings loaded from state:', settings)
     this.updateSegmentControlsDOM(settings)
+    this.updateLiveSegmentSummary(settings)
     console.log('DOM updated with segment settings')
 
     // Restore UI settings from state manager
@@ -1564,6 +1595,72 @@ class UIManager {
     // Set the flag to true to prevent double initialization
     this.advancedControlsInitialized = true
     console.log('Advanced controls initialization complete')
+    this.updateLiveStripStatus()
+  }
+
+  /**
+   * Update the bottom live strip with current media/text readiness.
+   */
+  updateLiveStripStatus() {
+    if (!this.bottomLiveStrip) return
+
+    const mediaItems = stateManager.getMediaPool()
+    const usableMedia = filterUsableMedia(mediaItems)
+    const permissionCount = filterMediaNeedingPermission(mediaItems).length
+    const textCount = stateManager.getTextPoolSize()
+
+    if (this.liveMediaCount) {
+      this.liveMediaCount.textContent = `${usableMedia.length}/${mediaItems.length} media ready`
+    }
+
+    if (this.liveTextCount) {
+      this.liveTextCount.textContent = `${textCount} message${textCount === 1 ? '' : 's'}`
+    }
+
+    if (!this.liveStatusLabel || !this.liveStatusDot) return
+
+    this.liveStatusDot.classList.remove('status-dot--ready', 'status-dot--warn', 'status-dot--idle')
+
+    if (usableMedia.length > 0) {
+      this.liveStatusLabel.textContent = 'Ready'
+      this.liveStatusDot.classList.add('status-dot--ready')
+    } else if (permissionCount > 0) {
+      this.liveStatusLabel.textContent = 'Restore access'
+      this.liveStatusDot.classList.add('status-dot--warn')
+    } else {
+      this.liveStatusLabel.textContent = 'Waiting for media'
+      this.liveStatusDot.classList.add('status-dot--idle')
+    }
+  }
+
+  /**
+   * Update the live segment duration summary from existing segment settings.
+   * @param {Object} settings - Segment settings object
+   */
+  updateLiveSegmentSummary(settings = stateManager.getSegmentSettings()) {
+    if (!this.liveSegmentSummary || !settings) return
+
+    const min = Number.parseFloat(settings.minDuration).toFixed(1)
+    const max = Number.parseFloat(settings.maxDuration).toFixed(1)
+    this.liveSegmentSummary.textContent = `${min}-${max} sec`
+  }
+
+  /**
+   * Update the live text frequency summary.
+   * @param {number} frequency - Frequency value between 0 and 1
+   */
+  updateLiveFrequencySummary(frequency = stateManager.getTextFrequency()) {
+    if (!this.liveFrequencySummary) return
+
+    const labels = {
+      0: 'Never',
+      0.25: 'Rare',
+      0.5: 'Sometimes',
+      0.75: 'Often',
+      1: 'Always',
+    }
+    const rounded = Math.round(Number.parseFloat(frequency) * 4) / 4
+    this.liveFrequencySummary.textContent = labels[rounded] || 'Sometimes'
   }
 
   /**

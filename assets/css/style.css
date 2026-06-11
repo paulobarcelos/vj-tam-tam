@@ -3,6 +3,7 @@
 @import url("features/base.css");
 @import url("features/stage-and-overlays.css");
 @import url("features/drawer.css");
+@import url("features/bottom-live-strip.css");
 @import url("features/notifications.css");
 @import url("features/media-pool.css");
 @import url("features/projection-controls.css");
