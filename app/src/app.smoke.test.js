@@ -68,8 +68,13 @@ describe('VJ Tam Tam app smoke', () => {
     expect(testCardManager.init()).toBe(true)
 
     expect(document.getElementById('left-drawer')).toBeTruthy()
+    expect(document.getElementById('bottom-live-strip')).toBeTruthy()
     expect(document.getElementById('stage')).toBeTruthy()
     expect(document.getElementById('presentation-fullscreen-btn')).toBeTruthy()
+    expect(document.querySelector('#bottom-live-strip #presentation-fullscreen-btn')).toBeTruthy()
+    expect(document.querySelector('#bottom-live-strip #min-duration-slider')).toBeTruthy()
+    expect(document.querySelector('#bottom-live-strip #text-frequency-slider')).toBeTruthy()
+    expect(document.querySelector('#advanced-controls-section #min-duration-slider')).toBeNull()
     expect(document.body.classList.contains('ui-idle')).toBe(true)
     expect(projectionManager.isInitialized).toBe(true)
   })
@@ -93,6 +98,37 @@ describe('VJ Tam Tam app smoke', () => {
 
     expect(stateManager.getTextPool()).toEqual(['tonight is visual'])
     expect(document.querySelector('.text-pill-content').textContent).toBe('tonight is visual')
+  })
+
+  it('updates the bottom live strip from real app state events', () => {
+    uiManager.init()
+    uiManager.initializeAdvancedControlsFromRestoredState()
+
+    expect(document.getElementById('live-status-label').textContent).toBe('Waiting for media')
+    expect(document.getElementById('live-media-count').textContent).toBe('0/0 media ready')
+    expect(document.getElementById('live-text-count').textContent).toBe('0 messages')
+    expect(document.getElementById('live-segment-summary').textContent).toBe('5.0-5.0 sec')
+    expect(document.getElementById('live-frequency-summary').textContent).toBe('Sometimes')
+
+    stateManager.addText('tonight is visual')
+    stateManager.addMediaToPool([
+      {
+        id: 'media-1',
+        name: 'visual.jpg',
+        type: 'image',
+        mimeType: 'image/jpeg',
+        file: new File(['visual'], 'visual.jpg', { type: 'image/jpeg' }),
+        url: 'blob:visual',
+      },
+    ])
+    stateManager.updateSegmentSettings({ minDuration: 7, maxDuration: 12 })
+    stateManager.setTextFrequency(0.75)
+
+    expect(document.getElementById('live-status-label').textContent).toBe('Ready')
+    expect(document.getElementById('live-media-count').textContent).toBe('1/1 media ready')
+    expect(document.getElementById('live-text-count').textContent).toBe('1 message')
+    expect(document.getElementById('live-segment-summary').textContent).toBe('7.0-12.0 sec')
+    expect(document.getElementById('live-frequency-summary').textContent).toBe('Often')
   })
 
   it('opens projection mode and toggles the test card', () => {

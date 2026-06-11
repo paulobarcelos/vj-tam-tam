@@ -15,13 +15,6 @@
           <div class="app-logo">
             <h1>VJ Tam Tam</h1>
           </div>
-          <button
-            id="presentation-fullscreen-btn"
-            class="btn btn--icon app-header-action"
-            title="Presentation fullscreen"
-          >
-            ⛶
-          </button>
         </div>
 
         <!-- Media Pool Section -->
@@ -102,38 +95,6 @@
               <button id="clear-text-btn" class="btn btn--danger btn--small" style="display: none">
                 <!-- Text content will be set via JavaScript from strings.js -->
               </button>
-            </div>
-          </div>
-
-          <!-- Frequency Control -->
-          <div class="frequency-control-section">
-            <div class="frequency-control-header">
-              <label for="text-frequency-slider" class="frequency-label" id="frequency-label"
-                >Text Frequency</label
-              >
-            </div>
-
-            <div class="frequency-slider-container">
-              <input
-                type="range"
-                id="text-frequency-slider"
-                class="frequency-slider"
-                min="0"
-                max="1"
-                value="0.5"
-                step="0.25"
-                aria-label="Text display frequency"
-                aria-describedby="frequency-description"
-              />
-
-              <div class="frequency-labels">
-                <span class="frequency-label-min" id="frequency-label-min">Never</span>
-                <span class="frequency-label-max" id="frequency-label-max">Always</span>
-              </div>
-            </div>
-
-            <div id="frequency-description" class="frequency-description sr-only">
-              Controls how often text messages appear over the visuals. Range from Never to Always.
             </div>
           </div>
         </div>
@@ -224,54 +185,6 @@
               </div>
             </div>
 
-            <div class="control-group">
-              <label for="min-duration-control">Minimum Segment Duration</label>
-              <div class="control-pair">
-                <input
-                  type="range"
-                  id="min-duration-slider"
-                  min="1"
-                  max="30"
-                  value="5"
-                  step="0.1"
-                  class="duration-slider"
-                />
-                <input
-                  type="number"
-                  id="min-duration-input"
-                  min="1"
-                  max="30"
-                  value="5"
-                  step="0.1"
-                  class="duration-input"
-                />
-                <span class="duration-unit">sec</span>
-              </div>
-            </div>
-            <div class="control-group">
-              <label for="max-duration-control">Maximum Segment Duration</label>
-              <div class="control-pair">
-                <input
-                  type="range"
-                  id="max-duration-slider"
-                  min="1"
-                  max="30"
-                  value="5"
-                  step="0.1"
-                  class="duration-slider"
-                />
-                <input
-                  type="number"
-                  id="max-duration-input"
-                  min="1"
-                  max="30"
-                  value="5"
-                  step="0.1"
-                  class="duration-input"
-                />
-                <span class="duration-unit">sec</span>
-              </div>
-            </div>
             <div class="control-group">
               <label for="skip-start-control">Video Skip Start</label>
               <div class="control-pair">
@@ -429,6 +342,121 @@
 
       <!-- Projection handles container (above all other content) -->
       <div id="projection-handles-container" class="projection-handles-container"></div>
+
+      <!-- Bottom live strip with controls used during performance -->
+      <section id="bottom-live-strip" class="bottom-live-strip hidden-on-idle" aria-label="Live controls">
+        <div class="live-strip-cell live-strip-status">
+          <span class="status-dot" id="live-status-dot" aria-hidden="true"></span>
+          <div>
+            <p class="live-strip-label">System</p>
+            <p class="live-strip-value" id="live-status-label">Waiting for media</p>
+          </div>
+          <div class="live-strip-meta">
+            <span id="live-media-count">0 media</span>
+            <span id="live-text-count">0 messages</span>
+          </div>
+        </div>
+
+        <div class="live-strip-cell live-strip-segment">
+          <div class="live-strip-heading">
+            <label class="live-strip-label" for="min-duration-slider">Segment Duration</label>
+            <span class="live-strip-summary" id="live-segment-summary">5.0-5.0 sec</span>
+          </div>
+          <div class="live-duration-controls">
+            <div class="live-duration-control">
+              <span class="duration-unit">Min</span>
+              <input
+                type="range"
+                id="min-duration-slider"
+                min="1"
+                max="30"
+                value="5"
+                step="0.1"
+                class="duration-slider"
+                aria-label="Minimum segment duration"
+              />
+              <input
+                type="number"
+                id="min-duration-input"
+                min="1"
+                max="30"
+                value="5"
+                step="0.1"
+                class="duration-input"
+                aria-label="Minimum segment duration seconds"
+              />
+            </div>
+            <div class="live-duration-control">
+              <span class="duration-unit">Max</span>
+              <input
+                type="range"
+                id="max-duration-slider"
+                min="1"
+                max="30"
+                value="5"
+                step="0.1"
+                class="duration-slider"
+                aria-label="Maximum segment duration"
+              />
+              <input
+                type="number"
+                id="max-duration-input"
+                min="1"
+                max="30"
+                value="5"
+                step="0.1"
+                class="duration-input"
+                aria-label="Maximum segment duration seconds"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="live-strip-cell live-strip-frequency">
+          <div class="live-strip-heading">
+            <label for="text-frequency-slider" class="live-strip-label" id="frequency-label"
+              >Text Frequency</label
+            >
+            <span class="live-strip-summary" id="live-frequency-summary">Sometimes</span>
+          </div>
+          <div class="frequency-control-section">
+            <div class="frequency-slider-container">
+              <input
+                type="range"
+                id="text-frequency-slider"
+                class="frequency-slider"
+                min="0"
+                max="1"
+                value="0.5"
+                step="0.25"
+                aria-label="Text display frequency"
+                aria-describedby="frequency-description"
+              />
+
+              <div class="frequency-labels">
+                <span class="frequency-label-min" id="frequency-label-min">Never</span>
+                <span class="frequency-label-max" id="frequency-label-max">Always</span>
+              </div>
+            </div>
+
+            <div id="frequency-description" class="frequency-description sr-only">
+              Controls how often text messages appear over the visuals. Range from Never to Always.
+            </div>
+          </div>
+        </div>
+
+        <div class="live-strip-cell live-strip-presentation">
+          <p class="live-strip-label">Presentation</p>
+          <button
+            id="presentation-fullscreen-btn"
+            class="btn btn--secondary live-fullscreen-btn"
+            title="Presentation fullscreen"
+          >
+            <span aria-hidden="true">⛶</span>
+            <span>Fullscreen</span>
+          </button>
+        </div>
+      </section>
     </div>
 
     <!-- Maptastic library for projection mapping -->

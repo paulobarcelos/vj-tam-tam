@@ -141,6 +141,22 @@ describe('Story 3.5: Component Styling Consistency', () => {
       expect(cssContent).toContain('rgba(255, 122, 47')
     })
 
+    it('should define the lean bottom live strip without fake telemetry controls', () => {
+      expect(cssContent).toContain('.bottom-live-strip')
+      expect(cssContent).toContain('height: var(--live-strip-height)')
+      expect(cssContent).toContain('.ui-idle .bottom-live-strip')
+      expect(cssContent).toContain('.live-duration-control')
+      expect(cssContent).toContain('.live-fullscreen-btn')
+      expect(cssContent).not.toContain('cpu')
+      expect(cssContent).not.toContain('bpm')
+    })
+
+    it('should keep active toasts above the bottom live strip', () => {
+      expect(cssContent).toContain('body:not(.ui-idle) .toast-container')
+      expect(cssContent).toContain('bottom: calc(var(--live-strip-height) + 20px)')
+      expect(cssContent).toContain('bottom: calc(var(--live-strip-mobile-height) + 16px)')
+    })
+
     it('should not rely on stale brutalist styling markers', () => {
       expect(cssContent).not.toContain('BRUTALIST MINIMALISM DESIGN SYSTEM')
       expect(cssContent).not.toContain('No rounded corners - brutalist')

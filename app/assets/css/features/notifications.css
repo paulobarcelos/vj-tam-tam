@@ -10,6 +10,11 @@
   align-items: center;
   gap: 0.5rem;
   pointer-events: none;
+  transition: bottom 0.28s ease;
+}
+
+body:not(.ui-idle) .toast-container {
+  bottom: calc(var(--live-strip-height) + 20px);
 }
 
 .toast {
@@ -60,5 +65,11 @@
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+@media (max-width: 940px) {
+  body:not(.ui-idle) .toast-container {
+    bottom: calc(var(--live-strip-mobile-height) + 16px);
   }
 }

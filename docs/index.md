@@ -26,6 +26,10 @@ First implemented redesign slice applying the Signal Desk direction to the drawe
 
 Four generated structural UI experiments comparing a tabbed drawer, lean drawer plus bottom live strip, media inspector workflow, and dedicated calibration mode.
 
+### [Lean Drawer + Bottom Live Strip Implementation - 2026-06-11](./design/lean-drawer-bottom-live-strip-implementation-2026-06-11.md)
+
+Implementation record for controlled experiment B: live duration, text frequency, readiness, and presentation fullscreen moved into an idle-aware bottom strip without adding fake telemetry.
+
 ### [Product Requirements Document (PRD)](./prd.md)
 
 Complete product requirements document defining the VJ Tam Tam auto-VJ tool, including vision, goals, target audience, key features, technical constraints, and detailed epics with user stories and acceptance criteria.

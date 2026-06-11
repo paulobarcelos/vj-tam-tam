@@ -3,8 +3,8 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: min(384px, 100vw);
-  height: 100vh;
+  width: min(360px, 100vw);
+  height: calc(100vh - var(--live-strip-height));
   background: linear-gradient(180deg, rgba(9, 12, 14, 0.94), rgba(5, 7, 8, 0.9));
   border-right: 1px solid var(--line-strong);
   box-shadow: var(--shadow-panel);
@@ -40,7 +40,7 @@
 
 /* Application Header - VJ Tam Tam Logo */
 .app-header {
-  padding: 1rem 1rem 0.9rem;
+  padding: 0.9rem 0.95rem 0.8rem;
   border-bottom: 1px solid var(--line-soft);
   display: flex;
   align-items: center;
@@ -80,7 +80,7 @@
 
 /* Media Pool Header */
 .drawer-header {
-  padding: 1rem 1rem 0.65rem;
+  padding: 0.85rem 0.95rem 0.65rem;
   border-bottom: 1px solid var(--line-soft);
   display: grid;
   grid-template-columns: 1fr;
@@ -147,14 +147,14 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  padding: 0 1rem;
-  padding-top: 1rem;
+  padding: 0 0.95rem;
+  padding-top: 0.85rem;
 }
 
 .media-pool {
-  padding: 1rem;
+  padding: 0.85rem 0.95rem;
   padding-top: 0.5rem;
-  max-height: 400px;
+  max-height: min(34vh, 330px);
   overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
@@ -167,7 +167,13 @@
 }
 
 .section-header {
-  padding: 0.9rem 1rem 0.6rem;
+  padding: 0.82rem 0.95rem 0.56rem;
+}
+
+@media (max-width: 940px) {
+  .left-drawer {
+    height: calc(100vh - var(--live-strip-mobile-height));
+  }
 }
 
 .section-header h3 {
