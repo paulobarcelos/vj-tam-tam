@@ -22,6 +22,10 @@ Generated UI concept references and the recommended hybrid direction for the nex
 
 First implemented redesign slice applying the Signal Desk direction to the drawer shell, media/text/timing/projection controls, idle first paint, and current styling test contract.
 
+### [UI Controlled Experiments - 2026-06-11](./design/ui-controlled-experiments-2026-06-11.md)
+
+Four generated structural UI experiments comparing a tabbed drawer, lean drawer plus bottom live strip, media inspector workflow, and dedicated calibration mode.
+
 ### [Product Requirements Document (PRD)](./prd.md)
 
 Complete product requirements document defining the VJ Tam Tam auto-VJ tool, including vision, goals, target audience, key features, technical constraints, and detailed epics with user stories and acceptance criteria.
