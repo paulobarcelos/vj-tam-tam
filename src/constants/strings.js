@@ -24,11 +24,11 @@ export const STRINGS = {
 
     // Buttons and controls
     buttons: {
-      files: '📄 Files',
-      folders: '📁 Folders',
+      files: 'Files',
+      folders: 'Folders',
       clearMedia: 'Clear all',
-      restoreAccess: '🔓 Restore Access',
-      bulkRestore: '↗️ Bulk Restore All',
+      restoreAccess: 'Restore Access',
+      bulkRestore: 'Bulk Restore All',
       presentationFullscreen: '⛶',
     },
 
@@ -174,7 +174,7 @@ export const STRINGS = {
       permissionNotice: '{{count}} file{{plural}} need permission to be accessed.',
       temporaryNotice: '{{count}} temporary file{{plural}} will be removed on page reload.',
       fileSystemTip:
-        'Use 📄 Files or 📁 Folders buttons for persistent files that will be available next time you visit',
+        'Use Files or Folders buttons for persistent files that will be available next time you visit',
       permissionBanner: 'Click to restore access to your files',
       permissionBannerClick: '{{count}} file{{plural}} need permission - click to restore access',
       clearMediaConfirm: 'Clear all media from the pool? This action cannot be undone.',

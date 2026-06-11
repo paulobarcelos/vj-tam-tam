@@ -1,3 +1,27 @@
+:root {
+  --surface-0: #050607;
+  --surface-1: rgba(9, 12, 14, 0.88);
+  --surface-2: rgba(18, 22, 26, 0.86);
+  --surface-3: rgba(32, 38, 44, 0.78);
+  --line-soft: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --text-strong: #f5f7f8;
+  --text: #d8dee3;
+  --text-muted: #89929a;
+  --accent-cyan: #19d4ff;
+  --accent-cyan-soft: rgba(25, 212, 255, 0.18);
+  --accent-green: #35e889;
+  --accent-amber: #ffb13b;
+  --accent-orange: #ff7a2f;
+  --danger: #ff5f6d;
+  --control-track: rgba(255, 255, 255, 0.12);
+  --control-thumb: #f7fafc;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --shadow-panel: 0 24px 80px rgba(0, 0, 0, 0.42);
+}
+
 /* VJ Tam Tam CSS */
 
 * {
@@ -8,82 +32,69 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: #000;
-  color: #fff;
+  background-color: var(--surface-0);
+  color: var(--text-strong);
   overflow: hidden;
   height: 100vh;
 }
 
-/* ===================================================
-   BRUTALIST MINIMALISM DESIGN SYSTEM - BUTTONS
-   Following UI-UX-Spec.md Section 2 requirements
-   =================================================== */
-
-/* Base Button Classes - Brutalist Minimalism */
 .btn {
-  /* Typography: Arial Bold per UI-UX-Spec Section 2 */
-  font-family: Arial, sans-serif;
-  font-weight: bold;
-  font-size: 0.9rem;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0;
   text-transform: uppercase;
-  
-  /* Layout */
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.75rem 1.5rem;
-  min-height: 44px; /* Accessibility: minimum touch target */
-  
-  /* Brutalist Design */
-  background-color: #ffffff;
-  color: #000000;
-  border: 2px solid #000000;
-  border-radius: 0; /* No rounded corners - brutalist */
-  
-  /* Interaction */
+  gap: 0.45rem;
+  padding: 0.68rem 1rem;
+  min-height: 44px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.035));
+  color: var(--text-strong);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   cursor: pointer;
-  transition: all 0.1s ease; /* Quick transitions for immediate feedback */
+  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease,
+    transform 0.16s ease, box-shadow 0.16s ease;
   text-decoration: none;
   outline: none;
-  
-  /* Prevent text selection */
   user-select: none;
   -webkit-user-select: none;
 }
 
-/* Button States */
 .btn:hover {
-  background-color: #000000;
+  background: var(--accent-cyan-soft);
+  border-color: rgba(25, 212, 255, 0.58);
   color: #ffffff;
-  transform: translateY(-1px); /* Subtle lift effect */
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 1px rgba(25, 212, 255, 0.08), 0 8px 24px rgba(0, 0, 0, 0.28);
 }
 
 .btn:active {
   transform: translateY(0);
-  background-color: #333333;
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .btn:focus {
-  outline: 3px solid #ffffff;
+  outline: 2px solid var(--accent-cyan);
   outline-offset: 2px;
-  background-color: #000000;
-  color: #ffffff;
 }
 
 .btn:disabled {
-  background-color: #666666;
-  color: #cccccc;
-  border-color: #666666;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  border-color: var(--line-soft);
   cursor: not-allowed;
   transform: none;
 }
 
 /* Button Size Variants */
 .btn--small {
-  padding: 0.5rem 1rem;
-  font-size: 0.8rem;
-  min-height: 36px;
+  padding: 0.52rem 0.74rem;
+  font-size: 0.72rem;
+  min-height: 34px;
 }
 
 .btn--large {
@@ -94,35 +105,48 @@ body {
 
 /* Button Style Variants */
 .btn--secondary {
-  background-color: transparent;
-  color: #ffffff;
-  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  border-color: var(--line-soft);
 }
 
 .btn--secondary:hover {
-  background-color: #ffffff;
-  color: #000000;
+  background: rgba(25, 212, 255, 0.12);
+  color: var(--text-strong);
+  border-color: rgba(25, 212, 255, 0.45);
 }
 
 .btn--secondary:focus {
-  outline-color: #000000;
-  background-color: #ffffff;
-  color: #000000;
+  outline-color: var(--accent-cyan);
+  background: rgba(25, 212, 255, 0.12);
+  color: var(--text-strong);
+}
+
+.btn--primary {
+  background: rgba(25, 212, 255, 0.13);
+  color: #ffffff;
+  border-color: rgba(25, 212, 255, 0.42);
+}
+
+.btn--primary:hover {
+  background: rgba(25, 212, 255, 0.24);
+  border-color: rgba(25, 212, 255, 0.68);
 }
 
 .btn--danger {
-  background-color: #ffffff;
-  color: #000000;
-  border-color: #000000;
+  background: rgba(255, 95, 109, 0.1);
+  color: #ffd8dc;
+  border-color: rgba(255, 95, 109, 0.32);
 }
 
 .btn--danger:hover {
-  background-color: #000000;
+  background: rgba(255, 95, 109, 0.2);
   color: #ffffff;
+  border-color: rgba(255, 95, 109, 0.58);
 }
 
 .btn--icon {
-  padding: 0.5rem;
+  padding: 0;
   min-width: 44px;
   min-height: 44px;
   font-size: 1rem;
@@ -130,9 +154,13 @@ body {
 
 .btn--icon-small {
   padding: 0.25rem;
-  min-width: 32px;
-  min-height: 32px;
+  min-width: 28px;
+  min-height: 28px;
   font-size: 0.9rem;
+}
+
+.btn--full-width {
+  width: 100%;
 }
 
 /* Button Groups */
@@ -144,4 +172,3 @@ body {
 .btn-group .btn {
   flex: 1;
 }
-
