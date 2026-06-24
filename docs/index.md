@@ -30,6 +30,10 @@ Four generated structural UI experiments comparing a tabbed drawer, lean drawer 
 
 Implementation record for controlled experiment B: live duration, text frequency, readiness, and presentation fullscreen moved into an idle-aware bottom strip without adding fake telemetry.
 
+### [Stage Layouts v1 Implementation - 2026-06-24](./design/stage-layouts-v1-implementation-2026-06-24.md)
+
+Implementation record for the first multi-slot playback mode: a persisted Single / Two Columns stage layout selector with synchronized dual-slot media playback.
+
 ### [Product Requirements Document (PRD)](./prd.md)
 
 Complete product requirements document defining the VJ Tam Tam auto-VJ tool, including vision, goals, target audience, key features, technical constraints, and detailed epics with user stories and acceptance criteria.

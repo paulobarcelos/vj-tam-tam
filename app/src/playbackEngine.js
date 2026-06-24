@@ -12,6 +12,11 @@ import { PLAYBACK_CONFIG, PLAYBACK_STATES } from './constants/playbackConfig.js'
 import { filterUsableMedia } from './utils/mediaUtils.js'
 import { calculateRandomSegmentDuration, getVideoSegmentParameters } from './utils/mediaUtils.js'
 import { STATE_EVENTS, CYCLING_EVENTS } from './constants/events.js'
+import {
+  STAGE_LAYOUTS,
+  STAGE_LAYOUT_SLOT_COUNTS,
+  isValidStageLayoutMode,
+} from './constants/stageLayouts.js'
 
 /**
  * @typedef {Object} MediaItem
@@ -28,21 +33,26 @@ import { STATE_EVENTS, CYCLING_EVENTS } from './constants/events.js'
 class PlaybackEngine {
   constructor() {
     this.stageElement = null
+    this.stageLayoutElement = null
     this.currentMediaElement = null
+    this.currentMediaElements = []
     this.handleWindowResize = this.handleWindowResize.bind(this)
     this.isPlaybackActive = false
     this.autoPlaybackEnabled = true
+    this.stageLayoutMode = STAGE_LAYOUTS.SINGLE
 
     // Cycling-specific properties
     this.isCyclingActive = false
     this.cyclingTimer = null
     this.currentMediaItem = null
+    this.currentMediaItems = []
     this.recentMediaHistory = [] // Track recent items to avoid immediate repetition
     this.playbackState = PLAYBACK_STATES.INACTIVE
 
     // Bound handlers to allow proper add/remove of listeners
     this.onMediaPoolUpdate = this.handleMediaPoolUpdate.bind(this)
     this.onMediaPoolRestored = this.handleMediaPoolRestored.bind(this)
+    this.onStageLayoutUpdated = this.handleStageLayoutUpdate.bind(this)
     this.onWindowResize = this.handleWindowResize.bind(this)
   }
 
@@ -55,6 +65,10 @@ class PlaybackEngine {
       if (!this.stageElement) {
         throw new Error('Stage element not found')
       }
+
+      this.applyStageLayoutMode(stateManager.getStageLayout?.().mode || STAGE_LAYOUTS.SINGLE, {
+        rerender: false,
+      })
 
       // Set up event listeners
       this.setupEventListeners()
@@ -73,6 +87,7 @@ class PlaybackEngine {
     // Listen for media pool updates and restoration using stable handler refs
     eventBus.on(STATE_EVENTS.MEDIA_POOL_UPDATED, this.onMediaPoolUpdate)
     eventBus.on(STATE_EVENTS.MEDIA_POOL_RESTORED, this.onMediaPoolRestored)
+    eventBus.on(STATE_EVENTS.STAGE_LAYOUT_UPDATED, this.onStageLayoutUpdated)
 
     // Listen for window resize events
     window.addEventListener('resize', this.onWindowResize)
@@ -122,60 +137,237 @@ class PlaybackEngine {
   }
 
   /**
+   * Handle stage layout state updates.
+   * @param {Object} data - Stage layout update data
+   */
+  handleStageLayoutUpdate(data) {
+    this.applyStageLayoutMode(data?.stageLayout?.mode, { rerender: true })
+  }
+
+  /**
+   * Apply a stage layout mode and optionally rerender active playback into it.
+   * @param {string} mode - Stage layout mode
+   * @param {Object} options - Layout application options
+   * @param {boolean} options.rerender - Whether active media should rerender immediately
+   */
+  applyStageLayoutMode(mode, { rerender = true } = {}) {
+    const nextMode = isValidStageLayoutMode(mode) ? mode : STAGE_LAYOUTS.SINGLE
+    const previousMode = this.stageLayoutMode
+
+    this.stageLayoutMode = nextMode
+
+    if (this.stageElement) {
+      this.stageElement.dataset.stageLayout = nextMode
+    }
+
+    if (!rerender || previousMode === nextMode || !this.hasCurrentMedia()) {
+      return
+    }
+
+    this.clearCyclingTimer()
+
+    if (this.isCyclingActive) {
+      this.transitionToNextMedia()
+      return
+    }
+
+    const mediaItems = this.getMediaItemsForCurrentLayout()
+    if (mediaItems.length > 0) {
+      this.displayMediaItems(mediaItems)
+    }
+  }
+
+  /**
+   * Get active slot count for the current stage layout.
+   * @returns {number} Number of stage slots
+   */
+  getStageSlotCount() {
+    return STAGE_LAYOUT_SLOT_COUNTS[this.stageLayoutMode] || STAGE_LAYOUT_SLOT_COUNTS.single
+  }
+
+  /**
+   * Build the current media item set for the active layout, filling new slots if needed.
+   * @returns {MediaItem[]} Media items for the current layout
+   */
+  getMediaItemsForCurrentLayout() {
+    const slotCount = this.getStageSlotCount()
+    const existingItems = this.currentMediaItems.length
+      ? this.currentMediaItems
+      : this.currentMediaItem
+        ? [this.currentMediaItem]
+        : []
+    const mediaItems = existingItems.slice(0, slotCount)
+
+    while (mediaItems.length < slotCount) {
+      const nextMediaItem = this.getRandomMediaItem({
+        excludeIds: mediaItems.map((item) => item.id),
+      })
+
+      if (!nextMediaItem) break
+      mediaItems.push(nextMediaItem)
+
+      const uniqueMediaIds = new Set(mediaItems.map((item) => item.id))
+      const usableMediaCount = filterUsableMedia(stateManager.getMediaPool()).length
+      if (uniqueMediaIds.size < mediaItems.length && usableMediaCount <= 1) {
+        break
+      }
+    }
+
+    return mediaItems
+  }
+
+  /**
    * Display a media item in the stage area
    * @param {MediaItem} mediaItem - Media item to display
    */
   displayMedia(mediaItem) {
+    const mediaItems = [mediaItem]
+
+    while (mediaItem?.id && mediaItems.length < this.getStageSlotCount()) {
+      const nextMediaItem = this.getRandomMediaItem({
+        excludeIds: mediaItems.map((item) => item.id).filter(Boolean),
+      })
+
+      if (!nextMediaItem) break
+      mediaItems.push(nextMediaItem)
+
+      const uniqueIds = new Set(mediaItems.map((item) => item.id))
+      if (uniqueIds.size < mediaItems.length) break
+    }
+
+    this.displayMediaItems(mediaItems)
+  }
+
+  /**
+   * Display a synchronized set of media items in the active stage layout.
+   * @param {MediaItem[]} mediaItems - Media items to display
+   */
+  displayMediaItems(mediaItems) {
     try {
-      // Validate media item
-      if (!mediaItem || !mediaItem.url || !mediaItem.type) {
+      if (!Array.isArray(mediaItems) || mediaItems.length === 0) {
         console.warn('Invalid media item provided for display')
+        return
+      }
+
+      const slotCount = this.getStageSlotCount()
+      const slotMediaItems = mediaItems.slice(0, slotCount)
+
+      if (slotMediaItems.some((mediaItem) => !mediaItem || !mediaItem.url || !mediaItem.type)) {
+        console.warn('Invalid media item provided for display')
+        return
+      }
+
+      const unsupportedMediaItem = slotMediaItems.find(
+        (mediaItem) => mediaItem.type !== 'image' && mediaItem.type !== 'video'
+      )
+      if (unsupportedMediaItem) {
+        console.warn(`Unsupported media type: ${unsupportedMediaItem.type}`)
         return
       }
 
       // Get segment settings from state manager
       const segmentSettings = stateManager.getSegmentSettings()
+      const segmentDuration = calculateRandomSegmentDuration(
+        segmentSettings.minDuration,
+        segmentSettings.maxDuration
+      )
+      const synchronizedSegmentSettings = {
+        ...segmentSettings,
+        minDuration: segmentDuration,
+        maxDuration: segmentDuration,
+      }
 
       // Clear any existing media
       this.clearCurrentMedia()
 
-      let mediaElement
+      const mediaElements = []
+      const isSingleSlot = slotCount === 1
+      const layoutElement = isSingleSlot ? null : this.createStageLayoutElement()
 
-      if (mediaItem.type === 'image') {
-        // Calculate random segment duration for images
-        const segmentDuration = calculateRandomSegmentDuration(
-          segmentSettings.minDuration,
-          segmentSettings.maxDuration
-        )
-        mediaElement = this.createImageElement(mediaItem, segmentDuration)
-      } else if (mediaItem.type === 'video') {
-        mediaElement = this.createVideoElement(mediaItem, segmentSettings)
-      } else {
-        console.warn(`Unsupported media type: ${mediaItem.type}`)
-        return
+      slotMediaItems.forEach((mediaItem, index) => {
+        const mediaElement = this.createMediaElement(mediaItem, {
+          segmentDuration,
+          segmentSettings: synchronizedSegmentSettings,
+          driveCycling: index === 0,
+        })
+
+        if (!mediaElement) return
+
+        mediaElements.push(mediaElement)
+
+        if (isSingleSlot) {
+          this.stageElement.appendChild(mediaElement)
+          return
+        }
+
+        const slotElement = document.createElement('div')
+        slotElement.className = 'stage-slot'
+        slotElement.dataset.stageSlot = String(index)
+        slotElement.appendChild(mediaElement)
+        layoutElement.appendChild(slotElement)
+      })
+
+      if (layoutElement && mediaElements.length > 0) {
+        this.stageElement.appendChild(layoutElement)
+        this.stageLayoutElement = layoutElement
       }
 
-      if (mediaElement) {
-        this.currentMediaElement = mediaElement
-        this.stageElement.appendChild(mediaElement)
-      }
+      this.currentMediaElements = mediaElements
+      this.currentMediaElement = mediaElements[0] || null
+      this.currentMediaItems = slotMediaItems.slice(0, mediaElements.length)
+      this.currentMediaItem = this.currentMediaItems[0] || null
     } catch (error) {
       console.error('Media display error:', error)
       toastManager.error(
         t.get('USER_MESSAGES.notifications.error.mediaDisplayFailedWithName', {
-          fileName: mediaItem.name,
+          fileName: mediaItems[0]?.name || 'media',
         })
       )
     }
   }
 
   /**
+   * Create a stage layout container for multi-slot media.
+   * @returns {HTMLDivElement} Stage layout container
+   */
+  createStageLayoutElement() {
+    const layoutElement = document.createElement('div')
+    layoutElement.className = `stage-layout stage-layout--${this.stageLayoutMode}`
+    layoutElement.dataset.stageLayout = this.stageLayoutMode
+    return layoutElement
+  }
+
+  /**
+   * Create the correct media element type for a slot.
+   * @param {MediaItem} mediaItem - Media item to display
+   * @param {Object} options - Slot creation options
+   * @returns {HTMLElement|null} Configured media element
+   */
+  createMediaElement(mediaItem, options) {
+    if (mediaItem.type === 'image') {
+      return this.createImageElement(mediaItem, options.segmentDuration, {
+        driveCycling: options.driveCycling,
+      })
+    }
+
+    if (mediaItem.type === 'video') {
+      return this.createVideoElement(mediaItem, options.segmentSettings, {
+        driveCycling: options.driveCycling,
+      })
+    }
+
+    console.warn(`Unsupported media type: ${mediaItem.type}`)
+    return null
+  }
+
+  /**
    * Create an image element for display
    * @param {MediaItem} mediaItem - Image media item
    * @param {number} segmentDuration - Duration of the segment
+   * @param {Object} options - Image playback options
    * @returns {HTMLImageElement} - Configured image element
    */
-  createImageElement(mediaItem, segmentDuration) {
+  createImageElement(mediaItem, segmentDuration, { driveCycling = true } = {}) {
     try {
       const img = document.createElement('img')
       img.className = 'stage-media image'
@@ -189,7 +381,7 @@ class PlaybackEngine {
           `Image segment: ${mediaItem.name}, duration: ${segmentDuration ? segmentDuration.toFixed(2) : '0.00'}s`
         )
 
-        if (this.isCyclingActive) {
+        if (this.isCyclingActive && driveCycling) {
           this.scheduleImageTransition(segmentDuration)
         }
       })
@@ -202,7 +394,7 @@ class PlaybackEngine {
         )
 
         // If cycling is active and image fails to load, transition to next media
-        if (this.isCyclingActive) {
+        if (this.isCyclingActive && driveCycling) {
           setTimeout(() => this.transitionToNextMedia(), PLAYBACK_CONFIG.MIN_TRANSITION_DELAY)
         }
       })
@@ -218,9 +410,10 @@ class PlaybackEngine {
    * Create a video element for display with enhanced segment timing precision
    * @param {MediaItem} mediaItem - Video media item
    * @param {Object} segmentSettings - Segment configuration settings
+   * @param {Object} options - Video playback options
    * @returns {HTMLVideoElement} - Configured video element
    */
-  createVideoElement(mediaItem, segmentSettings) {
+  createVideoElement(mediaItem, segmentSettings, { driveCycling = true } = {}) {
     console.log(`Creating video element for file: ${mediaItem.name}`)
     try {
       const video = document.createElement('video')
@@ -249,7 +442,7 @@ class PlaybackEngine {
 
       // Handle video end - transition to next media if cycling is active
       video.addEventListener('ended', () => {
-        if (this.isCyclingActive) {
+        if (this.isCyclingActive && driveCycling) {
           // Clear monitoring state when video ends naturally
           video._segmentState.isMonitoring = false
           this.transitionToNextMedia()
@@ -301,13 +494,13 @@ class PlaybackEngine {
           // Video offset fallback applied if needed (no user notification for noise reduction)
 
           // Start segment monitoring if cycling is active
-          if (this.isCyclingActive) {
+          if (this.isCyclingActive && driveCycling) {
             video._segmentState.isMonitoring = true
           }
         } catch (error) {
           console.error('Video segment calculation error:', error)
           // Fallback to original behavior if segment calculation fails
-          if (this.isCyclingActive) {
+          if (this.isCyclingActive && driveCycling) {
             this.scheduleVideoMaxDurationTransition()
           }
         }
@@ -315,7 +508,7 @@ class PlaybackEngine {
 
       // Enhanced timeupdate event for precise segment timing
       video.addEventListener('timeupdate', () => {
-        if (!this.isCyclingActive || !video._segmentState.isMonitoring) {
+        if (!driveCycling || !this.isCyclingActive || !video._segmentState.isMonitoring) {
           return
         }
 
@@ -386,7 +579,7 @@ class PlaybackEngine {
         video._segmentState.isMonitoring = false
 
         // If cycling is active and video fails to load, transition to next media
-        if (this.isCyclingActive) {
+        if (this.isCyclingActive && driveCycling) {
           setTimeout(() => this.transitionToNextMedia(), PLAYBACK_CONFIG.MIN_TRANSITION_DELAY)
         }
       })
@@ -420,26 +613,34 @@ class PlaybackEngine {
    */
   clearCurrentMedia() {
     try {
-      if (this.currentMediaElement) {
+      const mediaElements = this.currentMediaElements.length
+        ? this.currentMediaElements
+        : this.currentMediaElement
+          ? [this.currentMediaElement]
+          : []
+
+      mediaElements.forEach((mediaElement) => {
         // Clean up video segment state if it's a video element
-        if (
-          this.currentMediaElement.tagName === 'VIDEO' &&
-          this.currentMediaElement._segmentState
-        ) {
+        if (mediaElement.tagName === 'VIDEO' && mediaElement._segmentState) {
           // Stop monitoring
-          this.currentMediaElement._segmentState.isMonitoring = false
+          mediaElement._segmentState.isMonitoring = false
           // Clear any pending seek operations
-          this.currentMediaElement._segmentState.seekTarget = null
+          mediaElement._segmentState.seekTarget = null
         }
+      })
 
-        // Remove from DOM
-        if (this.currentMediaElement.parentNode) {
-          this.currentMediaElement.parentNode.removeChild(this.currentMediaElement)
-        }
-
-        // Clean up event listeners if needed
-        this.currentMediaElement = null
+      if (this.stageLayoutElement?.parentNode) {
+        this.stageLayoutElement.parentNode.removeChild(this.stageLayoutElement)
+      } else if (this.currentMediaElement?.parentNode) {
+        this.currentMediaElement.parentNode.removeChild(this.currentMediaElement)
       }
+
+      // Clean up event listeners if needed
+      this.currentMediaElement = null
+      this.currentMediaElements = []
+      this.currentMediaItem = null
+      this.currentMediaItems = []
+      this.stageLayoutElement = null
     } catch (error) {
       console.error('Error clearing current media:', error)
     }
@@ -451,11 +652,11 @@ class PlaybackEngine {
   handleWindowResize() {
     try {
       // Only log and process resize if media is currently displayed
-      if (this.currentMediaElement) {
+      if (this.hasCurrentMedia()) {
         console.log('Window resized - adjusting media display')
 
         // Trigger potential error for testing by accessing DOM properties
-        if (this.currentMediaElement.getBoundingClientRect) {
+        if (this.currentMediaElement?.getBoundingClientRect) {
           this.currentMediaElement.getBoundingClientRect()
         }
       }
@@ -473,11 +674,19 @@ class PlaybackEngine {
   }
 
   /**
+   * Get the currently displayed media elements.
+   * @returns {HTMLElement[]} Current media elements
+   */
+  getCurrentMediaElements() {
+    return [...this.currentMediaElements]
+  }
+
+  /**
    * Check if media is currently being displayed
    * @returns {boolean} - True if media is being displayed
    */
   hasCurrentMedia() {
-    return this.currentMediaElement !== null
+    return this.currentMediaElements.length > 0 || this.currentMediaElement !== null
   }
 
   /**
@@ -488,6 +697,7 @@ class PlaybackEngine {
       // Remove event listeners
       eventBus.off(STATE_EVENTS.MEDIA_POOL_UPDATED, this.onMediaPoolUpdate)
       eventBus.off(STATE_EVENTS.MEDIA_POOL_RESTORED, this.onMediaPoolRestored)
+      eventBus.off(STATE_EVENTS.STAGE_LAYOUT_UPDATED, this.onStageLayoutUpdated)
       window.removeEventListener('resize', this.onWindowResize)
 
       // Stop playback and clear current media
@@ -504,7 +714,7 @@ class PlaybackEngine {
    * Get a random media item from the pool, avoiding recently played items
    * @returns {MediaItem|null} - Random media item or null if none available
    */
-  getRandomMediaItem() {
+  getRandomMediaItem({ excludeIds = [] } = {}) {
     try {
       const mediaPool = stateManager.getMediaPool()
       const usableMedia = filterUsableMedia(mediaPool)
@@ -513,19 +723,19 @@ class PlaybackEngine {
         return null
       }
 
-      if (usableMedia.length === 1) {
-        return usableMedia[0]
-      }
+      const excludedIdSet = new Set(excludeIds)
+      const unexcludedMedia = usableMedia.filter((item) => !excludedIdSet.has(item.id))
+      const baseMedia = unexcludedMedia.length > 0 ? unexcludedMedia : usableMedia
 
       // Filter out recently played items to avoid immediate repetition
-      let availableMedia = usableMedia
+      let availableMedia = baseMedia
       if (this.recentMediaHistory.length > 0) {
         const recentIds = this.recentMediaHistory.map((item) => item.id)
-        availableMedia = usableMedia.filter((item) => !recentIds.includes(item.id))
+        availableMedia = baseMedia.filter((item) => !recentIds.includes(item.id))
 
         // If all items are recent, use all items (shouldn't happen with proper history management)
         if (availableMedia.length === 0) {
-          availableMedia = usableMedia
+          availableMedia = baseMedia
         }
       }
 
@@ -536,6 +746,32 @@ class PlaybackEngine {
       console.error('Random media selection error:', error)
       return null
     }
+  }
+
+  /**
+   * Get random media items for the active stage layout.
+   * @param {number} count - Number of media items needed
+   * @returns {MediaItem[]} Random media items
+   */
+  getRandomMediaItems(count) {
+    const selectedItems = []
+
+    while (selectedItems.length < count) {
+      const mediaItem = this.getRandomMediaItem({
+        excludeIds: selectedItems.map((item) => item.id),
+      })
+
+      if (!mediaItem) break
+
+      selectedItems.push(mediaItem)
+
+      const uniqueIds = new Set(selectedItems.map((item) => item.id))
+      if (uniqueIds.size < selectedItems.length) {
+        break
+      }
+    }
+
+    return selectedItems
   }
 
   /**
@@ -616,29 +852,39 @@ class PlaybackEngine {
         return
       }
 
+      const slotCount = this.getStageSlotCount()
+
       // Store reference to previous media for cleanup
       const previousMedia = this.currentMediaItem
+      const previousMediaItems = [...this.currentMediaItems]
 
       // Clean up any video timing state from current media
-      if (
-        this.currentMediaElement &&
-        this.currentMediaElement.tagName === 'VIDEO' &&
-        this.currentMediaElement._segmentState
-      ) {
-        this.currentMediaElement._segmentState.isMonitoring = false
-        this.currentMediaElement._segmentState.seekTarget = null
-      }
+      const mediaElements = this.currentMediaElements.length
+        ? this.currentMediaElements
+        : this.currentMediaElement
+          ? [this.currentMediaElement]
+          : []
 
-      const nextMediaItem = this.getRandomMediaItem()
-      if (nextMediaItem) {
-        this.currentMediaItem = nextMediaItem
-        this.addToRecentHistory(nextMediaItem)
-        this.displayMedia(nextMediaItem)
+      mediaElements.forEach((mediaElement) => {
+        if (mediaElement.tagName === 'VIDEO' && mediaElement._segmentState) {
+          mediaElement._segmentState.isMonitoring = false
+          mediaElement._segmentState.seekTarget = null
+        }
+      })
+
+      const nextMediaItems = this.getRandomMediaItems(slotCount)
+      if (nextMediaItems.length > 0) {
+        this.currentMediaItem = nextMediaItems[0]
+        this.currentMediaItems = nextMediaItems
+        nextMediaItems.forEach((mediaItem) => this.addToRecentHistory(mediaItem))
+        this.displayMediaItems(nextMediaItems)
 
         // Emit cycling event
         eventBus.emit(CYCLING_EVENTS.MEDIA_CHANGED, {
           previousMedia: previousMedia,
-          currentMedia: nextMediaItem,
+          previousMediaItems,
+          currentMedia: nextMediaItems[0],
+          currentMediaItems: nextMediaItems,
         })
       } else {
         // No media available, stop cycling
@@ -658,6 +904,7 @@ class PlaybackEngine {
           const fallbackMedia = this.getRandomMediaItem()
           if (fallbackMedia) {
             this.currentMediaItem = fallbackMedia
+            this.currentMediaItems = [fallbackMedia]
             this.addToRecentHistory(fallbackMedia)
             this.displayMedia(fallbackMedia)
             return
@@ -685,21 +932,23 @@ class PlaybackEngine {
         return // Already cycling
       }
 
-      const firstMediaItem = this.getRandomMediaItem()
-      if (!firstMediaItem) {
+      const firstMediaItems = this.getRandomMediaItems(this.getStageSlotCount())
+      if (firstMediaItems.length === 0) {
         console.log('No usable media available for cycling')
         return
       }
 
       this.isCyclingActive = true
       this.playbackState = PLAYBACK_STATES.CYCLING
-      this.currentMediaItem = firstMediaItem
-      this.addToRecentHistory(firstMediaItem)
-      this.displayMedia(firstMediaItem)
+      this.currentMediaItem = firstMediaItems[0]
+      this.currentMediaItems = firstMediaItems
+      firstMediaItems.forEach((mediaItem) => this.addToRecentHistory(mediaItem))
+      this.displayMediaItems(firstMediaItems)
 
       console.log('Media cycling started')
       eventBus.emit(CYCLING_EVENTS.STARTED, {
-        currentMedia: firstMediaItem,
+        currentMedia: firstMediaItems[0],
+        currentMediaItems: firstMediaItems,
       })
     } catch (error) {
       console.error('Error starting media cycling:', error)
@@ -725,6 +974,7 @@ class PlaybackEngine {
       console.log('Media cycling stopped')
       eventBus.emit(CYCLING_EVENTS.STOPPED, {
         finalMedia: this.currentMediaItem,
+        finalMediaItems: [...this.currentMediaItems],
       })
     } catch (error) {
       console.error('PlaybackEngine cleanup error:', error)

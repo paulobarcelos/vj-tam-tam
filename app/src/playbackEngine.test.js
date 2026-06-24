@@ -36,6 +36,9 @@ vi.mock('./stateManager.js', () => ({
       skipStart: 0,
       skipEnd: 0,
     })),
+    getStageLayout: vi.fn(() => ({
+      mode: 'single',
+    })),
   },
 }))
 
@@ -55,6 +58,7 @@ const mockStageElement = {
   appendChild: vi.fn(),
   removeChild: vi.fn(),
   id: 'stage',
+  dataset: {},
 }
 
 // Mock media item for testing
@@ -82,12 +86,16 @@ const mockVideoItem = {
 
 function resetPlaybackEngineState() {
   playbackEngine.clearCyclingTimer()
+  playbackEngine.stageLayoutElement = null
   playbackEngine.currentMediaElement = null
+  playbackEngine.currentMediaElements = []
   playbackEngine.stageElement = null
   playbackEngine.isPlaybackActive = false
   playbackEngine.autoPlaybackEnabled = true
+  playbackEngine.stageLayoutMode = 'single'
   playbackEngine.isCyclingActive = false
   playbackEngine.currentMediaItem = null
+  playbackEngine.currentMediaItems = []
   playbackEngine.recentMediaHistory = []
   playbackEngine.playbackState = 'inactive'
 }
@@ -101,6 +109,15 @@ describe('PlaybackEngine', () => {
   beforeEach(() => {
     // Reset all mocks
     vi.clearAllMocks()
+    mockStageElement.appendChild = vi.fn((child) => {
+      child.parentNode = mockStageElement
+      return child
+    })
+    mockStageElement.removeChild = vi.fn((child) => {
+      child.parentNode = null
+      return child
+    })
+    mockStageElement.dataset = {}
 
     // Store original globals if they exist
     originalDocument = globalThis.document
@@ -124,9 +141,21 @@ describe('PlaybackEngine', () => {
             muted: false,
             loop: false,
             controls: false,
+            dataset: {},
             addEventListener: vi.fn(),
             removeEventListener: vi.fn(),
             parentNode: null,
+            children: [],
+            appendChild: vi.fn(function (child) {
+              this.children.push(child)
+              child.parentNode = this
+              return child
+            }),
+            removeChild: vi.fn(function (child) {
+              this.children = this.children.filter((existingChild) => existingChild !== child)
+              child.parentNode = null
+              return child
+            }),
             // Add video control methods used in implementation if necessary
             play: vi.fn(),
             pause: vi.fn(),
@@ -180,9 +209,21 @@ describe('PlaybackEngine', () => {
             muted: false,
             loop: false,
             controls: false,
+            dataset: {},
             addEventListener: vi.fn(),
             removeEventListener: vi.fn(),
             parentNode: null,
+            children: [],
+            appendChild: vi.fn(function (child) {
+              this.children.push(child)
+              child.parentNode = this
+              return child
+            }),
+            removeChild: vi.fn(function (child) {
+              this.children = this.children.filter((existingChild) => existingChild !== child)
+              child.parentNode = null
+              return child
+            }),
             // Add video control methods used in implementation if necessary
             play: vi.fn(),
             pause: vi.fn(),
@@ -508,6 +549,51 @@ describe('PlaybackEngine', () => {
       const { toastManager } = await import('./toastManager.js')
       expect(toastManager.error).toHaveBeenCalledWith(`Failed to display ${mockImageItem.name}`)
     })
+
+    it('should render two media slots in two-column layout', async () => {
+      const stateManagerModule = await import('./stateManager.js')
+      const stateManagerMock = stateManagerModule.stateManager
+      const secondImageItem = { ...mockImageItem, id: 'test-image-2', name: 'test-image-2.jpg' }
+      stateManagerMock.getMediaPool.mockReturnValue([mockImageItem, secondImageItem])
+
+      playbackEngine.applyStageLayoutMode('two-columns', { rerender: false })
+      playbackEngine.displayMediaItems([mockImageItem, secondImageItem])
+
+      const layoutElement = mockStageElement.appendChild.mock.calls.at(-1)[0]
+      expect(layoutElement.className).toBe('stage-layout stage-layout--two-columns')
+      expect(layoutElement.children).toHaveLength(2)
+      expect(playbackEngine.getCurrentMediaElements()).toHaveLength(2)
+      expect(playbackEngine.currentMediaItems.map((item) => item.id)).toEqual([
+        'test-image-1',
+        'test-image-2',
+      ])
+    })
+
+    it('should only let the first slot drive synchronized image transitions', () => {
+      vi.useFakeTimers()
+      playbackEngine.applyStageLayoutMode('two-columns', { rerender: false })
+      playbackEngine.isCyclingActive = true
+      const scheduleSpy = vi.spyOn(playbackEngine, 'scheduleImageTransition')
+
+      playbackEngine.displayMediaItems([
+        mockImageItem,
+        { ...mockImageItem, id: 'test-image-2', name: 'test-image-2.jpg' },
+      ])
+
+      const mediaElements = playbackEngine.getCurrentMediaElements()
+      const firstLoadHandler = mediaElements[0].addEventListener.mock.calls.find(
+        (call) => call[0] === 'load'
+      )[1]
+      const secondLoadHandler = mediaElements[1].addEventListener.mock.calls.find(
+        (call) => call[0] === 'load'
+      )[1]
+
+      firstLoadHandler()
+      secondLoadHandler()
+
+      expect(scheduleSpy).toHaveBeenCalledTimes(1)
+      vi.useRealTimers()
+    })
   })
 
   describe('media pool updates', () => {
@@ -522,7 +608,7 @@ describe('PlaybackEngine', () => {
       // Spy on start/stop methods
       vi.spyOn(playbackEngine, 'startAutoPlayback')
       vi.spyOn(playbackEngine, 'stopAutoPlayback')
-      vi.spyOn(playbackEngine, 'displayMedia')
+      vi.spyOn(playbackEngine, 'displayMediaItems')
     })
 
     it('should stop playback when media pool is cleared', () => {
@@ -533,7 +619,7 @@ describe('PlaybackEngine', () => {
 
       expect(playbackEngine.stopAutoPlayback).toHaveBeenCalled()
       expect(playbackEngine.startAutoPlayback).not.toHaveBeenCalled()
-      expect(playbackEngine.displayMedia).not.toHaveBeenCalled()
+      expect(playbackEngine.displayMediaItems).not.toHaveBeenCalled()
     })
 
     it('should stop playback when media pool becomes empty', () => {
@@ -544,7 +630,7 @@ describe('PlaybackEngine', () => {
 
       expect(playbackEngine.stopAutoPlayback).toHaveBeenCalled()
       expect(playbackEngine.startAutoPlayback).not.toHaveBeenCalled()
-      expect(playbackEngine.displayMedia).not.toHaveBeenCalled()
+      expect(playbackEngine.displayMediaItems).not.toHaveBeenCalled()
     })
 
     it('should start playback when media pool becomes populated from empty', async () => {
@@ -552,10 +638,10 @@ describe('PlaybackEngine', () => {
       const mockMediaPool = [mockImageItem]
       const updateData = { mediaPool: mockMediaPool, totalCount: 1, cleared: false }
 
-      // Don't spy on startAutoPlayback since we want it to execute and call displayMedia
-      // Only spy on displayMedia to verify it gets called
+      // Don't spy on startAutoPlayback since we want it to execute and render media
+      // Only spy on displayMediaItems to verify it gets called
       vi.restoreAllMocks() // Clear the spies from beforeEach
-      vi.spyOn(playbackEngine, 'displayMedia')
+      vi.spyOn(playbackEngine, 'displayMediaItems')
 
       // Mock stateManager.getMediaPool to return our mock data
       const stateManagerModule = await import('./stateManager.js')
@@ -564,8 +650,8 @@ describe('PlaybackEngine', () => {
 
       playbackEngine.handleMediaPoolUpdate(updateData)
 
-      // Verify displayMedia was called with the expected media item
-      expect(playbackEngine.displayMedia).toHaveBeenCalledWith(mockMediaPool[0])
+      // Verify displayMediaItems was called with the expected media item
+      expect(playbackEngine.displayMediaItems).toHaveBeenCalledWith([mockMediaPool[0]])
       expect(console.log).toHaveBeenCalledWith('Auto playback started')
     })
 
@@ -579,7 +665,7 @@ describe('PlaybackEngine', () => {
 
       expect(playbackEngine.stopAutoPlayback).not.toHaveBeenCalled()
       expect(playbackEngine.startAutoPlayback).not.toHaveBeenCalled()
-      expect(playbackEngine.displayMedia).not.toHaveBeenCalled()
+      expect(playbackEngine.displayMediaItems).not.toHaveBeenCalled()
     })
 
     it('should update display when media pool is updated while playback is active', () => {
@@ -782,6 +868,16 @@ describe('PlaybackEngine', () => {
         expect(mockMediaPool).toContain(result)
       })
 
+      it('should select distinct media items for multiple slots when available', () => {
+        const mockMediaPool = [mockImageItem, mockVideoItem]
+        stateManagerMock.getMediaPool.mockReturnValue(mockMediaPool)
+
+        const result = playbackEngine.getRandomMediaItems(2)
+
+        expect(result).toHaveLength(2)
+        expect(new Set(result.map((item) => item.id)).size).toBe(2)
+      })
+
       it('should avoid recently played items', () => {
         const mockItem3 = { ...mockImageItem, id: 'test-image-3', name: 'test3.jpg' }
         const mockMediaPool = [mockImageItem, mockVideoItem, mockItem3]
@@ -907,7 +1003,7 @@ describe('PlaybackEngine', () => {
       it('should start cycling with first random media item', () => {
         const mockMediaPool = [mockImageItem, mockVideoItem]
         stateManagerMock.getMediaPool.mockReturnValue(mockMediaPool)
-        const displayMediaSpy = vi.spyOn(playbackEngine, 'displayMedia')
+        const displayMediaSpy = vi.spyOn(playbackEngine, 'displayMediaItems')
 
         playbackEngine.startCycling()
 
@@ -918,9 +1014,23 @@ describe('PlaybackEngine', () => {
         expect(eventBusMock.emit).toHaveBeenCalledWith('cycling.started', expect.any(Object))
       })
 
+      it('should start cycling with two media items in two-column layout', () => {
+        const mockMediaPool = [mockImageItem, mockVideoItem]
+        stateManagerMock.getMediaPool.mockReturnValue(mockMediaPool)
+        playbackEngine.applyStageLayoutMode('two-columns', { rerender: false })
+
+        playbackEngine.startCycling()
+
+        expect(playbackEngine.currentMediaItems).toHaveLength(2)
+        expect(eventBusMock.emit).toHaveBeenCalledWith('cycling.started', {
+          currentMedia: expect.any(Object),
+          currentMediaItems: expect.arrayContaining([mockImageItem, mockVideoItem]),
+        })
+      })
+
       it('should not start cycling if already active', () => {
         playbackEngine.isCyclingActive = true
-        const displayMediaSpy = vi.spyOn(playbackEngine, 'displayMedia')
+        const displayMediaSpy = vi.spyOn(playbackEngine, 'displayMediaItems')
 
         playbackEngine.startCycling()
 
@@ -929,7 +1039,7 @@ describe('PlaybackEngine', () => {
 
       it('should not start cycling if no usable media available', () => {
         stateManagerMock.getMediaPool.mockReturnValue([])
-        const displayMediaSpy = vi.spyOn(playbackEngine, 'displayMedia')
+        const displayMediaSpy = vi.spyOn(playbackEngine, 'displayMediaItems')
 
         playbackEngine.startCycling()
 
@@ -989,7 +1099,7 @@ describe('PlaybackEngine', () => {
         const mockMediaPool = [mockImageItem, mockVideoItem]
         stateManagerMock.getMediaPool.mockReturnValue(mockMediaPool)
         playbackEngine.isCyclingActive = true
-        const displayMediaSpy = vi.spyOn(playbackEngine, 'displayMedia')
+        const displayMediaSpy = vi.spyOn(playbackEngine, 'displayMediaItems')
 
         playbackEngine.transitionToNextMedia()
 
@@ -1000,7 +1110,7 @@ describe('PlaybackEngine', () => {
 
       it('should not transition if cycling is not active', () => {
         playbackEngine.isCyclingActive = false
-        const displayMediaSpy = vi.spyOn(playbackEngine, 'displayMedia')
+        const displayMediaSpy = vi.spyOn(playbackEngine, 'displayMediaItems')
 
         playbackEngine.transitionToNextMedia()
 

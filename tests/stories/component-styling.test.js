@@ -148,9 +148,17 @@ describe('Story 3.5: Component Styling Consistency', () => {
       expect(cssContent).toContain('.ui-active .bottom-live-strip')
       expect(cssContent).toContain('.live-duration-control')
       expect(cssContent).toContain('.live-strip-trim')
+      expect(cssContent).toContain('.layout-mode-control')
       expect(cssContent).toContain('.live-fullscreen-btn')
       expect(cssContent).not.toContain('cpu')
       expect(cssContent).not.toContain('bpm')
+    })
+
+    it('should define stage layout surfaces for multi-slot playback', () => {
+      expect(cssContent).toContain('.stage-layout')
+      expect(cssContent).toContain('.stage-layout--two-columns')
+      expect(cssContent).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))')
+      expect(cssContent).toContain('.stage-slot')
     })
 
     it('should keep active toasts above the bottom live strip', () => {

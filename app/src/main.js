@@ -72,6 +72,9 @@ async function init() {
     // Initialize Frequency Control after state is fully restored
     uiManager.initializeFrequencyControl()
 
+    // Initialize Stage Layout controls after state is fully restored
+    uiManager.initializeStageLayoutControls()
+
     console.log('Application initialization complete')
     const mediaCount = stateManager.getMediaCount()
     console.log(`Application initialized successfully with ${mediaCount} media files loaded`)

@@ -456,7 +456,29 @@
         </div>
 
         <div class="live-strip-cell live-strip-presentation">
-          <p class="live-strip-label">Presentation</p>
+          <div class="live-strip-heading">
+            <p class="live-strip-label">View</p>
+          </div>
+          <div class="layout-mode-control" role="group" aria-label="Stage layout">
+            <button
+              type="button"
+              class="layout-mode-btn is-active"
+              data-stage-layout-mode="single"
+              aria-pressed="true"
+              title="Single media layout"
+            >
+              Single
+            </button>
+            <button
+              type="button"
+              class="layout-mode-btn"
+              data-stage-layout-mode="two-columns"
+              aria-pressed="false"
+              title="Two column media layout"
+            >
+              2 Col
+            </button>
+          </div>
           <button
             id="presentation-fullscreen-btn"
             class="btn btn--secondary live-fullscreen-btn"

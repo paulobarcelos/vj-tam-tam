@@ -1,3 +1,5 @@
+import { STAGE_LAYOUTS } from './constants/stageLayouts.js'
+
 export function createDefaultState() {
   return {
     mediaPool: [],
@@ -10,6 +12,9 @@ export function createDefaultState() {
     },
     uiSettings: {
       advancedControlsVisible: false,
+    },
+    stageLayout: {
+      mode: STAGE_LAYOUTS.SINGLE,
     },
     projectionMode: {
       active: false,

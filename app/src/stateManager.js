@@ -9,6 +9,7 @@ import { fileSystemAccessFacade } from './facades/fileSystemAccessFacade.js'
 import { filterRestorableMedia } from './utils/mediaUtils.js'
 import { STATE_EVENTS, TEXT_POOL_EVENTS } from './constants/events.js'
 import { createDefaultState } from './defaultState.js'
+import { isValidStageLayoutMode } from './constants/stageLayouts.js'
 
 /**
  * @typedef {Object} MediaItem
@@ -67,6 +68,21 @@ class StateManager {
       // Load persisted state first, always
       const persistedState = storageFacade.loadState()
       console.log('Persisted state loaded from storage', persistedState)
+
+      // Restore stage layout before restoring media so playback starts with the correct slot count.
+      if (persistedState?.stageLayout) {
+        const restoredStageLayout = this.validateStageLayout(persistedState.stageLayout)
+        this.state.stageLayout = {
+          ...this.state.stageLayout,
+          ...restoredStageLayout,
+        }
+        eventBus.emit(STATE_EVENTS.STAGE_LAYOUT_UPDATED, {
+          stageLayout: this.getStageLayout(),
+        })
+        console.log('Stage layout restored from localStorage')
+      } else {
+        console.log('No stage layout in persistedState, keeping defaults', this.state.stageLayout)
+      }
 
       // First, try to restore files from FileSystemAccessAPI if supported
       if (fileSystemAccessFacade.isSupported) {
@@ -601,6 +617,56 @@ class StateManager {
    */
   getUISettings() {
     return { ...this.state.uiSettings }
+  }
+
+  /**
+   * Get current stage layout settings
+   * @returns {Object} Current stage layout settings
+   */
+  getStageLayout() {
+    return { ...this.state.stageLayout }
+  }
+
+  /**
+   * Update stage layout settings
+   * @param {Object} newSettings - New stage layout settings to merge
+   */
+  updateStageLayout(newSettings) {
+    const validated = this.validateStageLayout(newSettings)
+    if (Object.keys(validated).length === 0) {
+      console.warn('Invalid stage layout settings provided - must be a valid object')
+      return
+    }
+
+    this.state.stageLayout = {
+      ...this.state.stageLayout,
+      ...validated,
+    }
+
+    eventBus.emit(STATE_EVENTS.STAGE_LAYOUT_UPDATED, {
+      stageLayout: this.getStageLayout(),
+    })
+
+    this.saveCurrentState()
+  }
+
+  /**
+   * Validate stage layout settings object
+   * @param {Object} settings - Stage layout settings to validate
+   * @returns {Object} Filtered settings
+   */
+  validateStageLayout(settings) {
+    if (!settings || typeof settings !== 'object') {
+      return {}
+    }
+
+    const filteredSettings = {}
+
+    if ('mode' in settings && isValidStageLayoutMode(settings.mode)) {
+      filteredSettings.mode = settings.mode
+    }
+
+    return filteredSettings
   }
 
   /**
