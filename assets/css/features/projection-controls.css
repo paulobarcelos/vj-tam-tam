@@ -33,14 +33,16 @@
   border-color: rgba(255, 122, 47, 0.5);
 }
 
-.projection-button[data-projection-active="true"] {
+.projection-button[data-projection-active='true'] {
   background: rgba(255, 122, 47, 0.22);
   border-color: rgba(255, 122, 47, 0.68);
   color: #ffffff;
-  box-shadow: 0 0 0 1px rgba(255, 122, 47, 0.12), 0 12px 30px rgba(0, 0, 0, 0.28);
+  box-shadow:
+    0 0 0 1px rgba(255, 122, 47, 0.12),
+    0 12px 30px rgba(0, 0, 0, 0.28);
 }
 
-.projection-button[data-projection-active="true"]:hover {
+.projection-button[data-projection-active='true']:hover {
   background: rgba(255, 122, 47, 0.3);
   border-color: rgba(255, 122, 47, 0.82);
 }
@@ -224,22 +226,27 @@
 
 /* Custom Corner Handles for Projection Mode */
 .projection-corner-handle {
+  --projection-handle-size: 64px;
+  --projection-handle-label-size: 11px;
+
   position: absolute;
-  width: 42px;
-  height: 42px;
+  width: var(--projection-handle-size);
+  height: var(--projection-handle-size);
   background: radial-gradient(circle, rgba(5, 6, 7, 0.72), rgba(255, 122, 47, 0.16));
   border: 2px solid rgba(255, 255, 255, 0.9);
   border-radius: 50%;
   cursor: grab;
   z-index: 1001; /* Above the container */
   pointer-events: auto; /* Enable interaction for handles themselves */
-  
+
   /* Center the handle on the corner point */
   transform: translate(-50%, -50%);
-  
+
   /* Make it visible above other elements */
-  box-shadow: 0 0 0 1px rgba(255, 122, 47, 0.4), 0 0 28px rgba(255, 122, 47, 0.36);
-  
+  box-shadow:
+    0 0 0 1px rgba(255, 122, 47, 0.48),
+    0 0 34px rgba(255, 122, 47, 0.38);
+
   /* Flexbox for centering corner label text */
   display: flex;
   align-items: center;
@@ -250,7 +257,7 @@
 .projection-corner-handle::before {
   content: attr(data-corner-label);
   font-family: inherit;
-  font-size: 10px;
+  font-size: var(--projection-handle-label-size);
   font-weight: bold;
   color: #fff;
   line-height: 1;
@@ -261,8 +268,10 @@
 .projection-corner-handle:hover {
   background: radial-gradient(circle, rgba(255, 122, 47, 0.34), rgba(5, 6, 7, 0.8));
   border-color: #ffffff;
-  transform: translate(-50%, -50%) scale(1.1);
-  box-shadow: 0 0 0 2px rgba(255, 122, 47, 0.72), 0 0 34px rgba(255, 122, 47, 0.5);
+  transform: translate(-50%, -50%) scale(1.06);
+  box-shadow:
+    0 0 0 2px rgba(255, 122, 47, 0.72),
+    0 0 34px rgba(255, 122, 47, 0.5);
 }
 
 .projection-corner-handle:hover::before {
@@ -274,8 +283,10 @@
   cursor: grabbing;
   background: radial-gradient(circle, rgba(25, 212, 255, 0.4), rgba(5, 6, 7, 0.82));
   border-color: #ffffff;
-  transform: translate(-50%, -50%) scale(1.2);
-  box-shadow: 0 0 0 3px rgba(25, 212, 255, 0.62), 0 0 42px rgba(25, 212, 255, 0.48);
+  transform: translate(-50%, -50%) scale(1.08);
+  box-shadow:
+    0 0 0 3px rgba(25, 212, 255, 0.62),
+    0 0 42px rgba(25, 212, 255, 0.48);
 }
 
 .projection-corner-handle.dragging::before {
@@ -315,6 +326,6 @@
   flex: 1;
 }
 
-#advanced-controls-toggle[aria-expanded="true"] .toggle-icon {
+#advanced-controls-toggle[aria-expanded='true'] .toggle-icon {
   transform: rotate(90deg);
 }

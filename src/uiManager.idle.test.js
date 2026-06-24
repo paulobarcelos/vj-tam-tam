@@ -358,6 +358,18 @@ describe('UIManager - Idle State Management', () => {
       expect(addEventListenerSpy).toHaveBeenCalledWith('mousedown', expect.any(Function), {
         passive: true,
       })
+      expect(addEventListenerSpy).toHaveBeenCalledWith('pointermove', expect.any(Function), {
+        passive: true,
+      })
+      expect(addEventListenerSpy).toHaveBeenCalledWith('pointerdown', expect.any(Function), {
+        passive: true,
+      })
+      expect(addEventListenerSpy).toHaveBeenCalledWith('touchstart', expect.any(Function), {
+        passive: true,
+      })
+      expect(addEventListenerSpy).toHaveBeenCalledWith('touchmove', expect.any(Function), {
+        passive: true,
+      })
       expect(addEventListenerSpy).toHaveBeenCalledWith('keydown', expect.any(Function), {
         passive: true,
       })
@@ -365,7 +377,18 @@ describe('UIManager - Idle State Management', () => {
         passive: true,
       })
 
-      expect(uiManager.activityListeners).toHaveLength(4)
+      expect(uiManager.activityListeners).toHaveLength(8)
+    })
+
+    it('should keep the UI active during touch movement', () => {
+      uiManager.setupActivityDetection()
+
+      expect(uiManager.isUIIdle).toBe(true)
+
+      document.dispatchEvent(new Event('touchmove'))
+
+      expect(uiManager.isUIIdle).toBe(false)
+      expect(document.body.classList.contains('ui-active')).toBe(true)
     })
 
     it('should start hidden in idle state', () => {
