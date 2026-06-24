@@ -9,6 +9,7 @@ import { fileSystemAccessFacade } from './facades/fileSystemAccessFacade.js'
 import { filterRestorableMedia } from './utils/mediaUtils.js'
 import { STATE_EVENTS, TEXT_POOL_EVENTS } from './constants/events.js'
 import { createDefaultState } from './defaultState.js'
+import { PLAYBACK_CONFIG } from './constants/playbackConfig.js'
 import {
   createSingleStageLayout,
   migrateLegacyStageLayoutMode,
@@ -587,12 +588,14 @@ class StateManager {
     // Check individual properties if they exist and filter out invalid ranges
     const filteredSettings = {}
 
-    // Duration ranges: 1-30 seconds
+    const { DURATION_MIN_LIMIT, DURATION_MAX_LIMIT } = PLAYBACK_CONFIG.SEGMENT_SETTINGS
+
+    // Duration ranges: 1-180 seconds
     if ('minDuration' in settings) {
       if (
         typeof settings.minDuration === 'number' &&
-        settings.minDuration >= 1 &&
-        settings.minDuration <= 30
+        settings.minDuration >= DURATION_MIN_LIMIT &&
+        settings.minDuration <= DURATION_MAX_LIMIT
       ) {
         filteredSettings.minDuration = settings.minDuration
       }
@@ -601,8 +604,8 @@ class StateManager {
     if ('maxDuration' in settings) {
       if (
         typeof settings.maxDuration === 'number' &&
-        settings.maxDuration >= 1 &&
-        settings.maxDuration <= 30
+        settings.maxDuration >= DURATION_MIN_LIMIT &&
+        settings.maxDuration <= DURATION_MAX_LIMIT
       ) {
         filteredSettings.maxDuration = settings.maxDuration
       }

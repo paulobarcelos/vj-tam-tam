@@ -162,10 +162,10 @@ describe('UIManager - Idle State Management', () => {
             <span class="toggle-indicator">[Show]</span>
           </div>
           <div id="advanced-controls-section" class="hidden">
-            <input id="min-duration-slider" type="range" min="1" max="30" value="5">
-            <input id="min-duration-input" type="number" min="1" max="30" value="5">
-            <input id="max-duration-slider" type="range" min="1" max="30" value="5">
-            <input id="max-duration-input" type="number" min="1" max="30" value="5">
+            <input id="min-duration-slider" type="range" min="1" max="180" value="5">
+            <input id="min-duration-input" type="number" min="1" max="180" value="5">
+            <input id="max-duration-slider" type="range" min="1" max="180" value="5">
+            <input id="max-duration-input" type="number" min="1" max="180" value="5">
             <input id="skip-start-slider" type="range" min="0" max="30" value="0">
             <input id="skip-start-input" type="number" min="0" max="30" value="0">
             <input id="skip-end-slider" type="range" min="0" max="30" value="0">
