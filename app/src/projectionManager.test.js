@@ -316,6 +316,44 @@ describe('ProjectionManager - Story 6.3: Projection Setup Mode Toggle', () => {
     })
   })
 
+  describe('Corner handle dragging', () => {
+    beforeEach(() => {
+      projectionManager.init()
+      projectionManager.enterProjectionMode()
+      projectionManager.cornerPositions = [
+        { x: 0, y: 0 },
+        { x: window.innerWidth, y: 0 },
+        { x: window.innerWidth, y: window.innerHeight },
+        { x: 0, y: window.innerHeight },
+      ]
+      projectionManager.updateHandlePositions()
+    })
+
+    it('should preserve the grab offset inside a larger corner handle', () => {
+      const topLeftHandle = projectionManager.cornerHandles[0]
+
+      topLeftHandle.dispatchEvent(
+        new window.MouseEvent('mousedown', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 24,
+          clientY: 18,
+        })
+      )
+      document.dispatchEvent(
+        new window.MouseEvent('mousemove', {
+          bubbles: true,
+          clientX: 40,
+          clientY: 50,
+        })
+      )
+
+      expect(projectionManager.cornerPositions[0]).toEqual({ x: 16, y: 32 })
+      expect(topLeftHandle.style.left).toBe('16px')
+      expect(topLeftHandle.style.top).toBe('32px')
+    })
+  })
+
   describe('Error Handling', () => {
     beforeEach(() => {
       projectionManager.init()

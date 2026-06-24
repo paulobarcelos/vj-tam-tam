@@ -137,7 +137,8 @@ describe('Story 3.5: Component Styling Consistency', () => {
     it('should keep the drawer and projection surfaces tokenized', () => {
       expect(cssContent).toContain('.left-drawer')
       expect(cssContent).toContain('backdrop-filter: blur(18px)')
-      expect(cssContent).toContain('.projection-button[data-projection-active="true"]')
+      expect(cssContent).toContain(".projection-button[data-projection-active='true']")
+      expect(cssContent).toContain('--projection-handle-size: 64px')
       expect(cssContent).toContain('rgba(255, 122, 47')
     })
 

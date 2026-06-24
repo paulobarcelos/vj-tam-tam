@@ -40,13 +40,30 @@ describe('IdleController', () => {
     const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener')
 
     controller.setupActivityDetection()
-    expect(addEventListenerSpy).toHaveBeenCalledTimes(4)
-    expect(controller.activityListeners).toHaveLength(4)
+    expect(addEventListenerSpy).toHaveBeenCalledTimes(8)
+    expect(addEventListenerSpy).toHaveBeenCalledWith('pointermove', expect.any(Function), {
+      passive: true,
+    })
+    expect(addEventListenerSpy).toHaveBeenCalledWith('touchmove', expect.any(Function), {
+      passive: true,
+    })
+    expect(controller.activityListeners).toHaveLength(8)
 
     controller.cleanupActivityDetection()
-    expect(removeEventListenerSpy).toHaveBeenCalledTimes(4)
+    expect(removeEventListenerSpy).toHaveBeenCalledTimes(8)
     expect(controller.activityListeners).toHaveLength(0)
     expect(controller.idleTimer).toBe(null)
+  })
+
+  it('keeps the UI active during touch movement', () => {
+    controller.setupActivityDetection()
+    controller.enterIdleState()
+
+    document.dispatchEvent(new window.Event('touchmove'))
+
+    expect(controller.isIdle).toBe(false)
+    expect(document.body.classList.contains('ui-active')).toBe(true)
+    expect(eventBus.emit).toHaveBeenCalledWith('ui.idleStateChanged', { isIdle: false })
   })
 
   it('can start in idle state when configured', () => {

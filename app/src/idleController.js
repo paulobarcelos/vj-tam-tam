@@ -49,7 +49,16 @@ export class IdleController {
   }
 
   setupActivityDetection() {
-    const events = ['mousemove', 'mousedown', 'keydown', 'click']
+    const events = [
+      'mousemove',
+      'mousedown',
+      'pointermove',
+      'pointerdown',
+      'touchstart',
+      'touchmove',
+      'keydown',
+      'click',
+    ]
     events.forEach((eventName) => {
       const listener = (event) => this.handleActivity(event)
       this.document.addEventListener(eventName, listener, { passive: true })

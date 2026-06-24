@@ -393,8 +393,8 @@ class ProjectionManager {
    */
   handleMouseDown(event) {
     event.preventDefault()
-    const cornerIndex = parseInt(event.target.dataset.cornerIndex)
-    this.startDrag(cornerIndex)
+    const cornerIndex = parseInt(event.currentTarget.dataset.cornerIndex)
+    this.startDrag(cornerIndex, event.clientX, event.clientY)
   }
 
   /**
@@ -402,16 +402,22 @@ class ProjectionManager {
    */
   handleTouchStart(event) {
     event.preventDefault()
-    const cornerIndex = parseInt(event.target.dataset.cornerIndex)
-    this.startDrag(cornerIndex)
+    const touch = event.touches[0]
+    const cornerIndex = parseInt(event.currentTarget.dataset.cornerIndex)
+    this.startDrag(cornerIndex, touch.clientX, touch.clientY)
   }
 
   /**
    * Start dragging a corner
    */
-  startDrag(cornerIndex) {
+  startDrag(cornerIndex, clientX, clientY) {
     this.isDragging = true
     this.dragCornerIndex = cornerIndex
+    const cornerPosition = this.cornerPositions[cornerIndex]
+    this.dragOffset = {
+      x: Number.isFinite(clientX) && cornerPosition ? clientX - cornerPosition.x : 0,
+      y: Number.isFinite(clientY) && cornerPosition ? clientY - cornerPosition.y : 0,
+    }
 
     // Add dragging class for visual feedback
     const handle = this.cornerHandles[cornerIndex]
@@ -441,16 +447,15 @@ class ProjectionManager {
    * Update drag position
    */
   updateDrag(clientX, clientY) {
-    // Corner position is exactly where the mouse is - no offset calculation needed
     this.cornerPositions[this.dragCornerIndex] = {
-      x: clientX,
-      y: clientY,
+      x: clientX - this.dragOffset.x,
+      y: clientY - this.dragOffset.y,
     }
 
-    // Update handle position to match mouse position exactly
+    // Update handle position to match the projected corner point.
     const handle = this.cornerHandles[this.dragCornerIndex]
-    handle.style.left = `${clientX}px`
-    handle.style.top = `${clientY}px`
+    handle.style.left = `${this.cornerPositions[this.dragCornerIndex].x}px`
+    handle.style.top = `${this.cornerPositions[this.dragCornerIndex].y}px`
 
     // Update Maptastic layout
     this.updateMaptasticLayout()
@@ -483,6 +488,7 @@ class ProjectionManager {
       }
 
       this.dragCornerIndex = -1
+      this.dragOffset = { x: 0, y: 0 }
 
       // Save the new layout
       this.saveMaptasticLayout()
