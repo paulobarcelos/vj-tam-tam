@@ -11,7 +11,7 @@ VJ Tam Tam is a user-friendly, web-based "auto VJ" tool designed to solve the pr
 - **Primary Goals (MVP):**
 
   1.  Enable users to instantly initiate an endless, randomized playback of their local photos (JPG/PNG/GIF/HEIC/WebP) and videos (MP4/MOV/WebM/AVI) by simply dropping files or selecting via a file dialog.
-  2.  Implement a core playback engine that seamlessly transitions between media segments (with an initial default duration of 5 seconds each, individually configurable from 1 to 30 seconds) using hard cuts, ensuring a continuous and unpredictable visual flow.
+  2.  Implement a core playback engine that seamlessly transitions between media segments (with an initial default duration of 5 seconds each, individually configurable from 1 to 180 seconds) using hard cuts, ensuring a continuous and unpredictable visual flow.
   3.  Provide an intuitive text overlay system allowing users to add and display custom messages randomly over the visuals, with configurable frequency and a visually impactful presentation.
   4.  Develop a hidden-by-default "Advanced" mode accessible via a UI toggle, offering essential projection mapping controls (perspective warp, rotate/flip/scale) and basic color correction (brightness, contrast, saturation) for adapting to various projector setups.
   5.  Ensure all user configurations (file selections - if possible via API, text entries, timing settings, advanced display settings (including projection settings like warp/calibration data), video segment controls) are automatically saved and loaded from `localStorage` for persistence across sessions.
@@ -57,7 +57,7 @@ These users value ease of use, quick results, and a tool that enhances the atmos
   - Option to clear the entire media pool.
 - **Playback Engine:**
   - Continuous, random playback of media segments.
-  - Configurable segment duration (min/max sliders, with initial defaults of 5s for both, range 1-30s).
+  - Configurable segment duration (min/max sliders, with initial defaults of 5s for both, range 1-180s).
   - Hard cuts between media segments (no crossfades or smooth transitions).
   - Fullscreen display, responsive to screen size, always covering the stage ("cover" mode only).
 - **Text Overlays:**
@@ -229,12 +229,12 @@ _Goal: Establish the basic application structure, enable drag-and-drop/file pick
 
 ### Epic 2: Randomized Segment Playback
 
-_Goal: Enhance the playback engine to handle random segments (configurable duration, e.g., default 5s, range 1-30s) of media files, including skipping parts of videos, providing the "eternal slideshow" effect._
+_Goal: Enhance the playback engine to handle random segments (configurable duration, e.g., default 5s, range 1-180s) of media files, including skipping parts of videos, providing the "eternal slideshow" effect._
 
 1.  **Story:** As the Application, I want to select a random segment from the currently chosen media item (image or video) for display so that the playback is constantly varied and unpredictable.
     - **AC 1.1:** Given playback is active, when a new media item is selected for display, the application determines a random start point within the media's total duration.
     - **AC 1.2:** The random start point is calculated such that a segment of the configured duration can be played without exceeding the media's total duration.
-    - **AC 1.3:** The calculated segment duration for display is a random value between the configured minimum and maximum duration settings (with the configurable minimum and maximum duration settings initially defaulting to 5 seconds each, and the overall configurable range for these settings being 1 to 30 seconds).
+    - **AC 1.3:** The calculated segment duration for display is a random value between the configured minimum and maximum duration settings (with the configurable minimum and maximum duration settings initially defaulting to 5 seconds each, and the overall configurable range for these settings being 1 to 180 seconds).
     - **AC 1.4:** Given an image is selected, the application displays the full image for the calculated random segment duration.
     - **AC 1.5:** Given a video is selected, the application starts playback of the video from the random start point for the calculated random segment duration.
     - **AC 1.6 (Video Offset Edge Case - Calculate Valid Range):** Given a video with total duration `D`, configured "skip start" `SS`, configured "skip end" `SE`, and selected segment duration `SD` (where `min_duration <= SD <= max_duration`), the application determines the valid range of possible start points `[ValidStartMin, ValidStartMax]` for the segment. This range is initially constrained by `SS` (segment must start >= `SS`) and `D - SE - SD` (segment must end <= `D - SE`).
@@ -251,8 +251,8 @@ _Goal: Enhance the playback engine to handle random segments (configurable durat
 3.  **Story:** As a User, I want to be able to configure the duration range (minimum and maximum seconds) for the random segments so that I can control the pace of the visual transitions.
     - **AC 3.1:** Given the UI is visible, there is a control (e.g., a slider or input field pair) labeled clearly for setting the minimum segment duration.
     - **AC 3.2:** Given the UI is visible, there is a control (e.g., a slider or input field pair) labeled clearly for setting the maximum segment duration.
-    - **AC E2.S3.2a (Min Slider Range & Default):** The minimum segment duration control (slider/input) allows selection from 1 second to 30 seconds, and its initial default value upon first load (before any user configuration is saved) is 5 seconds.
-    - **AC E2.S3.2b (Max Slider Range & Default):** The maximum segment duration control (slider/input) allows selection from 1 second to 30 seconds, and its initial default value upon first load (before any user configuration is saved) is 5 seconds.
+    - **AC E2.S3.2a (Min Slider Range & Default):** The minimum segment duration control (slider/input) allows selection from 1 second to 180 seconds, and its initial default value upon first load (before any user configuration is saved) is 5 seconds.
+    - **AC E2.S3.2b (Max Slider Range & Default):** The maximum segment duration control (slider/input) allows selection from 1 second to 180 seconds, and its initial default value upon first load (before any user configuration is saved) is 5 seconds.
     - **AC 3.3:** When the user adjusts the minimum duration control, the application updates the setting for subsequent segment duration calculations.
     - **AC 3.4:** When the user adjusts the maximum duration control, the application updates the setting for subsequent segment duration calculations.
     - **AC 3.5:** The application enforces the relationship between minimum and maximum duration: If the user attempts to set a minimum duration greater than the current maximum duration, the maximum duration is automatically increased to equal the new minimum. If the user attempts to set a maximum duration less than the current minimum duration, the minimum duration is automatically decreased to equal the new maximum. No toast notification is displayed for these adjustments.

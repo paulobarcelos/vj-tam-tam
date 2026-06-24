@@ -1004,7 +1004,7 @@ describe('PlaybackEngine', () => {
 
         expect(playbackEngine.cyclingTimer).toBeDefined()
 
-        vi.advanceTimersByTime(30000) // DURATION_MAX_LIMIT * 1000
+        vi.advanceTimersByTime(180000) // DURATION_MAX_LIMIT * 1000
         expect(transitionSpy).toHaveBeenCalled()
 
         vi.useRealTimers()

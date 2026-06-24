@@ -41,7 +41,7 @@ export const PLAYBACK_CONFIG = {
 
     // Valid ranges for settings (in seconds)
     DURATION_MIN_LIMIT: 1,
-    DURATION_MAX_LIMIT: 30,
+    DURATION_MAX_LIMIT: 180,
     SKIP_MIN_LIMIT: 0,
     SKIP_MAX_LIMIT: 300, // 5 minutes max skip
   },
