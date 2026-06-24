@@ -22,6 +22,7 @@ import { requestPresentationFullscreen } from './presentationFullscreen.js'
 import { deriveMediaAccessState } from './mediaAccessState.js'
 import { IdleController } from './idleController.js'
 import { TextPoolView } from './textPoolView.js'
+import { STAGE_LAYOUTS, isValidStageLayoutMode } from './constants/stageLayouts.js'
 
 class UIManager {
   constructor() {
@@ -70,6 +71,7 @@ class UIManager {
     this.liveTextCount = null
     this.liveSegmentSummary = null
     this.liveFrequencySummary = null
+    this.layoutModeButtons = []
 
     this.idleController = new IdleController({ eventBus, startIdle: true })
 
@@ -163,6 +165,7 @@ class UIManager {
     this.liveTextCount = document.getElementById('live-text-count')
     this.liveSegmentSummary = document.getElementById('live-segment-summary')
     this.liveFrequencySummary = document.getElementById('live-frequency-summary')
+    this.layoutModeButtons = [...document.querySelectorAll('[data-stage-layout-mode]')]
 
     // Check for required DOM elements
     if (
@@ -193,7 +196,8 @@ class UIManager {
       !this.clearTextBtn ||
       !this.textPoolFooter ||
       !this.textFrequencySlider ||
-      !this.frequencyControlSection
+      !this.frequencyControlSection ||
+      this.layoutModeButtons.length === 0
     ) {
       console.error('Required UI elements not found')
       return false
@@ -218,6 +222,7 @@ class UIManager {
     this.setupEventBusListeners()
     this.setupFilePickerListeners()
     this.setupPresentationFullscreenListener()
+    this.setupStageLayoutControls()
     this.setupAdvancedControlsListeners()
     this.setupTextPoolListeners()
     this.setupFrequencyControlListeners()
@@ -269,6 +274,7 @@ class UIManager {
     this.onMediaPoolRestored = this.handleMediaPoolRestored.bind(this)
     this.onSegmentSettingsUpdated = this.handleSegmentSettingsUpdate.bind(this)
     this.onUISettingsUpdated = this.handleUISettingsUpdate.bind(this)
+    this.onStageLayoutUpdated = this.handleStageLayoutUpdate.bind(this)
     this.onTextPoolUpdated = this.handleTextPoolUpdate.bind(this)
     this.onTextPoolSizeChanged = this.handleTextPoolSizeChange.bind(this)
     this.onFrequencyChanged = (data) => this.updateFrequencyDisplay(data.frequency)
@@ -282,6 +288,9 @@ class UIManager {
 
     // Listen for UI settings updates
     eventBus.on(STATE_EVENTS.UI_SETTINGS_UPDATED, this.onUISettingsUpdated)
+
+    // Listen for stage layout updates
+    eventBus.on(STATE_EVENTS.STAGE_LAYOUT_UPDATED, this.onStageLayoutUpdated)
 
     // Listen for text pool updates
     eventBus.on(TEXT_POOL_EVENTS.UPDATED, this.onTextPoolUpdated)
@@ -312,6 +321,51 @@ class UIManager {
   setupPresentationFullscreenListener() {
     this.presentationFullscreenBtn.addEventListener('click', () => {
       this.handlePresentationFullscreenClick()
+    })
+  }
+
+  /**
+   * Set up stage layout mode controls.
+   */
+  setupStageLayoutControls() {
+    this.layoutModeButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const mode = button.dataset.stageLayoutMode
+        if (!isValidStageLayoutMode(mode)) return
+
+        stateManager.updateStageLayout({ mode })
+      })
+    })
+
+    this.updateStageLayoutControls(stateManager.getStageLayout?.().mode || STAGE_LAYOUTS.SINGLE)
+  }
+
+  /**
+   * Initialize stage layout controls from restored state.
+   */
+  initializeStageLayoutControls() {
+    this.updateStageLayoutControls(stateManager.getStageLayout().mode)
+  }
+
+  /**
+   * Handle stage layout state updates.
+   * @param {Object} data - Stage layout update data
+   */
+  handleStageLayoutUpdate(data) {
+    this.updateStageLayoutControls(data?.stageLayout?.mode || STAGE_LAYOUTS.SINGLE)
+  }
+
+  /**
+   * Update segmented layout control state.
+   * @param {string} mode - Active stage layout mode
+   */
+  updateStageLayoutControls(mode) {
+    const activeMode = isValidStageLayoutMode(mode) ? mode : STAGE_LAYOUTS.SINGLE
+
+    this.layoutModeButtons.forEach((button) => {
+      const isActive = button.dataset.stageLayoutMode === activeMode
+      button.classList.toggle('is-active', isActive)
+      button.setAttribute('aria-pressed', String(isActive))
     })
   }
 
@@ -999,6 +1053,8 @@ class UIManager {
         eventBus.off(STATE_EVENTS.SEGMENT_SETTINGS_UPDATED, this.onSegmentSettingsUpdated)
       if (this.onUISettingsUpdated)
         eventBus.off(STATE_EVENTS.UI_SETTINGS_UPDATED, this.onUISettingsUpdated)
+      if (this.onStageLayoutUpdated)
+        eventBus.off(STATE_EVENTS.STAGE_LAYOUT_UPDATED, this.onStageLayoutUpdated)
       if (this.onTextPoolUpdated) eventBus.off(TEXT_POOL_EVENTS.UPDATED, this.onTextPoolUpdated)
       if (this.onTextPoolSizeChanged)
         eventBus.off(TEXT_POOL_EVENTS.SIZE_CHANGED, this.onTextPoolSizeChanged)

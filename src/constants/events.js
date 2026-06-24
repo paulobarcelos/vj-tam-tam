@@ -38,6 +38,7 @@ export const STATE_EVENTS = {
   MEDIA_POOL_UPDATED: 'state.mediaPoolUpdated',
   SEGMENT_SETTINGS_UPDATED: 'state.segmentSettingsUpdated',
   UI_SETTINGS_UPDATED: 'state.uiSettingsUpdated',
+  STAGE_LAYOUT_UPDATED: 'state.stageLayoutUpdated',
   PROJECTION_MODE_UPDATED: 'state.projectionModeUpdated',
 }
 

@@ -43,6 +43,10 @@ vi.mock('./stateManager.js', () => ({
     getUISettings: vi.fn(() => ({
       advancedControlsVisible: false,
     })),
+    getStageLayout: vi.fn(() => ({
+      mode: 'single',
+    })),
+    updateStageLayout: vi.fn(),
     updateSegmentSettings: vi.fn(),
     getTextPool: vi.fn(() => []),
     getTextPoolSize: vi.fn(() => 0),
@@ -132,6 +136,10 @@ describe('UIManager - Idle State Management', () => {
         </div>
         <div id="left-drawer" class="left-drawer">
           <button id="presentation-fullscreen-btn">Fullscreen</button>
+          <div class="layout-mode-control">
+            <button data-stage-layout-mode="single" aria-pressed="true">Single</button>
+            <button data-stage-layout-mode="two-columns" aria-pressed="false">2 Col</button>
+          </div>
           <div class="drawer-header">
             <h2>Media Pool</h2>
             <div class="file-picker-controls">

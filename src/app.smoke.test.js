@@ -76,6 +76,12 @@ describe('VJ Tam Tam app smoke', () => {
     expect(document.querySelector('#bottom-live-strip #skip-start-slider')).toBeTruthy()
     expect(document.querySelector('#bottom-live-strip #skip-end-slider')).toBeTruthy()
     expect(document.querySelector('#bottom-live-strip #text-frequency-slider')).toBeTruthy()
+    expect(
+      document.querySelector('#bottom-live-strip [data-stage-layout-mode="single"]')
+    ).toBeTruthy()
+    expect(
+      document.querySelector('#bottom-live-strip [data-stage-layout-mode="two-columns"]')
+    ).toBeTruthy()
     expect(document.querySelector('#advanced-controls-section #min-duration-slider')).toBeNull()
     expect(document.querySelector('#advanced-controls-section #skip-start-slider')).toBeNull()
     expect(document.querySelector('#advanced-controls-section #skip-end-slider')).toBeNull()
@@ -85,6 +91,20 @@ describe('VJ Tam Tam app smoke', () => {
     expect(advancedControls.children[1].classList.contains('projection-controls')).toBe(true)
     expect(document.body.classList.contains('ui-idle')).toBe(true)
     expect(projectionManager.isInitialized).toBe(true)
+  })
+
+  it('updates stage layout from the bottom live strip', () => {
+    uiManager.init()
+
+    document.querySelector('[data-stage-layout-mode="two-columns"]').click()
+
+    expect(stateManager.getStageLayout()).toEqual({ mode: 'two-columns' })
+    expect(
+      document.querySelector('[data-stage-layout-mode="two-columns"]').getAttribute('aria-pressed')
+    ).toBe('true')
+    expect(
+      document.querySelector('[data-stage-layout-mode="single"]').getAttribute('aria-pressed')
+    ).toBe('false')
   })
 
   it('starts with the drawer hidden and reveals it on activity', () => {

@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { eventBus } from './eventBus.js'
 import { stateManager, StateManager } from './stateManager.js'
 import { storageFacade } from './facades/storageFacade.js'
+import { createDefaultState } from './defaultState.js'
 
 // Mock eventBus with functional implementation
 const mockEventListeners = new Map()
@@ -74,15 +75,7 @@ describe('StateManager', () => {
   beforeEach(() => {
     // Reset state manually instead of calling clearMediaPool to avoid URL.revokeObjectURL calls
     // Include complete default state structure
-    stateManager.state = {
-      mediaPool: [],
-      segmentSettings: {
-        minDuration: 5,
-        maxDuration: 5,
-        skipStart: 0,
-        skipEnd: 0,
-      },
-    }
+    stateManager.state = createDefaultState()
     vi.clearAllMocks()
 
     // Reset mocks for storageFacade
@@ -600,6 +593,54 @@ describe('StateManager', () => {
           })
         )
       })
+    })
+  })
+
+  describe('stage layout settings', () => {
+    it('should start with single stage layout', () => {
+      expect(stateManager.getStageLayout()).toEqual({ mode: 'single' })
+    })
+
+    it('should update valid stage layout modes', () => {
+      stateManager.updateStageLayout({ mode: 'two-columns' })
+
+      expect(stateManager.getStageLayout()).toEqual({ mode: 'two-columns' })
+      expect(eventBus.emit).toHaveBeenCalledWith('state.stageLayoutUpdated', {
+        stageLayout: { mode: 'two-columns' },
+      })
+      expect(storageFacade.saveState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stageLayout: { mode: 'two-columns' },
+        })
+      )
+    })
+
+    it('should ignore invalid stage layout modes', () => {
+      stateManager.updateStageLayout({ mode: 'diagonal-chaos' })
+
+      expect(stateManager.getStageLayout()).toEqual({ mode: 'single' })
+      expect(eventBus.emit).not.toHaveBeenCalledWith('state.stageLayoutUpdated', expect.anything())
+    })
+
+    it('should restore stage layout from localStorage on init', async () => {
+      storageFacade.loadState.mockReturnValue({
+        mediaPool: [],
+        stageLayout: { mode: 'two-columns' },
+      })
+
+      await stateManager.init()
+
+      expect(stateManager.getStageLayout()).toEqual({ mode: 'two-columns' })
+      expect(eventBus.emit).toHaveBeenCalledWith('state.stageLayoutUpdated', {
+        stageLayout: { mode: 'two-columns' },
+      })
+    })
+
+    it('should return a copy to prevent external mutation', () => {
+      const stageLayout = stateManager.getStageLayout()
+      stageLayout.mode = 'two-columns'
+
+      expect(stateManager.getStageLayout()).toEqual({ mode: 'single' })
     })
   })
 })
