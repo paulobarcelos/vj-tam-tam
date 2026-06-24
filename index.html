@@ -459,34 +459,70 @@
           <div class="live-strip-heading">
             <p class="live-strip-label">View</p>
           </div>
-          <div class="layout-mode-control" role="group" aria-label="Stage layout">
+          <div class="layout-grid-control" role="group" aria-label="Stage layout">
             <button
+              id="layout-single-btn"
               type="button"
-              class="layout-mode-btn is-active"
-              data-stage-layout-mode="single"
+              class="layout-action-btn is-active"
+              data-stage-layout-reset="single"
               aria-pressed="true"
-              title="Single media layout"
+              title="Reset to single media layout"
             >
               Single
             </button>
             <button
-              type="button"
-              class="layout-mode-btn"
-              data-stage-layout-mode="two-columns"
-              aria-pressed="false"
-              title="Two column media layout"
+              id="presentation-fullscreen-btn"
+              class="btn btn--secondary live-fullscreen-btn"
+              title="Presentation fullscreen"
             >
-              2 Col
+              <span aria-hidden="true">⛶</span>
+              <span>Fullscreen</span>
             </button>
+            <div class="layout-axis-control">
+              <span class="layout-axis-label">Cols</span>
+              <button
+                type="button"
+                class="layout-step-btn"
+                data-stage-layout-axis="columns"
+                data-stage-layout-step="-1"
+                aria-label="Decrease columns"
+              >
+                -
+              </button>
+              <span class="layout-value" id="layout-columns-value" aria-live="polite">1</span>
+              <button
+                type="button"
+                class="layout-step-btn"
+                data-stage-layout-axis="columns"
+                data-stage-layout-step="1"
+                aria-label="Increase columns"
+              >
+                +
+              </button>
+            </div>
+            <div class="layout-axis-control">
+              <span class="layout-axis-label">Rows</span>
+              <button
+                type="button"
+                class="layout-step-btn"
+                data-stage-layout-axis="rows"
+                data-stage-layout-step="-1"
+                aria-label="Decrease rows"
+              >
+                -
+              </button>
+              <span class="layout-value" id="layout-rows-value" aria-live="polite">1</span>
+              <button
+                type="button"
+                class="layout-step-btn"
+                data-stage-layout-axis="rows"
+                data-stage-layout-step="1"
+                aria-label="Increase rows"
+              >
+                +
+              </button>
+            </div>
           </div>
-          <button
-            id="presentation-fullscreen-btn"
-            class="btn btn--secondary live-fullscreen-btn"
-            title="Presentation fullscreen"
-          >
-            <span aria-hidden="true">⛶</span>
-            <span>Fullscreen</span>
-          </button>
         </div>
       </section>
     </div>

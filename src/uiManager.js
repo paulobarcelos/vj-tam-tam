@@ -22,7 +22,7 @@ import { requestPresentationFullscreen } from './presentationFullscreen.js'
 import { deriveMediaAccessState } from './mediaAccessState.js'
 import { IdleController } from './idleController.js'
 import { TextPoolView } from './textPoolView.js'
-import { STAGE_LAYOUTS, isValidStageLayoutMode } from './constants/stageLayouts.js'
+import { createSingleStageLayout, normalizeStageLayout } from './constants/stageLayouts.js'
 
 class UIManager {
   constructor() {
@@ -71,7 +71,10 @@ class UIManager {
     this.liveTextCount = null
     this.liveSegmentSummary = null
     this.liveFrequencySummary = null
-    this.layoutModeButtons = []
+    this.layoutSingleButton = null
+    this.layoutStepButtons = []
+    this.layoutColumnsValue = null
+    this.layoutRowsValue = null
 
     this.idleController = new IdleController({ eventBus, startIdle: true })
 
@@ -165,7 +168,12 @@ class UIManager {
     this.liveTextCount = document.getElementById('live-text-count')
     this.liveSegmentSummary = document.getElementById('live-segment-summary')
     this.liveFrequencySummary = document.getElementById('live-frequency-summary')
-    this.layoutModeButtons = [...document.querySelectorAll('[data-stage-layout-mode]')]
+    this.layoutSingleButton = document.getElementById('layout-single-btn')
+    this.layoutStepButtons = [
+      ...document.querySelectorAll('[data-stage-layout-axis][data-stage-layout-step]'),
+    ]
+    this.layoutColumnsValue = document.getElementById('layout-columns-value')
+    this.layoutRowsValue = document.getElementById('layout-rows-value')
 
     // Check for required DOM elements
     if (
@@ -197,7 +205,10 @@ class UIManager {
       !this.textPoolFooter ||
       !this.textFrequencySlider ||
       !this.frequencyControlSection ||
-      this.layoutModeButtons.length === 0
+      !this.layoutSingleButton ||
+      this.layoutStepButtons.length === 0 ||
+      !this.layoutColumnsValue ||
+      !this.layoutRowsValue
     ) {
       console.error('Required UI elements not found')
       return false
@@ -325,26 +336,36 @@ class UIManager {
   }
 
   /**
-   * Set up stage layout mode controls.
+   * Set up stage layout controls.
    */
   setupStageLayoutControls() {
-    this.layoutModeButtons.forEach((button) => {
-      button.addEventListener('click', () => {
-        const mode = button.dataset.stageLayoutMode
-        if (!isValidStageLayoutMode(mode)) return
+    this.layoutSingleButton.addEventListener('click', () => {
+      stateManager.updateStageLayout(createSingleStageLayout())
+    })
 
-        stateManager.updateStageLayout({ mode })
+    this.layoutStepButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const axis = button.dataset.stageLayoutAxis
+        const step = Number(button.dataset.stageLayoutStep)
+
+        if (!['columns', 'rows'].includes(axis) || !Number.isFinite(step)) {
+          return
+        }
+
+        const currentLayout = stateManager.getStageLayout()
+        const nextValue = Math.max(1, currentLayout[axis] + step)
+        stateManager.updateStageLayout({ [axis]: nextValue })
       })
     })
 
-    this.updateStageLayoutControls(stateManager.getStageLayout?.().mode || STAGE_LAYOUTS.SINGLE)
+    this.updateStageLayoutControls(stateManager.getStageLayout?.() || createSingleStageLayout())
   }
 
   /**
    * Initialize stage layout controls from restored state.
    */
   initializeStageLayoutControls() {
-    this.updateStageLayoutControls(stateManager.getStageLayout().mode)
+    this.updateStageLayoutControls(stateManager.getStageLayout())
   }
 
   /**
@@ -352,20 +373,27 @@ class UIManager {
    * @param {Object} data - Stage layout update data
    */
   handleStageLayoutUpdate(data) {
-    this.updateStageLayoutControls(data?.stageLayout?.mode || STAGE_LAYOUTS.SINGLE)
+    this.updateStageLayoutControls(data?.stageLayout || createSingleStageLayout())
   }
 
   /**
-   * Update segmented layout control state.
-   * @param {string} mode - Active stage layout mode
+   * Update grid layout control state.
+   * @param {Object} stageLayout - Active stage layout settings
    */
-  updateStageLayoutControls(mode) {
-    const activeMode = isValidStageLayoutMode(mode) ? mode : STAGE_LAYOUTS.SINGLE
+  updateStageLayoutControls(stageLayout) {
+    const layout = normalizeStageLayout(stageLayout)
+    const isSingleLayout = layout.columns === 1 && layout.rows === 1
 
-    this.layoutModeButtons.forEach((button) => {
-      const isActive = button.dataset.stageLayoutMode === activeMode
-      button.classList.toggle('is-active', isActive)
-      button.setAttribute('aria-pressed', String(isActive))
+    this.layoutSingleButton.classList.toggle('is-active', isSingleLayout)
+    this.layoutSingleButton.setAttribute('aria-pressed', String(isSingleLayout))
+    this.layoutColumnsValue.textContent = String(layout.columns)
+    this.layoutRowsValue.textContent = String(layout.rows)
+
+    this.layoutStepButtons.forEach((button) => {
+      const axis = button.dataset.stageLayoutAxis
+      const step = Number(button.dataset.stageLayoutStep)
+
+      button.disabled = step < 0 && layout[axis] <= 1
     })
   }
 

@@ -9,7 +9,12 @@ import { fileSystemAccessFacade } from './facades/fileSystemAccessFacade.js'
 import { filterRestorableMedia } from './utils/mediaUtils.js'
 import { STATE_EVENTS, TEXT_POOL_EVENTS } from './constants/events.js'
 import { createDefaultState } from './defaultState.js'
-import { isValidStageLayoutMode } from './constants/stageLayouts.js'
+import {
+  createSingleStageLayout,
+  migrateLegacyStageLayoutMode,
+  normalizeStageLayout,
+  toStageLayoutDimension,
+} from './constants/stageLayouts.js'
 
 /**
  * @typedef {Object} MediaItem
@@ -72,14 +77,22 @@ class StateManager {
       // Restore stage layout before restoring media so playback starts with the correct slot count.
       if (persistedState?.stageLayout) {
         const restoredStageLayout = this.validateStageLayout(persistedState.stageLayout)
-        this.state.stageLayout = {
-          ...this.state.stageLayout,
-          ...restoredStageLayout,
+        if (Object.keys(restoredStageLayout).length > 0) {
+          this.state.stageLayout = {
+            ...createSingleStageLayout(),
+            ...this.state.stageLayout,
+            ...restoredStageLayout,
+          }
+          eventBus.emit(STATE_EVENTS.STAGE_LAYOUT_UPDATED, {
+            stageLayout: this.getStageLayout(),
+          })
+          console.log('Stage layout restored from localStorage')
+        } else {
+          console.log(
+            'Persisted stage layout was invalid, keeping defaults',
+            this.state.stageLayout
+          )
         }
-        eventBus.emit(STATE_EVENTS.STAGE_LAYOUT_UPDATED, {
-          stageLayout: this.getStageLayout(),
-        })
-        console.log('Stage layout restored from localStorage')
       } else {
         console.log('No stage layout in persistedState, keeping defaults', this.state.stageLayout)
       }
@@ -624,7 +637,7 @@ class StateManager {
    * @returns {Object} Current stage layout settings
    */
   getStageLayout() {
-    return { ...this.state.stageLayout }
+    return normalizeStageLayout(this.state.stageLayout)
   }
 
   /**
@@ -639,6 +652,7 @@ class StateManager {
     }
 
     this.state.stageLayout = {
+      ...createSingleStageLayout(),
       ...this.state.stageLayout,
       ...validated,
     }
@@ -662,8 +676,25 @@ class StateManager {
 
     const filteredSettings = {}
 
-    if ('mode' in settings && isValidStageLayoutMode(settings.mode)) {
-      filteredSettings.mode = settings.mode
+    if ('mode' in settings) {
+      const migratedSettings = migrateLegacyStageLayoutMode(settings.mode)
+      if (migratedSettings) {
+        Object.assign(filteredSettings, migratedSettings)
+      }
+    }
+
+    if ('columns' in settings) {
+      const columns = toStageLayoutDimension(settings.columns)
+      if (columns !== null) {
+        filteredSettings.columns = columns
+      }
+    }
+
+    if ('rows' in settings) {
+      const rows = toStageLayoutDimension(settings.rows)
+      if (rows !== null) {
+        filteredSettings.rows = rows
+      }
     }
 
     return filteredSettings

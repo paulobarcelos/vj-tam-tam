@@ -598,31 +598,51 @@ describe('StateManager', () => {
 
   describe('stage layout settings', () => {
     it('should start with single stage layout', () => {
-      expect(stateManager.getStageLayout()).toEqual({ mode: 'single' })
+      expect(stateManager.getStageLayout()).toEqual({ columns: 1, rows: 1 })
     })
 
-    it('should update valid stage layout modes', () => {
-      stateManager.updateStageLayout({ mode: 'two-columns' })
+    it('should update valid stage layout dimensions', () => {
+      stateManager.updateStageLayout({ columns: 3, rows: 2 })
 
-      expect(stateManager.getStageLayout()).toEqual({ mode: 'two-columns' })
+      expect(stateManager.getStageLayout()).toEqual({ columns: 3, rows: 2 })
       expect(eventBus.emit).toHaveBeenCalledWith('state.stageLayoutUpdated', {
-        stageLayout: { mode: 'two-columns' },
+        stageLayout: { columns: 3, rows: 2 },
       })
       expect(storageFacade.saveState).toHaveBeenCalledWith(
         expect.objectContaining({
-          stageLayout: { mode: 'two-columns' },
+          stageLayout: { columns: 3, rows: 2 },
         })
       )
     })
 
-    it('should ignore invalid stage layout modes', () => {
-      stateManager.updateStageLayout({ mode: 'diagonal-chaos' })
+    it('should not impose an upper bound on stage layout dimensions', () => {
+      stateManager.updateStageLayout({ columns: 99, rows: 42 })
 
-      expect(stateManager.getStageLayout()).toEqual({ mode: 'single' })
+      expect(stateManager.getStageLayout()).toEqual({ columns: 99, rows: 42 })
+    })
+
+    it('should ignore invalid stage layout dimensions', () => {
+      stateManager.updateStageLayout({ columns: 0, rows: -2 })
+
+      expect(stateManager.getStageLayout()).toEqual({ columns: 1, rows: 1 })
       expect(eventBus.emit).not.toHaveBeenCalledWith('state.stageLayoutUpdated', expect.anything())
     })
 
     it('should restore stage layout from localStorage on init', async () => {
+      storageFacade.loadState.mockReturnValue({
+        mediaPool: [],
+        stageLayout: { columns: 2, rows: 3 },
+      })
+
+      await stateManager.init()
+
+      expect(stateManager.getStageLayout()).toEqual({ columns: 2, rows: 3 })
+      expect(eventBus.emit).toHaveBeenCalledWith('state.stageLayoutUpdated', {
+        stageLayout: { columns: 2, rows: 3 },
+      })
+    })
+
+    it('should migrate legacy stage layout modes from localStorage on init', async () => {
       storageFacade.loadState.mockReturnValue({
         mediaPool: [],
         stageLayout: { mode: 'two-columns' },
@@ -630,17 +650,17 @@ describe('StateManager', () => {
 
       await stateManager.init()
 
-      expect(stateManager.getStageLayout()).toEqual({ mode: 'two-columns' })
+      expect(stateManager.getStageLayout()).toEqual({ columns: 2, rows: 1 })
       expect(eventBus.emit).toHaveBeenCalledWith('state.stageLayoutUpdated', {
-        stageLayout: { mode: 'two-columns' },
+        stageLayout: { columns: 2, rows: 1 },
       })
     })
 
     it('should return a copy to prevent external mutation', () => {
       const stageLayout = stateManager.getStageLayout()
-      stageLayout.mode = 'two-columns'
+      stageLayout.columns = 2
 
-      expect(stateManager.getStageLayout()).toEqual({ mode: 'single' })
+      expect(stateManager.getStageLayout()).toEqual({ columns: 1, rows: 1 })
     })
   })
 })

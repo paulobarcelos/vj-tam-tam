@@ -37,7 +37,8 @@ vi.mock('./stateManager.js', () => ({
       skipEnd: 0,
     })),
     getStageLayout: vi.fn(() => ({
-      mode: 'single',
+      columns: 1,
+      rows: 1,
     })),
   },
 }))
@@ -92,7 +93,7 @@ function resetPlaybackEngineState() {
   playbackEngine.stageElement = null
   playbackEngine.isPlaybackActive = false
   playbackEngine.autoPlaybackEnabled = true
-  playbackEngine.stageLayoutMode = 'single'
+  playbackEngine.stageLayout = { columns: 1, rows: 1 }
   playbackEngine.isCyclingActive = false
   playbackEngine.currentMediaItem = null
   playbackEngine.currentMediaItems = []
@@ -142,6 +143,9 @@ describe('PlaybackEngine', () => {
             loop: false,
             controls: false,
             dataset: {},
+            style: {
+              setProperty: vi.fn(),
+            },
             addEventListener: vi.fn(),
             removeEventListener: vi.fn(),
             parentNode: null,
@@ -210,6 +214,9 @@ describe('PlaybackEngine', () => {
             loop: false,
             controls: false,
             dataset: {},
+            style: {
+              setProperty: vi.fn(),
+            },
             addEventListener: vi.fn(),
             removeEventListener: vi.fn(),
             parentNode: null,
@@ -556,11 +563,16 @@ describe('PlaybackEngine', () => {
       const secondImageItem = { ...mockImageItem, id: 'test-image-2', name: 'test-image-2.jpg' }
       stateManagerMock.getMediaPool.mockReturnValue([mockImageItem, secondImageItem])
 
-      playbackEngine.applyStageLayoutMode('two-columns', { rerender: false })
+      playbackEngine.applyStageLayout({ columns: 2, rows: 1 }, { rerender: false })
       playbackEngine.displayMediaItems([mockImageItem, secondImageItem])
 
       const layoutElement = mockStageElement.appendChild.mock.calls.at(-1)[0]
-      expect(layoutElement.className).toBe('stage-layout stage-layout--two-columns')
+      expect(layoutElement.className).toBe('stage-layout')
+      expect(layoutElement.dataset.stageLayout).toBe('grid')
+      expect(layoutElement.dataset.stageColumns).toBe('2')
+      expect(layoutElement.dataset.stageRows).toBe('1')
+      expect(layoutElement.style.setProperty).toHaveBeenCalledWith('--stage-layout-columns', '2')
+      expect(layoutElement.style.setProperty).toHaveBeenCalledWith('--stage-layout-rows', '1')
       expect(layoutElement.children).toHaveLength(2)
       expect(playbackEngine.getCurrentMediaElements()).toHaveLength(2)
       expect(playbackEngine.currentMediaItems.map((item) => item.id)).toEqual([
@@ -571,7 +583,7 @@ describe('PlaybackEngine', () => {
 
     it('should only let the first slot drive synchronized image transitions', () => {
       vi.useFakeTimers()
-      playbackEngine.applyStageLayoutMode('two-columns', { rerender: false })
+      playbackEngine.applyStageLayout({ columns: 2, rows: 1 }, { rerender: false })
       playbackEngine.isCyclingActive = true
       const scheduleSpy = vi.spyOn(playbackEngine, 'scheduleImageTransition')
 
@@ -1017,7 +1029,7 @@ describe('PlaybackEngine', () => {
       it('should start cycling with two media items in two-column layout', () => {
         const mockMediaPool = [mockImageItem, mockVideoItem]
         stateManagerMock.getMediaPool.mockReturnValue(mockMediaPool)
-        playbackEngine.applyStageLayoutMode('two-columns', { rerender: false })
+        playbackEngine.applyStageLayout({ columns: 2, rows: 1 }, { rerender: false })
 
         playbackEngine.startCycling()
 
