@@ -44,7 +44,8 @@ vi.mock('./stateManager.js', () => ({
       advancedControlsVisible: false,
     })),
     getStageLayout: vi.fn(() => ({
-      mode: 'single',
+      columns: 1,
+      rows: 1,
     })),
     updateStageLayout: vi.fn(),
     updateSegmentSettings: vi.fn(),
@@ -136,9 +137,16 @@ describe('UIManager - Idle State Management', () => {
         </div>
         <div id="left-drawer" class="left-drawer">
           <button id="presentation-fullscreen-btn">Fullscreen</button>
-          <div class="layout-mode-control">
-            <button data-stage-layout-mode="single" aria-pressed="true">Single</button>
-            <button data-stage-layout-mode="two-columns" aria-pressed="false">2 Col</button>
+          <div class="layout-grid-control">
+            <button id="layout-single-btn" data-stage-layout-reset="single" aria-pressed="true">
+              Single
+            </button>
+            <button data-stage-layout-axis="columns" data-stage-layout-step="-1">-</button>
+            <span id="layout-columns-value">1</span>
+            <button data-stage-layout-axis="columns" data-stage-layout-step="1">+</button>
+            <button data-stage-layout-axis="rows" data-stage-layout-step="-1">-</button>
+            <span id="layout-rows-value">1</span>
+            <button data-stage-layout-axis="rows" data-stage-layout-step="1">+</button>
           </div>
           <div class="drawer-header">
             <h2>Media Pool</h2>

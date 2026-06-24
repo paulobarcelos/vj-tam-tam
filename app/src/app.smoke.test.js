@@ -76,11 +76,16 @@ describe('VJ Tam Tam app smoke', () => {
     expect(document.querySelector('#bottom-live-strip #skip-start-slider')).toBeTruthy()
     expect(document.querySelector('#bottom-live-strip #skip-end-slider')).toBeTruthy()
     expect(document.querySelector('#bottom-live-strip #text-frequency-slider')).toBeTruthy()
+    expect(document.querySelector('#bottom-live-strip #layout-single-btn')).toBeTruthy()
     expect(
-      document.querySelector('#bottom-live-strip [data-stage-layout-mode="single"]')
+      document.querySelector(
+        '#bottom-live-strip [data-stage-layout-axis="columns"][data-stage-layout-step="1"]'
+      )
     ).toBeTruthy()
     expect(
-      document.querySelector('#bottom-live-strip [data-stage-layout-mode="two-columns"]')
+      document.querySelector(
+        '#bottom-live-strip [data-stage-layout-axis="rows"][data-stage-layout-step="1"]'
+      )
     ).toBeTruthy()
     expect(document.querySelector('#advanced-controls-section #min-duration-slider')).toBeNull()
     expect(document.querySelector('#advanced-controls-section #skip-start-slider')).toBeNull()
@@ -96,15 +101,23 @@ describe('VJ Tam Tam app smoke', () => {
   it('updates stage layout from the bottom live strip', () => {
     uiManager.init()
 
-    document.querySelector('[data-stage-layout-mode="two-columns"]').click()
+    document.querySelector('[data-stage-layout-axis="columns"][data-stage-layout-step="1"]').click()
 
-    expect(stateManager.getStageLayout()).toEqual({ mode: 'two-columns' })
-    expect(
-      document.querySelector('[data-stage-layout-mode="two-columns"]').getAttribute('aria-pressed')
-    ).toBe('true')
-    expect(
-      document.querySelector('[data-stage-layout-mode="single"]').getAttribute('aria-pressed')
-    ).toBe('false')
+    expect(stateManager.getStageLayout()).toEqual({ columns: 2, rows: 1 })
+    expect(document.getElementById('layout-columns-value').textContent).toBe('2')
+    expect(document.getElementById('layout-rows-value').textContent).toBe('1')
+    expect(document.getElementById('layout-single-btn').getAttribute('aria-pressed')).toBe('false')
+
+    document.querySelector('[data-stage-layout-axis="rows"][data-stage-layout-step="1"]').click()
+
+    expect(stateManager.getStageLayout()).toEqual({ columns: 2, rows: 2 })
+    expect(document.getElementById('layout-columns-value').textContent).toBe('2')
+    expect(document.getElementById('layout-rows-value').textContent).toBe('2')
+
+    document.getElementById('layout-single-btn').click()
+
+    expect(stateManager.getStageLayout()).toEqual({ columns: 1, rows: 1 })
+    expect(document.getElementById('layout-single-btn').getAttribute('aria-pressed')).toBe('true')
   })
 
   it('starts with the drawer hidden and reveals it on activity', () => {

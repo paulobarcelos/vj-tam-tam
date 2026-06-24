@@ -13,9 +13,11 @@ import { filterUsableMedia } from './utils/mediaUtils.js'
 import { calculateRandomSegmentDuration, getVideoSegmentParameters } from './utils/mediaUtils.js'
 import { STATE_EVENTS, CYCLING_EVENTS } from './constants/events.js'
 import {
-  STAGE_LAYOUTS,
-  STAGE_LAYOUT_SLOT_COUNTS,
-  isValidStageLayoutMode,
+  areStageLayoutsEqual,
+  createSingleStageLayout,
+  getStageLayoutName,
+  getStageLayoutSlotCount,
+  normalizeStageLayout,
 } from './constants/stageLayouts.js'
 
 /**
@@ -39,7 +41,7 @@ class PlaybackEngine {
     this.handleWindowResize = this.handleWindowResize.bind(this)
     this.isPlaybackActive = false
     this.autoPlaybackEnabled = true
-    this.stageLayoutMode = STAGE_LAYOUTS.SINGLE
+    this.stageLayout = createSingleStageLayout()
 
     // Cycling-specific properties
     this.isCyclingActive = false
@@ -66,7 +68,7 @@ class PlaybackEngine {
         throw new Error('Stage element not found')
       }
 
-      this.applyStageLayoutMode(stateManager.getStageLayout?.().mode || STAGE_LAYOUTS.SINGLE, {
+      this.applyStageLayout(stateManager.getStageLayout?.() || createSingleStageLayout(), {
         rerender: false,
       })
 
@@ -141,26 +143,28 @@ class PlaybackEngine {
    * @param {Object} data - Stage layout update data
    */
   handleStageLayoutUpdate(data) {
-    this.applyStageLayoutMode(data?.stageLayout?.mode, { rerender: true })
+    this.applyStageLayout(data?.stageLayout, { rerender: true })
   }
 
   /**
-   * Apply a stage layout mode and optionally rerender active playback into it.
-   * @param {string} mode - Stage layout mode
+   * Apply a stage layout and optionally rerender active playback into it.
+   * @param {Object} stageLayout - Stage layout settings
    * @param {Object} options - Layout application options
    * @param {boolean} options.rerender - Whether active media should rerender immediately
    */
-  applyStageLayoutMode(mode, { rerender = true } = {}) {
-    const nextMode = isValidStageLayoutMode(mode) ? mode : STAGE_LAYOUTS.SINGLE
-    const previousMode = this.stageLayoutMode
+  applyStageLayout(stageLayout, { rerender = true } = {}) {
+    const nextLayout = normalizeStageLayout(stageLayout)
+    const previousLayout = this.stageLayout
 
-    this.stageLayoutMode = nextMode
+    this.stageLayout = nextLayout
 
     if (this.stageElement) {
-      this.stageElement.dataset.stageLayout = nextMode
+      this.stageElement.dataset.stageLayout = getStageLayoutName(nextLayout)
+      this.stageElement.dataset.stageColumns = String(nextLayout.columns)
+      this.stageElement.dataset.stageRows = String(nextLayout.rows)
     }
 
-    if (!rerender || previousMode === nextMode || !this.hasCurrentMedia()) {
+    if (!rerender || areStageLayoutsEqual(previousLayout, nextLayout) || !this.hasCurrentMedia()) {
       return
     }
 
@@ -182,7 +186,7 @@ class PlaybackEngine {
    * @returns {number} Number of stage slots
    */
   getStageSlotCount() {
-    return STAGE_LAYOUT_SLOT_COUNTS[this.stageLayoutMode] || STAGE_LAYOUT_SLOT_COUNTS.single
+    return getStageLayoutSlotCount(this.stageLayout)
   }
 
   /**
@@ -332,8 +336,15 @@ class PlaybackEngine {
    */
   createStageLayoutElement() {
     const layoutElement = document.createElement('div')
-    layoutElement.className = `stage-layout stage-layout--${this.stageLayoutMode}`
-    layoutElement.dataset.stageLayout = this.stageLayoutMode
+    const stageLayoutName = getStageLayoutName(this.stageLayout)
+
+    layoutElement.className = 'stage-layout'
+    layoutElement.dataset.stageLayout = stageLayoutName
+    layoutElement.dataset.stageColumns = String(this.stageLayout.columns)
+    layoutElement.dataset.stageRows = String(this.stageLayout.rows)
+    layoutElement.style.setProperty('--stage-layout-columns', String(this.stageLayout.columns))
+    layoutElement.style.setProperty('--stage-layout-rows', String(this.stageLayout.rows))
+
     return layoutElement
   }
 

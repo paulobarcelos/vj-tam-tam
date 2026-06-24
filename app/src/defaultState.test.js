@@ -8,11 +8,11 @@ describe('createDefaultState', () => {
 
     first.mediaPool.push({ id: 'one' })
     first.segmentSettings.minDuration = 10
-    first.stageLayout.mode = 'two-columns'
+    first.stageLayout.columns = 2
 
     expect(second.mediaPool).toEqual([])
     expect(second.segmentSettings.minDuration).toBe(5)
-    expect(second.stageLayout.mode).toBe('single')
+    expect(second.stageLayout.columns).toBe(1)
   })
 
   it('captures current default product settings', () => {
@@ -29,7 +29,8 @@ describe('createDefaultState', () => {
         advancedControlsVisible: false,
       },
       stageLayout: {
-        mode: 'single',
+        columns: 1,
+        rows: 1,
       },
       projectionMode: {
         active: false,

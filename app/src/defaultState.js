@@ -1,4 +1,4 @@
-import { STAGE_LAYOUTS } from './constants/stageLayouts.js'
+import { createSingleStageLayout } from './constants/stageLayouts.js'
 
 export function createDefaultState() {
   return {
@@ -13,9 +13,7 @@ export function createDefaultState() {
     uiSettings: {
       advancedControlsVisible: false,
     },
-    stageLayout: {
-      mode: STAGE_LAYOUTS.SINGLE,
-    },
+    stageLayout: createSingleStageLayout(),
     projectionMode: {
       active: false,
       maptasticLayout: null,

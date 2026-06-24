@@ -32,7 +32,7 @@ Implementation record for controlled experiment B: live duration, text frequency
 
 ### [Stage Layouts v1 Implementation - 2026-06-24](./design/stage-layouts-v1-implementation-2026-06-24.md)
 
-Implementation record for the first multi-slot playback mode: a persisted Single / Two Columns stage layout selector with synchronized dual-slot media playback.
+Implementation record for multi-slot playback: persisted row/column stage layout controls with synchronized grid media playback.
 
 ### [Product Requirements Document (PRD)](./prd.md)
 
