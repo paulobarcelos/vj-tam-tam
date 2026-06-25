@@ -423,18 +423,18 @@ describe('StateManager', () => {
         expect(settings.skipEnd).toBe(0) // Should remain unchanged
       })
 
-      it('should validate duration ranges (1-180 seconds)', () => {
+      it('should validate duration ranges (1-300 seconds)', () => {
         // Valid values
-        stateManager.updateSegmentSettings({ minDuration: 1, maxDuration: 180 })
+        stateManager.updateSegmentSettings({ minDuration: 1, maxDuration: 300 })
         let settings = stateManager.getSegmentSettings()
         expect(settings.minDuration).toBe(1)
-        expect(settings.maxDuration).toBe(180)
+        expect(settings.maxDuration).toBe(300)
 
         // Invalid values should be ignored
-        stateManager.updateSegmentSettings({ minDuration: 0, maxDuration: 181 })
+        stateManager.updateSegmentSettings({ minDuration: 0, maxDuration: 301 })
         settings = stateManager.getSegmentSettings()
         expect(settings.minDuration).toBe(1) // Should remain unchanged
-        expect(settings.maxDuration).toBe(180) // Should remain unchanged
+        expect(settings.maxDuration).toBe(300) // Should remain unchanged
       })
 
       it('should validate skip values (0+ seconds)', () => {

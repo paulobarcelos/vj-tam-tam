@@ -173,8 +173,8 @@
 **Basic Advanced Controls** (when revealed):
 
 - **Media Segment Duration Controls:**
-  - Minimum Segment Duration: Slider/input control, range 1 second to 180 seconds. Default initial value: 5 seconds.
-  - Maximum Segment Duration: Slider/input control, range 1 second to 180 seconds. Default initial value: 5 seconds.
+  - Minimum Segment Duration: Slider/input control, range 1 second to 300 seconds. Default initial value: 5 seconds.
+  - Maximum Segment Duration: Slider/input control, range 1 second to 300 seconds. Default initial value: 5 seconds.
   - (The application will enforce that min duration cannot exceed max duration, and vice-versa, as per PRD AC E2.S3.5).
 - Test card overlay toggle button.
 - Color correction sliders (brightness, contrast, saturation).
