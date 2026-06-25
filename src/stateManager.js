@@ -590,7 +590,7 @@ class StateManager {
 
     const { DURATION_MIN_LIMIT, DURATION_MAX_LIMIT } = PLAYBACK_CONFIG.SEGMENT_SETTINGS
 
-    // Duration ranges: 1-180 seconds
+    // Duration ranges: 1-300 seconds
     if ('minDuration' in settings) {
       if (
         typeof settings.minDuration === 'number' &&
