@@ -588,7 +588,8 @@ class StateManager {
     // Check individual properties if they exist and filter out invalid ranges
     const filteredSettings = {}
 
-    const { DURATION_MIN_LIMIT, DURATION_MAX_LIMIT } = PLAYBACK_CONFIG.SEGMENT_SETTINGS
+    const { DURATION_MIN_LIMIT, DURATION_MAX_LIMIT, VIDEO_PLAYBACK_MODES } =
+      PLAYBACK_CONFIG.SEGMENT_SETTINGS
 
     // Duration ranges: 1-300 seconds
     if ('minDuration' in settings) {
@@ -621,6 +622,21 @@ class StateManager {
     if ('skipEnd' in settings) {
       if (typeof settings.skipEnd === 'number' && settings.skipEnd >= 0) {
         filteredSettings.skipEnd = settings.skipEnd
+      }
+    }
+
+    if ('videoPlaybackMode' in settings) {
+      if (
+        typeof settings.videoPlaybackMode === 'string' &&
+        VIDEO_PLAYBACK_MODES.includes(settings.videoPlaybackMode)
+      ) {
+        filteredSettings.videoPlaybackMode = settings.videoPlaybackMode
+      }
+    }
+
+    if ('videoMuted' in settings) {
+      if (typeof settings.videoMuted === 'boolean') {
+        filteredSettings.videoMuted = settings.videoMuted
       }
     }
 

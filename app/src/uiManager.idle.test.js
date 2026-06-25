@@ -39,6 +39,8 @@ vi.mock('./stateManager.js', () => ({
       maxDuration: 5,
       skipStart: 0,
       skipEnd: 0,
+      videoPlaybackMode: 'sample',
+      videoMuted: true,
     })),
     getUISettings: vi.fn(() => ({
       advancedControlsVisible: false,
@@ -170,6 +172,9 @@ describe('UIManager - Idle State Management', () => {
             <input id="skip-start-input" type="number" min="0" max="30" value="0">
             <input id="skip-end-slider" type="range" min="0" max="30" value="0">
             <input id="skip-end-input" type="number" min="0" max="30" value="0">
+            <button data-video-playback-mode="sample" aria-pressed="true">sample</button>
+            <button data-video-playback-mode="loop" aria-pressed="false">loop</button>
+            <input id="video-muted-toggle" type="checkbox" checked>
           </div>
           <div class="text-pool-section">
             <div class="text-pool-input">

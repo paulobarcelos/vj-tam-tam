@@ -8,7 +8,9 @@ This note records the first multi-slot stage implementation and the follow-up dy
 - Added a compact Single reset plus row/column stepper controls to the bottom live strip.
 - Updated playback rendering so the stage can render a synchronized set of media slots instead of only one full-stage media element.
 - Added dynamic grid rendering: each row/column combination creates equal stage slots, each showing its own randomly selected image or video from the same media pool.
-- Kept v1 transitions synchronized: the first slot drives the segment transition, and all slots change together.
+- Kept `sample` mode transitions synchronized: the first slot drives the segment transition, and all slots change together.
+- Added `loop` playback mode for long scene segments: videos start at skip start, loop inside the skip-bounded range, and the shared segment clock advances the whole layout.
+- Added a persisted video mute toggle that defaults on.
 - Kept legacy single-slot behavior as the default path.
 - Kept legacy saved `single` and `two-columns` modes migrating into the new row/column shape.
 

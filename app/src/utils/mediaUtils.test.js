@@ -18,6 +18,7 @@ import {
   calculateValidVideoRange,
   calculateRandomStartPoint,
   getVideoSegmentParameters,
+  getLoopVideoSegmentParameters,
 } from './mediaUtils.js'
 
 // Mock file objects for testing
@@ -436,6 +437,55 @@ describe('mediaUtils', () => {
       expect(result.segmentDuration).toBe(1)
       expect(result.startPoint).toBeGreaterThanOrEqual(0)
       expect(result.startPoint).toBeLessThanOrEqual(1)
+    })
+  })
+
+  describe('getLoopVideoSegmentParameters', () => {
+    it('should return a skip-bounded loop range', () => {
+      const result = getLoopVideoSegmentParameters(60, {
+        skipStart: 5,
+        skipEnd: 10,
+      })
+
+      expect(result).toEqual({
+        startPoint: 5,
+        loopEndTime: 50,
+        segmentDuration: 45,
+        fallbackUsed: null,
+      })
+    })
+
+    it('should ignore skip end when it leaves no loop range', () => {
+      const result = getLoopVideoSegmentParameters(20, {
+        skipStart: 12,
+        skipEnd: 10,
+      })
+
+      expect(result.startPoint).toBe(12)
+      expect(result.loopEndTime).toBe(20)
+      expect(result.segmentDuration).toBe(8)
+      expect(result.fallbackUsed).toBe('skipEnd')
+    })
+
+    it('should ignore both skip offsets when start is beyond the video', () => {
+      const result = getLoopVideoSegmentParameters(20, {
+        skipStart: 25,
+        skipEnd: 0,
+      })
+
+      expect(result.startPoint).toBe(0)
+      expect(result.loopEndTime).toBe(20)
+      expect(result.segmentDuration).toBe(20)
+      expect(result.fallbackUsed).toBe('both')
+    })
+
+    it('should throw for invalid loop inputs', () => {
+      expect(() => getLoopVideoSegmentParameters(0, { skipStart: 0, skipEnd: 0 })).toThrow(
+        'Video duration must be positive'
+      )
+      expect(() => getLoopVideoSegmentParameters(10, { skipStart: -1, skipEnd: 0 })).toThrow(
+        'Skip values must be non-negative'
+      )
     })
   })
 

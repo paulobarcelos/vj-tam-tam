@@ -47,6 +47,8 @@ class UIManager {
     this.skipStartInput = null
     this.skipEndSlider = null
     this.skipEndInput = null
+    this.videoPlaybackModeButtons = []
+    this.videoMutedToggle = null
     this.advancedControlsInitialized = false // Flag to prevent double initialization
 
     // Text pool elements
@@ -147,6 +149,8 @@ class UIManager {
     this.skipStartInput = document.getElementById('skip-start-input')
     this.skipEndSlider = document.getElementById('skip-end-slider')
     this.skipEndInput = document.getElementById('skip-end-input')
+    this.videoPlaybackModeButtons = [...document.querySelectorAll('[data-video-playback-mode]')]
+    this.videoMutedToggle = document.getElementById('video-muted-toggle')
 
     // Text pool elements
     this.textInput = document.getElementById('text-input')
@@ -197,6 +201,8 @@ class UIManager {
       !this.skipStartInput ||
       !this.skipEndSlider ||
       !this.skipEndInput ||
+      this.videoPlaybackModeButtons.length === 0 ||
+      !this.videoMutedToggle ||
       !this.textInput ||
       !this.addTextBtn ||
       !this.textPoolDisplay ||
@@ -1330,6 +1336,20 @@ class UIManager {
 
     // Sync slider and input values for skip end
     this.syncControls(this.skipEndSlider, this.skipEndInput)
+
+    this.videoPlaybackModeButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        stateManager.updateSegmentSettings({
+          videoPlaybackMode: button.dataset.videoPlaybackMode,
+        })
+      })
+    })
+
+    this.videoMutedToggle.addEventListener('change', () => {
+      stateManager.updateSegmentSettings({
+        videoMuted: this.videoMutedToggle.checked,
+      })
+    })
   }
 
   /**
@@ -1383,11 +1403,28 @@ class UIManager {
     this.skipEndSlider.value = settings.skipEnd
     this.skipEndInput.value = settings.skipEnd
 
+    this.updateVideoPlaybackModeControls(settings.videoPlaybackMode || 'sample')
+    this.videoMutedToggle.checked = settings.videoMuted !== false
+
     console.log('Final DOM values:', {
       minDuration: this.minDurationSlider.value,
       maxDuration: this.maxDurationSlider.value,
       skipStart: this.skipStartSlider.value,
       skipEnd: this.skipEndSlider.value,
+      videoPlaybackMode: settings.videoPlaybackMode || 'sample',
+      videoMuted: this.videoMutedToggle.checked,
+    })
+  }
+
+  /**
+   * Update video playback mode button state.
+   * @param {string} mode - Active video playback mode
+   */
+  updateVideoPlaybackModeControls(mode) {
+    this.videoPlaybackModeButtons.forEach((button) => {
+      const isActive = button.dataset.videoPlaybackMode === mode
+      button.classList.toggle('is-active', isActive)
+      button.setAttribute('aria-pressed', String(isActive))
     })
   }
 
@@ -1399,6 +1436,9 @@ class UIManager {
     const maxDuration = parseFloat(this.maxDurationInput.value)
     const skipStart = parseFloat(this.skipStartInput.value)
     const skipEnd = parseFloat(this.skipEndInput.value)
+    const videoPlaybackMode =
+      this.videoPlaybackModeButtons.find((button) => button.getAttribute('aria-pressed') === 'true')
+        ?.dataset.videoPlaybackMode || 'sample'
 
     // Enforce min/max relationship (AC 3.5)
     let adjustedMin = minDuration
@@ -1422,6 +1462,8 @@ class UIManager {
       maxDuration: adjustedMax,
       skipStart: Math.max(0, skipStart), // Ensure non-negative
       skipEnd: Math.max(0, skipEnd), // Ensure non-negative
+      videoPlaybackMode,
+      videoMuted: this.videoMutedToggle.checked,
     })
   }
 
@@ -1438,13 +1480,19 @@ class UIManager {
     const currentMax = parseFloat(this.maxDurationSlider.value)
     const currentSkipStart = parseFloat(this.skipStartSlider.value)
     const currentSkipEnd = parseFloat(this.skipEndSlider.value)
+    const currentVideoPlaybackMode = this.videoPlaybackModeButtons.find(
+      (button) => button.getAttribute('aria-pressed') === 'true'
+    )?.dataset.videoPlaybackMode
+    const currentVideoMuted = this.videoMutedToggle.checked
     const tolerance = 0.01
 
     if (
       Math.abs(currentMin - settings.minDuration) > tolerance ||
       Math.abs(currentMax - settings.maxDuration) > tolerance ||
       Math.abs(currentSkipStart - settings.skipStart) > tolerance ||
-      Math.abs(currentSkipEnd - settings.skipEnd) > tolerance
+      Math.abs(currentSkipEnd - settings.skipEnd) > tolerance ||
+      currentVideoPlaybackMode !== (settings.videoPlaybackMode || 'sample') ||
+      currentVideoMuted !== (settings.videoMuted !== false)
     ) {
       this.updateSegmentControlsDOM(settings)
     }

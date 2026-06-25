@@ -58,6 +58,8 @@ These users value ease of use, quick results, and a tool that enhances the atmos
 - **Playback Engine:**
   - Continuous, random playback of media segments.
   - Configurable segment duration (min/max sliders, with initial defaults of 5s for both, range 1-300s).
+  - Video playback mode control: `sample` preserves randomized start points and media-ended transitions; `loop` starts videos at the configured skip-start point, loops inside the skip-bounded range, and lets the shared segment clock advance the scene.
+  - Video mute toggle, defaulting on.
   - Hard cuts between media segments (no crossfades or smooth transitions).
   - Fullscreen display, responsive to screen size, always covering the stage ("cover" mode only).
 - **Text Overlays:**
@@ -248,6 +250,9 @@ _Goal: Enhance the playback engine to handle random segments (configurable durat
     - **AC 2.2:** The video playback continues from the start point for the exact duration specified for the segment.
     - **AC 2.3:** When the video playback reaches the end of the segment duration, the application immediately (hard cut) transitions to the next media item.
     - **AC 2.4:** If the video's natural end is reached before the segment duration is complete, the application immediately transitions to the next media item when the video ends.
+    - **AC 2.5:** In `loop` playback mode, videos begin at the configured skip-start point rather than a random start point, loop back to that point when they reach the skip-bounded end, and do not advance the media segment when the individual video ends.
+    - **AC 2.6:** In `loop` playback mode, the shared segment clock controls when the full stage layout advances to the next synchronized media set.
+    - **AC 2.7:** Video elements are muted by default, and the user can toggle video muting for subsequent video elements.
 3.  **Story:** As a User, I want to be able to configure the duration range (minimum and maximum seconds) for the random segments so that I can control the pace of the visual transitions.
     - **AC 3.1:** Given the UI is visible, there is a control (e.g., a slider or input field pair) labeled clearly for setting the minimum segment duration.
     - **AC 3.2:** Given the UI is visible, there is a control (e.g., a slider or input field pair) labeled clearly for setting the maximum segment duration.

@@ -1,4 +1,5 @@
 import { createSingleStageLayout } from './constants/stageLayouts.js'
+import { VIDEO_PLAYBACK_MODES } from './constants/playbackConfig.js'
 
 export function createDefaultState() {
   return {
@@ -9,6 +10,8 @@ export function createDefaultState() {
       maxDuration: 5,
       skipStart: 0,
       skipEnd: 0,
+      videoPlaybackMode: VIDEO_PLAYBACK_MODES.SAMPLE,
+      videoMuted: true,
     },
     uiSettings: {
       advancedControlsVisible: false,

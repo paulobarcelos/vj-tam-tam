@@ -178,7 +178,7 @@
   - (The application will enforce that min duration cannot exceed max duration, and vice-versa, as per PRD AC E2.S3.5).
 - Test card overlay toggle button.
 - Color correction sliders (brightness, contrast, saturation).
-- Video segment controls (skip start/end sliders).
+- Video segment controls (skip start/end sliders), playback mode buttons (`sample` / `loop`), and a mute toggle that defaults on.
 - Projection Mode toggle button.
 
 **Projection Mode Controls** (when Projection Mode active):

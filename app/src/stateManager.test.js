@@ -100,6 +100,8 @@ describe('StateManager', () => {
         maxDuration: 5,
         skipStart: 0,
         skipEnd: 0,
+        videoPlaybackMode: 'sample',
+        videoMuted: true,
       })
     })
   })
@@ -226,6 +228,8 @@ describe('StateManager', () => {
             maxDuration: 5,
             skipStart: 0,
             skipEnd: 0,
+            videoPlaybackMode: 'sample',
+            videoMuted: true,
           },
         })
       )
@@ -386,6 +390,8 @@ describe('StateManager', () => {
           maxDuration: 5,
           skipStart: 0,
           skipEnd: 0,
+          videoPlaybackMode: 'sample',
+          videoMuted: true,
         })
       })
 
@@ -405,6 +411,8 @@ describe('StateManager', () => {
           maxDuration: 8,
           skipStart: 2,
           skipEnd: 1,
+          videoPlaybackMode: 'loop',
+          videoMuted: false,
         }
 
         stateManager.updateSegmentSettings(newSettings)
@@ -451,6 +459,18 @@ describe('StateManager', () => {
         expect(settings.skipEnd).toBe(100) // Should remain unchanged
       })
 
+      it('should validate video playback mode and mute settings', () => {
+        stateManager.updateSegmentSettings({ videoPlaybackMode: 'loop', videoMuted: false })
+        let settings = stateManager.getSegmentSettings()
+        expect(settings.videoPlaybackMode).toBe('loop')
+        expect(settings.videoMuted).toBe(false)
+
+        stateManager.updateSegmentSettings({ videoPlaybackMode: 'invalid', videoMuted: 'nope' })
+        settings = stateManager.getSegmentSettings()
+        expect(settings.videoPlaybackMode).toBe('loop')
+        expect(settings.videoMuted).toBe(false)
+      })
+
       it('should ignore invalid data types', () => {
         const originalSettings = stateManager.getSegmentSettings()
 
@@ -459,6 +479,8 @@ describe('StateManager', () => {
           maxDuration: null,
           skipStart: undefined,
           skipEnd: {},
+          videoPlaybackMode: 'invalid',
+          videoMuted: 'false',
         })
 
         const settings = stateManager.getSegmentSettings()
@@ -518,6 +540,8 @@ describe('StateManager', () => {
             maxDuration: 15,
             skipStart: 5,
             skipEnd: 2,
+            videoPlaybackMode: 'loop',
+            videoMuted: false,
           },
         }
         storageFacade.loadState.mockReturnValue(persistedState)
@@ -533,6 +557,8 @@ describe('StateManager', () => {
           maxDuration: 15,
           skipStart: 5,
           skipEnd: 2,
+          videoPlaybackMode: 'loop',
+          videoMuted: false,
         })
 
         expect(consoleLogSpy).toHaveBeenCalledWith('Segment settings restored from localStorage')
@@ -555,6 +581,8 @@ describe('StateManager', () => {
           maxDuration: 5,
           skipStart: 0,
           skipEnd: 0,
+          videoPlaybackMode: 'sample',
+          videoMuted: true,
         })
       })
 
@@ -576,6 +604,8 @@ describe('StateManager', () => {
           maxDuration: 5, // From defaults
           skipStart: 0, // From defaults
           skipEnd: 0, // From defaults
+          videoPlaybackMode: 'sample', // From defaults
+          videoMuted: true, // From defaults
         })
       })
 
@@ -589,6 +619,8 @@ describe('StateManager', () => {
               maxDuration: 14,
               skipStart: 0,
               skipEnd: 0,
+              videoPlaybackMode: 'sample',
+              videoMuted: true,
             },
           })
         )
