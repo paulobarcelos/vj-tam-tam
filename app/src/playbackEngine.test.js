@@ -105,6 +105,7 @@ function resetPlaybackEngineState() {
   playbackEngine.isCyclingActive = false
   playbackEngine.currentMediaItem = null
   playbackEngine.currentMediaItems = []
+  playbackEngine.currentVideoPlaybackMode = 'sample'
   playbackEngine.recentMediaHistory = []
   playbackEngine.playbackState = 'inactive'
 }
@@ -849,6 +850,22 @@ describe('PlaybackEngine', () => {
 
       expect(videoElement.muted).toBe(false)
       expect(imageElement.muted).toBe(false)
+    })
+
+    it('should rerender current media immediately when video playback mode changes', () => {
+      playbackEngine.currentVideoPlaybackMode = 'sample'
+      playbackEngine.currentMediaItems = [mockVideoItem]
+      playbackEngine.currentMediaElements = [{ tagName: 'VIDEO', muted: true }]
+      const displaySpy = vi.spyOn(playbackEngine, 'displayMediaItems').mockImplementation(() => {})
+
+      playbackEngine.handleSegmentSettingsUpdate({
+        segmentSettings: {
+          videoPlaybackMode: 'loop',
+          videoMuted: true,
+        },
+      })
+
+      expect(displaySpy).toHaveBeenCalledWith([mockVideoItem])
     })
 
     it('should return current media element', () => {
