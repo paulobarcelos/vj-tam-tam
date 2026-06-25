@@ -50,6 +50,7 @@ class PlaybackEngine {
     this.isPlaybackActive = false
     this.autoPlaybackEnabled = true
     this.stageLayout = createSingleStageLayout()
+    this.currentVideoPlaybackMode = VIDEO_PLAYBACK_MODES.SAMPLE
 
     // Cycling-specific properties
     this.isCyclingActive = false
@@ -171,6 +172,15 @@ class PlaybackEngine {
         mediaElement.muted = videoMuted
       }
     })
+
+    const nextVideoPlaybackMode =
+      data.segmentSettings.videoPlaybackMode || VIDEO_PLAYBACK_MODES.SAMPLE
+    if (
+      nextVideoPlaybackMode !== this.currentVideoPlaybackMode &&
+      this.currentMediaItems.length > 0
+    ) {
+      this.displayMediaItems([...this.currentMediaItems])
+    }
   }
 
   /**
@@ -350,6 +360,8 @@ class PlaybackEngine {
       this.currentMediaElement = mediaElements[0] || null
       this.currentMediaItems = slotMediaItems.slice(0, mediaElements.length)
       this.currentMediaItem = this.currentMediaItems[0] || null
+      this.currentVideoPlaybackMode =
+        synchronizedSegmentSettings.videoPlaybackMode || VIDEO_PLAYBACK_MODES.SAMPLE
 
       if (this.isCyclingActive && isLoopPlayback && mediaElements.length > 0) {
         this.scheduleSegmentClockTransition(segmentDuration)
@@ -748,6 +760,7 @@ class PlaybackEngine {
       this.currentMediaElements = []
       this.currentMediaItem = null
       this.currentMediaItems = []
+      this.currentVideoPlaybackMode = VIDEO_PLAYBACK_MODES.SAMPLE
       this.stageLayoutElement = null
     } catch (error) {
       console.error('Error clearing current media:', error)
