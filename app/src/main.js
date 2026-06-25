@@ -86,9 +86,41 @@ async function init() {
   }
 }
 
+function canRegisterServiceWorker() {
+  const isLocalhost = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)
+
+  return 'serviceWorker' in navigator && (window.isSecureContext || isLocalhost)
+}
+
+function registerServiceWorker() {
+  if (!canRegisterServiceWorker()) {
+    return
+  }
+
+  const register = async () => {
+    try {
+      const registration = await navigator.serviceWorker.register(
+        new URL('../sw.js', import.meta.url)
+      )
+      registration.update?.()
+      console.log('Offline app shell registered')
+    } catch (error) {
+      console.warn('Offline app shell registration failed:', error)
+    }
+  }
+
+  if (document.readyState === 'complete') {
+    register()
+  } else {
+    window.addEventListener('load', register, { once: true })
+  }
+}
+
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init)
 } else {
   init()
 }
+
+registerServiceWorker()

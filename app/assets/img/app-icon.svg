@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="VJ Tam Tam">
+  <rect width="512" height="512" rx="96" fill="#050607" />
+  <path d="M80 96h112l64 248 64-248h112L312 416H200L80 96Z" fill="#19d4ff" />
+  <path d="M320 160h112v96h-48v160h-64V160Z" fill="#35e889" opacity="0.92" />
+  <rect x="80" y="416" width="352" height="24" rx="12" fill="#ffb13b" />
+</svg>

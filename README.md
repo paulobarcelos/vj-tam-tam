@@ -9,6 +9,7 @@ VJ Tam Tam is a user-friendly, web-based "auto VJ" tool designed to solve the pr
 - **Text Overlays**: Add custom messages that appear over visuals
 - **Projection Mapping**: Advanced perspective correction for projector setups
 - **File Persistence**: Your media selections persist across browser sessions
+- **Offline App Shell**: After one successful online load, the app shell can reload offline from a versioned PWA cache
 - **Fullscreen Experience**: Immersive visual backdrop for any event
 
 ## Current State
@@ -34,7 +35,7 @@ As of 2026-06-10, `main` is the current usable static app and deploys through Gi
    ```bash
    npm run dev
    ```
-   
+
    The application will be available at `http://localhost:3000`
 
 4. **Drop your media files** onto the application window and enjoy!
@@ -55,6 +56,8 @@ To deploy the application to GitHub Pages:
    npm run publish
    ```
 
+   This regenerates `app/sw.js` before pushing `app/` to `gh-pages`, so the offline app-shell cache gets a new content version when deployed files change.
+
 3. **Configure GitHub Pages** (one-time setup)
    - Go to repository Settings > Pages
    - Source: Deploy from a branch
@@ -68,7 +71,8 @@ The application will be available at `https://<username>.github.io/<repository-n
 ### Available Scripts
 
 - `npm run dev` - Start local development server
-- `npm run publish` - Deploy to GitHub Pages via `gh-pages` branch
+- `npm run build:pwa` - Regenerate the versioned offline service worker
+- `npm run publish` - Regenerate the service worker and deploy to GitHub Pages via `gh-pages` branch
 - `npm test` - Run test suite
 - `npm run lint` - Check code quality
 - `npm run format` - Format code with Prettier
@@ -92,6 +96,7 @@ The application will be available at `https://<username>.github.io/<repository-n
 - **Frontend**: Vanilla JavaScript (ES Modules), HTML5, CSS3
 - **Libraries**: Maptastic.js (projection mapping)
 - **APIs**: FileSystemAccessAPI, localStorage, Fullscreen API
+- **Offline**: Web App Manifest and generated Service Worker app-shell cache
 - **Deployment**: GitHub Pages
 - **Testing**: Vitest, JSDOM
 - **Development**: ESLint, Prettier, Husky

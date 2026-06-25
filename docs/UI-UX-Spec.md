@@ -16,6 +16,7 @@
 - **Progressive Disclosure**: Advanced features hidden by default, revealed through clear hierarchies
 - **Minimalist Notifications**: Non-intrusive toast messages for essential feedback only
 - **Comprehensive Persistence**: All relevant UI states, interaction parameters (including advanced controls, projection settings, corner calibration data, drawer states, active tabs), and user configurations are saved to `localStorage` to ensure a consistent experience across sessions.
+- **Offline Continuity**: After first online load, the static app shell can reload offline from a versioned PWA cache. User media remains controlled by browser file access permissions and is not stored in the app-shell cache.
 
 ## Visual Design System
 

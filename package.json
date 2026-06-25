@@ -5,8 +5,9 @@
   "description": "VJ Tam Tam is a user-friendly, web-based 'auto VJ' tool for effortless creation of dynamic, fullscreen visual displays from user-provided photos and videos, with features for text overlays and projection mapping.",
   "main": "app/index.html",
   "scripts": {
+    "build:pwa": "node scripts/generate-service-worker.mjs",
     "dev": "serve -s app",
-    "publish": "git subtree push --prefix app origin gh-pages",
+    "publish": "npm run build:pwa && git subtree push --prefix app origin gh-pages",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:once": "vitest run",

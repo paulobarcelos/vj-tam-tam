@@ -36,6 +36,7 @@ These users value ease of use, quick results, and a tool that enhances the atmos
 
 - **Initial Setup:** User visits URL, drops media files/folders or uses file picker. Playback begins automatically.
 - **Persistence & Resumption:** User can close and later revisit the URL; the application state (selected media - if API allows, text entries, settings) will automatically reload from `localStorage`, and playback will resume where they left off.
+- **Offline App Shell:** After the user has loaded the application once while online, the static app shell can reload offline using the installed service worker cache. User-selected media remains governed by browser file/blob/FileSystem Access availability and is not cached by the service worker.
 - **Mid-Performance Updates:** Users can add more media or modify text entries _while playback is ongoing_. The system should integrate these changes dynamically into the current pool for randomization.
 - **Mid-Performance Adjustments:** Users can access the advanced settings and projection tools _while playback is ongoing_ to make adjustments (e.g., warp perspective, tweak colors) without interrupting the visual stream.
 - **Idle State:** When idle, the UI controls fade away, leaving only the fullscreen visuals. Controls reappear on mouse movement or keypress.
@@ -80,6 +81,10 @@ These users value ease of use, quick results, and a tool that enhances the atmos
   - Video Segment Start/End Control: Sliders or inputs to define how many seconds to skip from the beginning and end of video files (Story E5.S9), available when advanced panel is visible.
 - **Persistence:**
   - All user settings (timing, text entries, advanced display settings (including projection settings like warp/calibration data), video segment controls), the user-toggled visibility state of UI sections (e.g., the Advanced Controls panel), and the overall projection mode state (active/inactive) are automatically saved to and loaded from `localStorage`. Note: The main drawer's general visibility (as determined by user activity/idle state) and its scroll positions are not persisted. Attempt to persist file references using `FileSystemAccessAPI` if browser supports, otherwise just settings/UI state persist.
+- **Offline App Shell:**
+  - A Web App Manifest and generated Service Worker cache the deployed app shell for offline reloads after first online use.
+  - The service worker cache is content-versioned and removes older VJ Tam Tam caches on activation to avoid stale deployed files.
+  - User media files are not precached by the service worker.
 - **UI/UX:**
   - Minimalist UI, controls auto-hide when idle (including Maptastic handles and test card overlay). Simple custom toast notifications for non-critical feedback.
 - **Fullscreen Mode Control:** A dedicated UI button to allow users to easily enter and exit application fullscreen mode, with its state synchronized with the browser's fullscreen status.
