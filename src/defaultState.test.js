@@ -24,6 +24,8 @@ describe('createDefaultState', () => {
         maxDuration: 5,
         skipStart: 0,
         skipEnd: 0,
+        videoPlaybackMode: 'sample',
+        videoMuted: true,
       },
       uiSettings: {
         advancedControlsVisible: false,

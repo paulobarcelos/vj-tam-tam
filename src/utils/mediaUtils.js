@@ -311,3 +311,63 @@ export const getVideoSegmentParameters = (videoDuration, segmentSettings) => {
     fallbackUsed: rangeResult.fallbackUsed,
   }
 }
+
+/**
+ * Get loop playback parameters for a video using skip offsets.
+ * Unlike random segment sampling, loop playback does not require the global
+ * segment duration to fit inside the video.
+ * @param {number} videoDuration - Total video duration in seconds
+ * @param {Object} segmentSettings - Segment settings object
+ * @param {number} segmentSettings.skipStart - Skip start offset in seconds
+ * @param {number} segmentSettings.skipEnd - Skip end offset in seconds
+ * @returns {Object} Object with startPoint, loopEndTime, segmentDuration, and fallbackUsed
+ */
+export const getLoopVideoSegmentParameters = (videoDuration, segmentSettings) => {
+  if (!segmentSettings || typeof segmentSettings !== 'object') {
+    throw new Error('Segment settings must be a valid object')
+  }
+
+  const { skipStart, skipEnd } = segmentSettings
+
+  if (
+    typeof videoDuration !== 'number' ||
+    typeof skipStart !== 'number' ||
+    typeof skipEnd !== 'number'
+  ) {
+    throw new Error('Video duration and skip values must be numbers')
+  }
+
+  if (videoDuration <= 0) {
+    throw new Error('Video duration must be positive')
+  }
+
+  if (skipStart < 0 || skipEnd < 0) {
+    throw new Error('Skip values must be non-negative')
+  }
+
+  let startPoint = skipStart
+  let loopEndTime = videoDuration - skipEnd
+  let fallbackUsed = null
+
+  if (startPoint >= loopEndTime) {
+    loopEndTime = videoDuration
+    fallbackUsed = 'skipEnd'
+  }
+
+  if (startPoint >= loopEndTime) {
+    startPoint = 0
+    loopEndTime = videoDuration
+    fallbackUsed = 'both'
+  }
+
+  if (startPoint >= loopEndTime) {
+    throw new Error('Cannot create valid loop range for video')
+  }
+
+  return {
+    startPoint,
+    loopEndTime,
+    segmentDuration: loopEndTime - startPoint,
+    fallbackUsed,
+  }
+}

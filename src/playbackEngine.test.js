@@ -35,6 +35,8 @@ vi.mock('./stateManager.js', () => ({
       maxDuration: 5,
       skipStart: 0,
       skipEnd: 0,
+      videoPlaybackMode: 'sample',
+      videoMuted: true,
     })),
     getStageLayout: vi.fn(() => ({
       columns: 1,
@@ -49,6 +51,12 @@ vi.mock('./utils/mediaUtils.js', () => ({
   calculateRandomSegmentDuration: vi.fn(() => 5), // Return default 5 seconds
   getVideoSegmentParameters: vi.fn(() => ({
     startPoint: 0,
+    segmentDuration: 5,
+    fallbackUsed: null,
+  })),
+  getLoopVideoSegmentParameters: vi.fn(() => ({
+    startPoint: 0,
+    loopEndTime: 5,
     segmentDuration: 5,
     fallbackUsed: null,
   })),
@@ -324,6 +332,7 @@ describe('PlaybackEngine', () => {
       // Expect listeners for both mediaPoolUpdated and mediaPoolRestored
       expect(eventBus.on).toHaveBeenCalledWith('state.mediaPoolUpdated', expect.any(Function))
       expect(eventBus.on).toHaveBeenCalledWith('state.mediaPoolRestored', expect.any(Function))
+      expect(eventBus.on).toHaveBeenCalledWith('state.segmentSettingsUpdated', expect.any(Function))
       expect(window.addEventListener).toHaveBeenCalledWith('resize', expect.any(Function))
     })
   })
@@ -454,6 +463,19 @@ describe('PlaybackEngine', () => {
         'loadedmetadata',
         expect.any(Function)
       )
+    })
+
+    it('should respect the video mute segment setting', () => {
+      const videoElement = playbackEngine.createVideoElement(mockVideoItem, {
+        minDuration: 5,
+        maxDuration: 5,
+        skipStart: 0,
+        skipEnd: 0,
+        videoPlaybackMode: 'sample',
+        videoMuted: false,
+      })
+
+      expect(videoElement.muted).toBe(false)
     })
 
     it('should handle image creation errors gracefully', () => {
@@ -606,6 +628,29 @@ describe('PlaybackEngine', () => {
       expect(scheduleSpy).toHaveBeenCalledTimes(1)
       vi.useRealTimers()
     })
+
+    it('should schedule a shared segment clock in loop playback mode', async () => {
+      const stateManagerModule = await import('./stateManager.js')
+      const stateManagerMock = stateManagerModule.stateManager
+      stateManagerMock.getSegmentSettings.mockReturnValueOnce({
+        minDuration: 5,
+        maxDuration: 5,
+        skipStart: 0,
+        skipEnd: 0,
+        videoPlaybackMode: 'loop',
+        videoMuted: true,
+      })
+      playbackEngine.applyStageLayout({ columns: 2, rows: 1 }, { rerender: false })
+      playbackEngine.isCyclingActive = true
+      const scheduleSpy = vi.spyOn(playbackEngine, 'scheduleSegmentClockTransition')
+
+      playbackEngine.displayMediaItems([
+        mockImageItem,
+        { ...mockImageItem, id: 'test-image-2', name: 'test-image-2.jpg' },
+      ])
+
+      expect(scheduleSpy).toHaveBeenCalledWith(5)
+    })
   })
 
   describe('media pool updates', () => {
@@ -743,6 +788,10 @@ describe('PlaybackEngine', () => {
       // Verify event listeners are removed
       expect(eventBus.off).toHaveBeenCalledWith('state.mediaPoolUpdated', expect.any(Function))
       expect(eventBus.off).toHaveBeenCalledWith('state.mediaPoolRestored', expect.any(Function))
+      expect(eventBus.off).toHaveBeenCalledWith(
+        'state.segmentSettingsUpdated',
+        expect.any(Function)
+      )
       expect(window.removeEventListener).toHaveBeenCalledWith('resize', expect.any(Function))
 
       // Verify stopAutoPlayback is called
@@ -787,6 +836,21 @@ describe('PlaybackEngine', () => {
   })
 
   describe('utility methods', () => {
+    it('should apply mute setting updates to current video elements', () => {
+      const videoElement = { tagName: 'VIDEO', muted: true }
+      const imageElement = { tagName: 'IMG', muted: false }
+      playbackEngine.currentMediaElements = [videoElement, imageElement]
+
+      playbackEngine.handleSegmentSettingsUpdate({
+        segmentSettings: {
+          videoMuted: false,
+        },
+      })
+
+      expect(videoElement.muted).toBe(false)
+      expect(imageElement.muted).toBe(false)
+    })
+
     it('should return current media element', () => {
       const mockElement = document.createElement('img')
       playbackEngine.currentMediaElement = mockElement

@@ -420,6 +420,30 @@
               />
             </div>
           </div>
+          <div class="video-options-row">
+            <div class="video-mode-control" role="group" aria-label="Video playback mode">
+              <button
+                type="button"
+                class="video-mode-btn is-active"
+                data-video-playback-mode="sample"
+                aria-pressed="true"
+              >
+                sample
+              </button>
+              <button
+                type="button"
+                class="video-mode-btn"
+                data-video-playback-mode="loop"
+                aria-pressed="false"
+              >
+                loop
+              </button>
+            </div>
+            <label class="video-mute-toggle" for="video-muted-toggle">
+              <input type="checkbox" id="video-muted-toggle" checked />
+              <span>mute</span>
+            </label>
+          </div>
         </div>
 
         <div class="live-strip-cell live-strip-frequency">

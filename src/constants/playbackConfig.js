@@ -1,3 +1,8 @@
+export const VIDEO_PLAYBACK_MODES = Object.freeze({
+  SAMPLE: 'sample',
+  LOOP: 'loop',
+})
+
 /**
  * Playback configuration constants for the VJ Tam Tam application
  * Defines timing, transitions, and other playback behavior settings
@@ -38,12 +43,15 @@ export const PLAYBACK_CONFIG = {
     DEFAULT_MAX_DURATION: 5,
     DEFAULT_SKIP_START: 0,
     DEFAULT_SKIP_END: 0,
+    DEFAULT_VIDEO_PLAYBACK_MODE: VIDEO_PLAYBACK_MODES.SAMPLE,
+    DEFAULT_VIDEO_MUTED: true,
 
     // Valid ranges for settings (in seconds)
     DURATION_MIN_LIMIT: 1,
     DURATION_MAX_LIMIT: 300,
     SKIP_MIN_LIMIT: 0,
     SKIP_MAX_LIMIT: 300, // 5 minutes max skip
+    VIDEO_PLAYBACK_MODES: Object.values(VIDEO_PLAYBACK_MODES),
   },
 }
 

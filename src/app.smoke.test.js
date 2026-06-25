@@ -77,6 +77,13 @@ describe('VJ Tam Tam app smoke', () => {
     expect(document.querySelector('#bottom-live-strip #max-duration-slider').max).toBe('300')
     expect(document.querySelector('#bottom-live-strip #skip-start-slider')).toBeTruthy()
     expect(document.querySelector('#bottom-live-strip #skip-end-slider')).toBeTruthy()
+    expect(
+      document.querySelector('#bottom-live-strip [data-video-playback-mode="sample"]')
+    ).toBeTruthy()
+    expect(
+      document.querySelector('#bottom-live-strip [data-video-playback-mode="loop"]')
+    ).toBeTruthy()
+    expect(document.querySelector('#bottom-live-strip #video-muted-toggle').checked).toBe(true)
     expect(document.querySelector('#bottom-live-strip #text-frequency-slider')).toBeTruthy()
     expect(document.querySelector('#bottom-live-strip #layout-single-btn')).toBeTruthy()
     expect(
@@ -180,6 +187,20 @@ describe('VJ Tam Tam app smoke', () => {
     expect(document.getElementById('skip-start-input').value).toBe('2')
     expect(document.getElementById('skip-end-input').value).toBe('4')
     expect(document.getElementById('live-frequency-summary').textContent).toBe('Often')
+  })
+
+  it('updates video playback mode and mute controls from the bottom live strip', () => {
+    uiManager.init()
+    uiManager.initializeAdvancedControlsFromRestoredState()
+
+    document.querySelector('[data-video-playback-mode="loop"]').click()
+    expect(stateManager.getSegmentSettings().videoPlaybackMode).toBe('loop')
+    expect(
+      document.querySelector('[data-video-playback-mode="loop"]').getAttribute('aria-pressed')
+    ).toBe('true')
+
+    document.getElementById('video-muted-toggle').click()
+    expect(stateManager.getSegmentSettings().videoMuted).toBe(false)
   })
 
   it('opens projection mode and toggles the test card', () => {

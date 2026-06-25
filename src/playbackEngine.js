@@ -8,9 +8,17 @@ import { eventBus } from './eventBus.js'
 import { toastManager } from './toastManager.js'
 import { stateManager } from './stateManager.js'
 import { STRINGS, t } from './constants/strings.js'
-import { PLAYBACK_CONFIG, PLAYBACK_STATES } from './constants/playbackConfig.js'
+import {
+  PLAYBACK_CONFIG,
+  PLAYBACK_STATES,
+  VIDEO_PLAYBACK_MODES,
+} from './constants/playbackConfig.js'
 import { filterUsableMedia } from './utils/mediaUtils.js'
-import { calculateRandomSegmentDuration, getVideoSegmentParameters } from './utils/mediaUtils.js'
+import {
+  calculateRandomSegmentDuration,
+  getLoopVideoSegmentParameters,
+  getVideoSegmentParameters,
+} from './utils/mediaUtils.js'
 import { STATE_EVENTS, CYCLING_EVENTS } from './constants/events.js'
 import {
   areStageLayoutsEqual,
@@ -55,6 +63,7 @@ class PlaybackEngine {
     this.onMediaPoolUpdate = this.handleMediaPoolUpdate.bind(this)
     this.onMediaPoolRestored = this.handleMediaPoolRestored.bind(this)
     this.onStageLayoutUpdated = this.handleStageLayoutUpdate.bind(this)
+    this.onSegmentSettingsUpdated = this.handleSegmentSettingsUpdate.bind(this)
     this.onWindowResize = this.handleWindowResize.bind(this)
   }
 
@@ -90,6 +99,7 @@ class PlaybackEngine {
     eventBus.on(STATE_EVENTS.MEDIA_POOL_UPDATED, this.onMediaPoolUpdate)
     eventBus.on(STATE_EVENTS.MEDIA_POOL_RESTORED, this.onMediaPoolRestored)
     eventBus.on(STATE_EVENTS.STAGE_LAYOUT_UPDATED, this.onStageLayoutUpdated)
+    eventBus.on(STATE_EVENTS.SEGMENT_SETTINGS_UPDATED, this.onSegmentSettingsUpdated)
 
     // Listen for window resize events
     window.addEventListener('resize', this.onWindowResize)
@@ -144,6 +154,23 @@ class PlaybackEngine {
    */
   handleStageLayoutUpdate(data) {
     this.applyStageLayout(data?.stageLayout, { rerender: true })
+  }
+
+  /**
+   * Apply live segment setting updates that can safely affect existing elements.
+   * @param {Object} data - Segment settings update data
+   */
+  handleSegmentSettingsUpdate(data) {
+    if (!this.hasCurrentMedia() || !data?.segmentSettings) {
+      return
+    }
+
+    const videoMuted = data.segmentSettings.videoMuted !== false
+    this.currentMediaElements.forEach((mediaElement) => {
+      if (mediaElement.tagName === 'VIDEO') {
+        mediaElement.muted = videoMuted
+      }
+    })
   }
 
   /**
@@ -280,6 +307,8 @@ class PlaybackEngine {
         minDuration: segmentDuration,
         maxDuration: segmentDuration,
       }
+      const isLoopPlayback =
+        synchronizedSegmentSettings.videoPlaybackMode === VIDEO_PLAYBACK_MODES.LOOP
 
       // Clear any existing media
       this.clearCurrentMedia()
@@ -293,6 +322,7 @@ class PlaybackEngine {
           segmentDuration,
           segmentSettings: synchronizedSegmentSettings,
           driveCycling: index === 0,
+          useSegmentClock: isLoopPlayback,
         })
 
         if (!mediaElement) return
@@ -320,6 +350,10 @@ class PlaybackEngine {
       this.currentMediaElement = mediaElements[0] || null
       this.currentMediaItems = slotMediaItems.slice(0, mediaElements.length)
       this.currentMediaItem = this.currentMediaItems[0] || null
+
+      if (this.isCyclingActive && isLoopPlayback && mediaElements.length > 0) {
+        this.scheduleSegmentClockTransition(segmentDuration)
+      }
     } catch (error) {
       console.error('Media display error:', error)
       toastManager.error(
@@ -357,7 +391,7 @@ class PlaybackEngine {
   createMediaElement(mediaItem, options) {
     if (mediaItem.type === 'image') {
       return this.createImageElement(mediaItem, options.segmentDuration, {
-        driveCycling: options.driveCycling,
+        driveCycling: options.driveCycling && !options.useSegmentClock,
       })
     }
 
@@ -424,19 +458,30 @@ class PlaybackEngine {
    * @param {Object} options - Video playback options
    * @returns {HTMLVideoElement} - Configured video element
    */
-  createVideoElement(mediaItem, segmentSettings, { driveCycling = true } = {}) {
+  createVideoElement(mediaItem, segmentSettings = {}, { driveCycling = true } = {}) {
     console.log(`Creating video element for file: ${mediaItem.name}`)
     try {
+      const effectiveSegmentSettings = {
+        minDuration: PLAYBACK_CONFIG.SEGMENT_SETTINGS.DEFAULT_MIN_DURATION,
+        maxDuration: PLAYBACK_CONFIG.SEGMENT_SETTINGS.DEFAULT_MAX_DURATION,
+        skipStart: PLAYBACK_CONFIG.SEGMENT_SETTINGS.DEFAULT_SKIP_START,
+        skipEnd: PLAYBACK_CONFIG.SEGMENT_SETTINGS.DEFAULT_SKIP_END,
+        videoPlaybackMode: PLAYBACK_CONFIG.SEGMENT_SETTINGS.DEFAULT_VIDEO_PLAYBACK_MODE,
+        videoMuted: PLAYBACK_CONFIG.SEGMENT_SETTINGS.DEFAULT_VIDEO_MUTED,
+        ...segmentSettings,
+      }
       const video = document.createElement('video')
       video.className = 'stage-media video'
       video.src = mediaItem.url
       video.autoplay = true
-      video.muted = true
+      video.muted = effectiveSegmentSettings.videoMuted !== false
       video.loop = false // Disable loop for cycling
       video.controls = false
+      const isLoopPlayback =
+        effectiveSegmentSettings.videoPlaybackMode === VIDEO_PLAYBACK_MODES.LOOP
 
       // Store segment settings on the video element for later use
-      video._segmentSettings = segmentSettings
+      video._segmentSettings = effectiveSegmentSettings
       video._mediaItem = mediaItem
 
       // Initialize video segment state
@@ -446,6 +491,8 @@ class PlaybackEngine {
         segmentEndTime: null,
         isMonitoring: false,
         fallbackUsed: null,
+        loopStartTime: null,
+        loopEndTime: null,
         seekTarget: null,
         seekAttempts: 0,
         lastTimeUpdateCheck: 0, // For throttling timeupdate checks
@@ -453,6 +500,14 @@ class PlaybackEngine {
 
       // Handle video end - transition to next media if cycling is active
       video.addEventListener('ended', () => {
+        if (isLoopPlayback) {
+          if (this.isCyclingActive && video._segmentState.isMonitoring) {
+            this.restartLoopingVideo(video, video._segmentState.loopStartTime ?? 0)
+            video._segmentState.isMonitoring = true
+          }
+          return
+        }
+
         if (this.isCyclingActive && driveCycling) {
           // Clear monitoring state when video ends naturally
           video._segmentState.isMonitoring = false
@@ -470,18 +525,23 @@ class PlaybackEngine {
         const naturalHeight = video.videoHeight
 
         console.log(
-          `Video segment debug - duration: ${duration}s, dimensions: ${naturalWidth}x${naturalHeight}, skipStart: ${segmentSettings.skipStart}s, skipEnd: ${segmentSettings.skipEnd}s`
+          `Video segment debug - duration: ${duration}s, dimensions: ${naturalWidth}x${naturalHeight}, skipStart: ${effectiveSegmentSettings.skipStart}s, skipEnd: ${effectiveSegmentSettings.skipEnd}s`
         )
 
         try {
-          // Calculate video segment parameters with fallback logic
-          const segmentParams = getVideoSegmentParameters(video.duration, segmentSettings)
+          const segmentParams = isLoopPlayback
+            ? getLoopVideoSegmentParameters(video.duration, effectiveSegmentSettings)
+            : getVideoSegmentParameters(video.duration, effectiveSegmentSettings)
+          const segmentEndTime = isLoopPlayback
+            ? segmentParams.loopEndTime
+            : segmentParams.startPoint + segmentParams.segmentDuration
 
           // Store segment parameters in video state
           video._segmentState.startPoint = segmentParams.startPoint
           video._segmentState.segmentDuration = segmentParams.segmentDuration
-          video._segmentState.segmentEndTime =
-            segmentParams.startPoint + segmentParams.segmentDuration
+          video._segmentState.segmentEndTime = segmentEndTime
+          video._segmentState.loopStartTime = segmentParams.startPoint
+          video._segmentState.loopEndTime = isLoopPlayback ? segmentParams.loopEndTime : null
           video._segmentState.fallbackUsed = segmentParams.fallbackUsed
           video._segmentState.seekTarget = segmentParams.startPoint
           video._segmentState.seekAttempts = 0
@@ -494,9 +554,10 @@ class PlaybackEngine {
             `Video segment debug for ${mediaItem.name}: duration=${video.duration.toFixed(2)}s, ` +
               `segmentDuration=${segmentParams.segmentDuration.toFixed(2)}s, ` +
               `startPoint=${segmentParams.startPoint.toFixed(2)}s, ` +
-              `endPoint=${(segmentParams.startPoint + segmentParams.segmentDuration).toFixed(2)}s, ` +
+              `endPoint=${segmentEndTime.toFixed(2)}s, ` +
               `coverage=${((segmentParams.segmentDuration / video.duration) * 100).toFixed(1)}%, ` +
-              `fallback=${segmentParams.fallbackUsed || 'none'}`
+              `fallback=${segmentParams.fallbackUsed || 'none'}, ` +
+              `mode=${effectiveSegmentSettings.videoPlaybackMode || VIDEO_PLAYBACK_MODES.SAMPLE}`
           )
 
           // Seek to start point with retry mechanism
@@ -505,13 +566,13 @@ class PlaybackEngine {
           // Video offset fallback applied if needed (no user notification for noise reduction)
 
           // Start segment monitoring if cycling is active
-          if (this.isCyclingActive && driveCycling) {
+          if (this.isCyclingActive && (driveCycling || isLoopPlayback)) {
             video._segmentState.isMonitoring = true
           }
         } catch (error) {
           console.error('Video segment calculation error:', error)
           // Fallback to original behavior if segment calculation fails
-          if (this.isCyclingActive && driveCycling) {
+          if (this.isCyclingActive && driveCycling && !isLoopPlayback) {
             this.scheduleVideoMaxDurationTransition()
           }
         }
@@ -519,7 +580,11 @@ class PlaybackEngine {
 
       // Enhanced timeupdate event for precise segment timing
       video.addEventListener('timeupdate', () => {
-        if (!driveCycling || !this.isCyclingActive || !video._segmentState.isMonitoring) {
+        if (!this.isCyclingActive || !video._segmentState.isMonitoring) {
+          return
+        }
+
+        if (!driveCycling && !isLoopPlayback) {
           return
         }
 
@@ -527,13 +592,26 @@ class PlaybackEngine {
         const segmentState = video._segmentState
 
         // Throttle timeupdate checks to avoid excessive processing
+        const movedForward = currentTime >= segmentState.lastTimeUpdateCheck
         if (
+          movedForward &&
           currentTime - segmentState.lastTimeUpdateCheck <
-          PLAYBACK_CONFIG.VIDEO_TIMING.TIMEUPDATE_CHECK_THRESHOLD
+            PLAYBACK_CONFIG.VIDEO_TIMING.TIMEUPDATE_CHECK_THRESHOLD
         ) {
           return
         }
         segmentState.lastTimeUpdateCheck = currentTime
+
+        if (isLoopPlayback) {
+          if (
+            segmentState.loopEndTime &&
+            currentTime >=
+              segmentState.loopEndTime - PLAYBACK_CONFIG.VIDEO_TIMING.SEGMENT_END_TOLERANCE
+          ) {
+            this.restartLoopingVideo(video, segmentState.loopStartTime ?? 0)
+          }
+          return
+        }
 
         // Check if segment duration is complete
         if (
@@ -616,6 +694,25 @@ class PlaybackEngine {
       console.error('Video seeking error:', error)
       // Continue playback from current position if seeking fails
       video._segmentState.seekTarget = null
+    }
+  }
+
+  /**
+   * Restart a video inside its configured loop range.
+   * @param {HTMLVideoElement} video - Video element to restart
+   * @param {number} startPoint - Loop start point in seconds
+   */
+  restartLoopingVideo(video, startPoint) {
+    this.seekToStartPoint(video, startPoint)
+    video._segmentState.lastTimeUpdateCheck = startPoint
+
+    if (typeof video.play === 'function') {
+      const playResult = video.play()
+      if (playResult?.catch) {
+        playResult.catch((error) => {
+          console.debug('Looping video playback resume failed:', error)
+        })
+      }
     }
   }
 
@@ -709,6 +806,7 @@ class PlaybackEngine {
       eventBus.off(STATE_EVENTS.MEDIA_POOL_UPDATED, this.onMediaPoolUpdate)
       eventBus.off(STATE_EVENTS.MEDIA_POOL_RESTORED, this.onMediaPoolRestored)
       eventBus.off(STATE_EVENTS.STAGE_LAYOUT_UPDATED, this.onStageLayoutUpdated)
+      eventBus.off(STATE_EVENTS.SEGMENT_SETTINGS_UPDATED, this.onSegmentSettingsUpdated)
       window.removeEventListener('resize', this.onWindowResize)
 
       // Stop playback and clear current media
@@ -822,6 +920,14 @@ class PlaybackEngine {
    * @param {number} segmentDuration - Duration in seconds
    */
   scheduleImageTransition(segmentDuration) {
+    this.scheduleSegmentClockTransition(segmentDuration)
+  }
+
+  /**
+   * Schedule transition to next media set after the shared segment duration.
+   * @param {number} segmentDuration - Duration in seconds
+   */
+  scheduleSegmentClockTransition(segmentDuration) {
     const duration =
       Number.isFinite(segmentDuration) && segmentDuration > 0
         ? segmentDuration
@@ -862,6 +968,8 @@ class PlaybackEngine {
       if (!this.isCyclingActive) {
         return
       }
+
+      this.clearCyclingTimer()
 
       const slotCount = this.getStageSlotCount()
 

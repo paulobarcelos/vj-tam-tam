@@ -36,6 +36,7 @@ vi.mock('./constants/strings.js', () => ({
 // Mock mediaUtils
 vi.mock('./utils/mediaUtils.js', () => ({
   getVideoSegmentParameters: vi.fn(),
+  getLoopVideoSegmentParameters: vi.fn(),
   filterUsableMedia: vi.fn(),
 }))
 
@@ -77,6 +78,7 @@ describe('PlaybackEngine - Video Segment Timing Precision', () => {
         controls: false,
         currentTime: 0,
         duration: 10,
+        play: vi.fn(() => Promise.resolve()),
         _segmentSettings: null,
         _mediaItem: null,
         _segmentState: null,
@@ -118,6 +120,8 @@ describe('PlaybackEngine - Video Segment Timing Precision', () => {
       maxDuration: 5,
       skipStart: 0,
       skipEnd: 0,
+      videoPlaybackMode: 'sample',
+      videoMuted: true,
     }
 
     // Mock stateManager methods
@@ -368,6 +372,69 @@ describe('PlaybackEngine - Video Segment Timing Precision', () => {
 
       // Monitoring should be stopped
       expect(videoElement._segmentState.isMonitoring).toBe(false)
+    })
+  })
+
+  describe('Loop playback mode', () => {
+    it('should start from skip start and loop inside the skip-bounded range', async () => {
+      const { getLoopVideoSegmentParameters } = await import('./utils/mediaUtils.js')
+      getLoopVideoSegmentParameters.mockReturnValue({
+        startPoint: 3,
+        loopEndTime: 18,
+        segmentDuration: 15,
+        fallbackUsed: null,
+      })
+      const transitionSpy = vi
+        .spyOn(playbackEngine, 'transitionToNextMedia')
+        .mockImplementation(() => {})
+
+      const videoElement = playbackEngine.createVideoElement(mediaItem, {
+        ...segmentSettings,
+        skipStart: 3,
+        skipEnd: 2,
+        videoPlaybackMode: 'loop',
+      })
+      videoElement.duration = 20
+      videoElement._triggerEvent('loadedmetadata')
+
+      expect(videoElement.currentTime).toBe(3)
+      expect(videoElement._segmentState.loopStartTime).toBe(3)
+      expect(videoElement._segmentState.loopEndTime).toBe(18)
+      expect(videoElement._segmentState.isMonitoring).toBe(true)
+
+      videoElement.currentTime = 17.9
+      videoElement._triggerEvent('timeupdate')
+
+      expect(videoElement.currentTime).toBe(3)
+      expect(videoElement.play).toHaveBeenCalled()
+      expect(transitionSpy).not.toHaveBeenCalled()
+    })
+
+    it('should loop instead of transitioning when a loop-mode video ends naturally', async () => {
+      const { getLoopVideoSegmentParameters } = await import('./utils/mediaUtils.js')
+      getLoopVideoSegmentParameters.mockReturnValue({
+        startPoint: 4,
+        loopEndTime: 10,
+        segmentDuration: 6,
+        fallbackUsed: null,
+      })
+      const transitionSpy = vi
+        .spyOn(playbackEngine, 'transitionToNextMedia')
+        .mockImplementation(() => {})
+
+      const videoElement = playbackEngine.createVideoElement(mediaItem, {
+        ...segmentSettings,
+        skipStart: 4,
+        videoPlaybackMode: 'loop',
+      })
+      videoElement.duration = 10
+      videoElement._triggerEvent('loadedmetadata')
+      videoElement._triggerEvent('ended')
+
+      expect(videoElement.currentTime).toBe(4)
+      expect(videoElement.play).toHaveBeenCalled()
+      expect(videoElement._segmentState.isMonitoring).toBe(true)
+      expect(transitionSpy).not.toHaveBeenCalled()
     })
   })
 
